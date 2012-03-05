@@ -1,10 +1,13 @@
-﻿#include "thread.h"
+﻿
+#include "thread.h"
+#include <process.h>
+
 
 
 unsigned thread::run_thread_func(void* pv)
 {
     thread_data_base* info = (thread_data_base*)pv;
-    if (info && info->thread_handle_ != INVALID_HANDLE_VALUE)
+    if (info)
     {
         try
         {
@@ -19,7 +22,7 @@ unsigned thread::run_thread_func(void* pv)
     return 0;
 }
 
-void thread::start()
+void thread::start_thread()
 {
     uintptr_t thread_handle = _beginthreadex(0, 0, run_thread_func, thread_info_.get(), 
         CREATE_SUSPENDED, &thread_info_->thread_id_);
@@ -36,23 +39,15 @@ void thread::start()
 
 void thread::terminate(unsigned exitcode)
 {
-    if (thread_info_.get() && thread_info_->thread_handle_ != INVALID_HANDLE_VALUE)
+    if (thread_info_.get())
     {
         ::TerminateThread(thread_info_->thread_handle_, exitcode);
     }
 }
 
-void thread::sleep(unsigned milsec)
-{
-    if (thread_info_.get() && thread_info_->thread_handle_ != INVALID_HANDLE_VALUE)
-    {
-        ::Sleep(milsec);
-    }
-}
-
 void thread::join(unsigned milsec)
 {
-    if (thread_info_.get() && thread_info_->thread_handle_ != INVALID_HANDLE_VALUE)
+    if (thread_info_.get())
     {
         ::WaitForSingleObject(thread_info_->thread_handle_, milsec);
     }

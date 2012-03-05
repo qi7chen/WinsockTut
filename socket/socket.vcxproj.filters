@@ -37,5 +37,8 @@
     <ClInclude Include="..\common\utility.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\thread.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

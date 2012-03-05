@@ -1,7 +1,7 @@
 ﻿/**
- *  @brief:  A simple socket client, use basic socket API
+ *  @brief:  A simple socket client, use fundamental api
  *
- * 	@author: ichenq@gmail.com
+ *  @author: ichenq@gmail.com
  *  @date:   Oct 19, 2011
  */
 
@@ -20,7 +20,7 @@ int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 3)
     {
-        _tprintf(_T("Usage: $program $host $port"));
+        _tprintf(_T("Usage: %s $host $port"), argv[0]);
         exit(1);
     }
 
@@ -103,7 +103,7 @@ int _tmain(int argc, TCHAR* argv[])
                 break;
             }
 
-            ::Sleep(count_num * 10);
+            ::Sleep(count_num * 10); // to have a rest
         }    
     }
 }

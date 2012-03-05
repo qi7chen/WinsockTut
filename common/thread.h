@@ -2,7 +2,7 @@
  *  @file:   thread.h
  *  @brief:  a simple thread class
  *
- * 	@author: ichenq@gmail.com
+ *  @author: ichenq@gmail.com
  *  @date:   Oct 19, 2011
  */
 
@@ -28,17 +28,29 @@ public:
     template <typename F>
     thread(F f)
     {
-        thread_info_.reset(new thread_data<F>(f));
+        thread_data_base* pbase = nullptr;
+        try
+        {
+            pbase = new thread_data<F>(f);
+        }
+        catch (std::bad_alloc&)
+        {
+            return ;
+        }
+        
+        thread_info_.reset(pbase);
+        start_thread();
     }
 
-    void    start();
+    
     void    terminate(unsigned exit_code);
-    void    sleep(unsigned milsec);
     void    join(unsigned milsec);
 
 private:
     thread(const thread&);
     thread& operator = (const thread&);
+
+    void    start_thread();
 
     static unsigned CALLBACK run_thread_func(void* pv);
 
@@ -53,11 +65,10 @@ struct thread::thread_data_base
     HANDLE      thread_handle_;
     unsigned    thread_id_;
 
-    thread_data_base() 
-    {
-        thread_handle_ = INVALID_HANDLE_VALUE;
-        thread_id_ = 0;
-    }
+    thread_data_base()
+        : thread_handle_(INVALID_HANDLE_VALUE),
+        thread_id_(0)
+    {}
 
     virtual ~thread_data_base() 
     {

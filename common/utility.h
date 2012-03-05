@@ -2,7 +2,7 @@
  *  @file:   utility.h
  *  @brief:  common utilities
  *
- * 	@author: ichenq@gmail.com
+ *  @author: ichenq@gmail.com
  *  @date:   Oct 19, 2011
  */
 
@@ -12,8 +12,10 @@
 #include <tchar.h>
 #include <wchar.h>
 #include <stdio.h>
-#include <string>
+#include <assert.h>
 #include <WinSock2.h>
+#include <string>
+
 
 
 
@@ -74,7 +76,11 @@ bool        WriteTextToFile(const TCHAR* module, const TCHAR* format, ...);
 
 
 // log the information message of specified error
-bool        LogErrorText(const TCHAR* msg, const TCHAR* file, size_t line, const TCHAR* func, size_t errorcode);
+bool        LogErrorText(const TCHAR* msg, 
+                        const TCHAR* file, 
+                        size_t line, 
+                        const TCHAR* func, 
+                        size_t errorcode);
 
 
 

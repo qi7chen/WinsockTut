@@ -1,8 +1,8 @@
 ﻿/**
- *  @file:   Mutex.h
- *  @brief:  
+ *  @file:   mutex.h
+ *  @brief:  mutex for thread synchronization
  *
- * 	@author: ichenq@gmail.com
+ *  @author: ichenq@gmail.com
  *  @date:   May 25, 2011
  */
 
@@ -78,11 +78,9 @@ private:
 class mutex
 {
 public:
-    // Constructor 
-    // @brief InitializeCriticalSection() will raise an exception 
-    //        if failed to allocate the critical section object,
-    //        so InitializeCriticalSectionAndSpinCount() is more safe.
-    // @param dwSpinCount The spin count for the critical section object
+    //  InitializeCriticalSection() will raise an exception if failed to 
+    //  allocate the critical section object.
+    //  InitializeCriticalSectionAndSpinCount() is more safe.
     explicit mutex(size_t spin_count = 0)
     {
         if (!::InitializeCriticalSectionAndSpinCount(&cs_, spin_count))
@@ -121,13 +119,11 @@ private:
 
 
 
-template <typename LockT>
+template <typename Lockable>
 class scoped_lock
 {
 public:
-    // Constructor
-    // @param lock A reference to a lock object
-    explicit scoped_lock(LockT& lock)
+    explicit scoped_lock(Lockable& lock)
         : lock_(lock)
     {
         lock_.lock();
@@ -139,11 +135,10 @@ public:
     }
 
 private:
-    // noncopyable
     scoped_lock(const scoped_lock&);
     scoped_lock& operator = (const scoped_lock&);
 
-    LockT&  lock_;
+    Lockable&  lock_;
 };
 
 #pragma warning(pop)

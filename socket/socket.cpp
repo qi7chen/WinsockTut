@@ -1,22 +1,25 @@
 ﻿/**
  *  @file:   socket.cpp
- *  @brief:  a simple echo server, use basic socket api
+ *  @brief:  a simple echo server, use fundamental api
  *
- * 	@author: ichenq@gmail.com
+ *  @author: ichenq@gmail.com
  *  @date:   Oct 19, 2011
  */
 
-#include "stdafx.h"
+
+
 #include "../common/utility.h"
 #include "../common/thread.h"
-
-
-
-
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <list>
+#include <memory>
+#include <functional>
 
 
 
 void    handle_client(SOCKET client_socket);
+
 
 
 int _tmain(int argc, TCHAR* argv[])
@@ -94,11 +97,16 @@ int _tmain(int argc, TCHAR* argv[])
             LOG_PRINT(_T("listen() failed"));
             break;
         }
-
-        std::shared_ptr<thread> thread_ptr;
-        thread_ptr.reset(new thread(std::bind(handle_client, sock_accept)));
-        thread_ptr->start();
-        thread_list.push_back(thread_ptr);
+        try
+        {
+            std::shared_ptr<thread> thread_ptr;
+            thread_ptr.reset(new thread(std::bind(handle_client, sock_accept)));
+            thread_list.push_back(thread_ptr);
+        }
+        catch (std::bad_alloc&)
+        {
+            LOG_PRINT(_T("allocate thread object failed"));
+        }        
     }
 
     return 0;
@@ -111,7 +119,6 @@ void    handle_client(SOCKET client_socket)
 
     for (;;)
     {
-        // read
         int bytes_read = recv(client_socket, (char*)databuf, BUFSIZ, 0);
         if (bytes_read == SOCKET_ERROR)
         {
@@ -125,7 +132,7 @@ void    handle_client(SOCKET client_socket)
             break;
         }
 
-        // write back
+        // write back what we read
         int bytes_send = send(client_socket, (const char*)databuf, bytes_read, 0);
         if (bytes_send == SOCKET_ERROR)
         {
