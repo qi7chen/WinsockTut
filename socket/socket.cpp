@@ -26,7 +26,7 @@ int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 4)
     {
-        _tprintf(_T("Usage: $program $host $port $ipv6"));
+        _tprintf(_T("Usage: %s $host $port $ipv6"), argv[0]);
         exit(1);
     }
 

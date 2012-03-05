@@ -17,17 +17,19 @@
     <ClCompile Include="..\..\common\utility.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="client.cpp">
+    <ClCompile Include="clients.cpp" />
+    <ClCompile Include="main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\common\stdafx.h" />
     <ClInclude Include="..\..\common\utility.h" />
+    <ClInclude Include="clients.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>client</ProjectName>
-    <ProjectGuid>{7D182F55-1C93-4BE0-B05D-67B04B7B0388}</ProjectGuid>
+    <ProjectName>mtclients</ProjectName>
+    <ProjectGuid>{090E3870-D6B1-443B-817B-4FA6666615ED}</ProjectGuid>
     <RootNamespace>Winsock</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
@@ -68,7 +70,7 @@
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>

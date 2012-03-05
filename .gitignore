@@ -1,6 +1,7 @@
 *.obj
 *.suo
 *.user
+*.ilk
 *.log
 *.tlog
 *.pch
@@ -8,8 +9,10 @@
 *.idb
 *.pdb
 *.res
+*.exe
 *.manifest
 *.lastbuildstate
+*.unsuccessfulbuild
 
 /Debug
 /Release

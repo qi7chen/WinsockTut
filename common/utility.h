@@ -15,8 +15,7 @@
 #include <assert.h>
 #include <WinSock2.h>
 #include <string>
-
-
+#include <sstream>
 
 
 #pragma warning(disable: 4127)
@@ -24,9 +23,11 @@
 
 
 #if defined(_UNICODE) || defined(UNICODE)
-#   define _tstring     std::wstring
-#   define _tcout       std::wcout
+#   define _tstringstream   std::wstringstream
+#   define _tstring         std::wstring
+#   define _tcout           std::wcout
 #else
+#   define _tstringstream   std::stringstream
 #   define _tstring     std::string
 #   define _tcout       std::cout
 #endif
@@ -49,6 +50,13 @@
 
 #define LOG_PRINT(fmt, ...)     do {_tprintf((fmt), __VA_ARGS__); LOG_ERROR_MSG((fmt), __VA_ARGS__);} while(false)
 
+template <typename T>
+_tstring    ToString(const T& obj)
+{
+    _tstringstream strm;
+    strm << obj;
+    return std::move(strm.str());
+}
 
 // get formatted message string by specified error code
 _tstring    GetErrorMessage(DWORD errorcode);
@@ -84,10 +92,28 @@ bool        LogErrorText(const TCHAR* msg,
 
 
 
+enum { BUFE_SIZE = 8192 };
 
-//
-//
-//
+
+enum OperType
+{
+    OperConnect, 
+    OperAccept, 
+    OperSend, 
+    OperRecv, 
+    OperDisconnect,
+    OperClose,
+};
+
+
+struct PER_HANDLE_DATA 
+{
+    WSAOVERLAPPED   overlap_;
+    SOCKET          socket_;
+    WSABUF          wsbuf_;
+    char            buffer_[BUFE_SIZE];
+    OperType        opertype_;
+};
 
 inline HANDLE   CreateCompletionPort(size_t concurrency)
 {
@@ -98,5 +124,5 @@ inline HANDLE   CreateCompletionPort(size_t concurrency)
 inline bool     AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PTR completionkey)
 {
     assert(hCompletionPort != INVALID_HANDLE_VALUE);
-    return (::CreateIoCompletionPort(hCompletionPort, hDevice, completionkey, 0) == hCompletionPort);
+    return (::CreateIoCompletionPort(hDevice, hCompletionPort, completionkey, 0) == hCompletionPort);
 }

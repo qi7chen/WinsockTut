@@ -5,14 +5,11 @@
  *  @date:   Oct 19, 2011
  */
 
-#include "stdafx.h"
+#include <tchar.h>
+#include <WinSock2.h>
+#include <WS2tcpip.h>
 #include "../../common/utility.h"
 
-
-
-
-#pragma warning(disable: 4996)
-#pragma warning(disable: 4127)
 
 
 
