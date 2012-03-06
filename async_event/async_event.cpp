@@ -4,12 +4,14 @@
 
 
 async_event_server::async_event_server()
-    : total_event_(0), listen_socket_(INVALID_SOCKET)
+    : total_events_(0), listen_socket_(INVALID_SOCKET)
 {
     memset(event_list_, 0, sizeof(event_list_));
     memset(buffer_list_, 0, sizeof(buffer_list_));
     memset(socket_list_, 1, sizeof(socket_list_));
 }
+
+
 
 bool async_event_server::start(const TCHAR* host, short port)
 {
@@ -20,13 +22,13 @@ bool async_event_server::start(const TCHAR* host, short port)
 
     for (;;)
     {
-        DWORD index = WSAWaitForMultipleEvents(total_event_, event_list_, FALSE, INFINITE, FALSE);
+        DWORD index = WSAWaitForMultipleEvents(total_events_, event_list_, FALSE, INFINITE, FALSE);
         if (index == WSA_WAIT_FAILED)
         {
             LOG_PRINT(_T("WSAWaitForMultipleEvents() failed"));
             break;
         }
-        if (index >= total_event_)
+        if (index >= total_events_)
         {
             continue;
         }
@@ -189,7 +191,7 @@ bool  async_event_server::create_listen_socket(const TCHAR* host, short port)
 
 bool async_event_server::dispatch_event(SOCKET socket, int events_flag)
 {
-    if (total_event_ == WSA_MAXIMUM_WAIT_EVENTS)
+    if (total_events_ == WSA_MAXIMUM_WAIT_EVENTS)
     {
         return false;
     }
@@ -200,6 +202,7 @@ bool async_event_server::dispatch_event(SOCKET socket, int events_flag)
         return false;
     }
     
+    // allocate buffer
     char* buffer = nullptr;
     try
     {
@@ -211,6 +214,7 @@ bool async_event_server::dispatch_event(SOCKET socket, int events_flag)
         return false;
     }
 
+    // The WSAEventSelect function automatically sets socket to nonblocking mode
     if (WSAEventSelect(socket, event, events_flag) == SOCKET_ERROR)
     {
         LOG_PRINT(_T("WSAEventSelect() failed, socket: %d"), socket);
@@ -219,17 +223,17 @@ bool async_event_server::dispatch_event(SOCKET socket, int events_flag)
         return false;
     }
     
-    event_list_[total_event_] = event;
-    socket_list_[total_event_] = socket;
-    buffer_list_[total_event_] = buffer;
-    ++total_event_;
+    event_list_[total_events_] = event;
+    socket_list_[total_events_] = socket;
+    buffer_list_[total_events_] = buffer;
+    ++total_events_;
     return true;
 }
 
 bool async_event_server::destroy_event(SOCKET socket)
 {
-    SOCKET* position = std::find(socket_list_, socket_list_+total_event_, socket);
-    if (position == socket_list_ + total_event_)
+    SOCKET* position = std::find(socket_list_, socket_list_+total_events_, socket);
+    if (position == socket_list_ + total_events_)
     {
         return false;
     }
@@ -237,7 +241,7 @@ bool async_event_server::destroy_event(SOCKET socket)
     int index = position - socket_list_;
     WSACloseEvent(event_list_[index]);
     delete [] buffer_list_[index];
-    --total_event_;
+    --total_events_;
     for (int i = index; i < WSA_MAXIMUM_WAIT_EVENTS; ++i)
     {
         event_list_[i] = event_list_[i+1];
