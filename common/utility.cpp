@@ -108,12 +108,11 @@ bool LogErrorText(const TCHAR* msg, const TCHAR* file, size_t line, const TCHAR*
 }
 
 
-_tstring AddressToString(sockaddr_in* paddr)
+_tstring AddressToString(const sockaddr_in& addr)
 {
-    assert(paddr);
     TCHAR szaddr[MAX_PATH];
     DWORD buflen = _countof(szaddr);
-    int error = WSAAddressToString((sockaddr*)paddr, sizeof(*paddr), NULL, szaddr, &buflen);
+    int error = WSAAddressToString((sockaddr*)&addr, sizeof(addr), NULL, szaddr, &buflen);
     if (error == SOCKET_ERROR)
     {
         LOG_ERROR_ENV(_T("WSAAddressToString() failed"));

@@ -63,7 +63,7 @@ _tstring    GetErrorMessage(DWORD errorcode);
 
 
 // converts a sockaddr_in structure into a human-readable string 
-_tstring	AddressToString(sockaddr_in* addr);
+_tstring	AddressToString(const sockaddr_in& addr);
 
 
 // converts a numeric string to a sockaddr_in structure
