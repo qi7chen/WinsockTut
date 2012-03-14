@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <WinSock2.h>
+#include <vector>
 #include <string>
 #include <sstream>
 
@@ -33,6 +34,13 @@
 #endif
 
 
+#define BEGIN_NETWORK_NAMESPACE     namespace network{
+#define END_NETWORK_NAMESPACE       }
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// common utilities
 
 #define LOG_DEBUG(fmt, ...)     WriteTextToFile(_T("debug"), (fmt), __VA_ARGS__)
 
@@ -50,6 +58,8 @@
 
 #define LOG_PRINT(fmt, ...)     do {_tprintf((fmt), __VA_ARGS__); LOG_ERROR_MSG((fmt), __VA_ARGS__);} while(false)
 
+
+
 template <typename T>
 _tstring    ToString(const T& obj)
 {
@@ -58,16 +68,11 @@ _tstring    ToString(const T& obj)
     return std::move(strm.str());
 }
 
+
+
 // get formatted message string by specified error code
 _tstring    GetErrorMessage(DWORD errorcode);
 
-
-// converts a sockaddr_in structure into a human-readable string 
-_tstring	AddressToString(const sockaddr_in& addr);
-
-
-// converts a numeric string to a sockaddr_in structure
-bool        StringToAddress(const _tstring& straddr, sockaddr_in* paddr);
 
 
 _tstring    GenerateFullModuleFile(const TCHAR* strmodule);
@@ -90,6 +95,9 @@ bool        LogErrorText(const TCHAR* msg,
                         const TCHAR* func, 
                         size_t errorcode);
 
+
+//////////////////////////////////////////////////////////////////////////
+// winsock specified utilities
 
 
 enum { BUFE_SIZE = 8192 };
@@ -126,3 +134,36 @@ inline bool     AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PT
     assert(hCompletionPort != INVALID_HANDLE_VALUE);
     return (::CreateIoCompletionPort(hDevice, hCompletionPort, completionkey, 0) == hCompletionPort);
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+// network utilities
+
+// converts a sockaddr_in structure into a human-readable string 
+_tstring	AddressToString(const sockaddr_in& addr);
+
+
+// converts a numeric string to a sockaddr_in structure
+bool        StringToAddress(const _tstring& straddr, sockaddr_in* paddr);
+
+
+
+
+BEGIN_NETWORK_NAMESPACE
+
+// format mac address
+std::string FormateMAC(const BYTE* pMac, size_t len);
+
+
+// get mac address and push back to a vector
+void    GetMAC(std::vector<std::string>& vec);
+
+
+// 
+#if _WIN32_WINNT < 0x0600
+int         inet_pton(int af, const char* src, void* dst);
+const char* inet_ntop(int af, const void* src, char* dst, size_t size);
+#endif
+
+
+END_NETWORK_NAMESPACE

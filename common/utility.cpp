@@ -5,6 +5,14 @@
 #include <locale.h>
 #include <utility>
 #include <iostream>
+#include <iphlpapi.h>
+#include <WS2tcpip.h>
+
+
+#pragma comment(lib, "Iphlpapi")
+#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "mswsock")
+
 
 
 
@@ -130,6 +138,39 @@ bool StringToAddress(const _tstring& straddr, sockaddr_in* paddr)
         (sockaddr*)paddr, &addrlen) != SOCKET_ERROR);
 }
 
+//  Format mac address
+std::string FormateMAC(const unsigned char* pMac, size_t len)
+{
+    assert(pMac != NULL);
+    char szBuf[MAX_PATH] = {};
+    for (size_t i = 0, nPos = 0; i < len && nPos < MAX_PATH; ++i)
+    {
+        sprintf_s(szBuf + nPos, MAX_PATH - nPos, (i + 1 == len ? "%02x" : "%02x-"), pMac[i]);
+        nPos += 3;
+    }
+    return std::string(szBuf);
+}
+
+
+// Get mac address and push_back to a vector
+void GetMAC(std::vector<std::string>& vec)
+{
+    ULONG   nBufLen = 0;
+    GetAdaptersInfo(NULL, &nBufLen);
+    PIP_ADAPTER_INFO pAdapterInfo = (PIP_ADAPTER_INFO)malloc(nBufLen);
+    if (GetAdaptersInfo(pAdapterInfo, &nBufLen) == ERROR_SUCCESS)
+    {
+        for (PIP_ADAPTER_INFO pAdapter = pAdapterInfo; pAdapter != NULL; pAdapter = pAdapter->Next)
+        {
+            vec.push_back(FormateMAC(pAdapter->Address, pAdapter->AddressLength));
+        }
+    }
+    free(pAdapterInfo);
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////
 
 struct global_init
 {
