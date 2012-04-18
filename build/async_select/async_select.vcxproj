@@ -10,6 +10,25 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\async_select\syncSelect.cpp" />
+    <ClCompile Include="..\..\src\async_select\async_select.cpp" />
+    <ClCompile Include="..\..\src\async_select\winapp.cpp" />
+    <ClCompile Include="..\..\src\common\stdafx.cpp" />
+    <ClCompile Include="..\..\src\common\thread.cpp" />
+    <ClCompile Include="..\..\src\common\utility.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\async_select\CmnDef.h" />
+    <ClInclude Include="..\..\src\async_select\resource.h" />
+    <ClInclude Include="..\..\src\async_select\winapp.h" />
+    <ClInclude Include="..\..\src\common\stdafx.h" />
+    <ClInclude Include="..\..\src\common\thread.h" />
+    <ClInclude Include="..\..\src\common\utility.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\src\async_select\async_select.rc" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1B86E10D-FAD9-4EB6-ACA7-D38ECAF2A264}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -45,16 +64,17 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>NotSet</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -74,19 +94,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\common\stdafx.h" />
-    <ClInclude Include="..\common\utility.h" />
-    <ClInclude Include="resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="asyn_select.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\common\stdafx.cpp" />
-    <ClCompile Include="..\common\utility.cpp" />
-    <ClCompile Include="async_select.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

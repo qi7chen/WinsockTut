@@ -1,10 +1,10 @@
 ﻿/**
- *  @file:   socket.cpp
- *  @brief:  A simple echo server, use BSD socket api
- *
- *  @author: ichenq@gmail.com
- *  @date:   Oct 19, 2011
- */
+*  @file:   socket.cpp
+*  @brief:  A simple echo server, use BSD socket api
+*
+*  @author: ichenq@gmail.com
+*  @date:   Oct 19, 2011
+*/
 
 
 
@@ -34,38 +34,38 @@ int _tmain(int argc, TCHAR* argv[])
     const TCHAR* host = argv[1];
     const TCHAR* port = argv[2];
 
-	ADDRINFOT* aiList = NULL;
-	ADDRINFOT hints = {};
+    ADDRINFOT* aiList = NULL;
+    ADDRINFOT hints = {};
     hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
+    hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_CANONNAME;
-	int error = GetAddrInfo(host, port, &hints, &aiList);
-	if (error != 0)
-	{
+    int error = GetAddrInfo(host, port, &hints, &aiList);
+    if (error != 0)
+    {
         LOG_PRINT(_T("getaddrinfo() failed, %s, %s"), host, port);
-		return 1;
-	}
-	
-	// loop through the info list, connect the first
-    SOCKET socket_listen = INVALID_SOCKET;
-	for (ADDRINFOT* pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
-	{
-		socket_listen = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
-		if (socket_listen == INVALID_SOCKET)
-		{
-			LOG_PRINT(_T("socket() failed"));			
-			continue;
-		}
+        return 1;
+    }
 
-		error = bind(socket_listen, pinfo->ai_addr, pinfo->ai_addrlen);
-		if (error == SOCKET_ERROR)
-		{
-			LOG_PRINT(_T("bind() failed, addr: %s, len: %d"), pinfo->ai_addr, pinfo->ai_addrlen);
-			closesocket(socket_listen);
-			socket_listen = INVALID_SOCKET;
+    // loop through the info list, connect the first
+    SOCKET socket_listen = INVALID_SOCKET;
+    for (ADDRINFOT* pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
+    {
+        socket_listen = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
+        if (socket_listen == INVALID_SOCKET)
+        {
+            LOG_PRINT(_T("socket() failed"));			
             continue;
-		}
+        }
+
+        error = bind(socket_listen, pinfo->ai_addr, pinfo->ai_addrlen);
+        if (error == SOCKET_ERROR)
+        {
+            LOG_PRINT(_T("bind() failed, addr: %s, len: %d"), pinfo->ai_addr, pinfo->ai_addrlen);
+            closesocket(socket_listen);
+            socket_listen = INVALID_SOCKET;
+            continue;
+        }
 
         error = listen(socket_listen, SOMAXCONN);
         if (error == SOCKET_ERROR)
@@ -78,15 +78,15 @@ int _tmain(int argc, TCHAR* argv[])
         _tprintf(_T("server listen at %s:%s.\n"), host, port);
 
         break;
-	}
+    }
 
-	FreeAddrInfo(aiList);
+    FreeAddrInfo(aiList);
 
-	if (socket_listen == INVALID_SOCKET)
-	{		
-		closesocket(socket_listen);		
-		return 1;
-	}
+    if (socket_listen == INVALID_SOCKET)
+    {		
+        closesocket(socket_listen);		
+        return 1;
+    }
 
     std::list<std::shared_ptr<thread>>  thread_list;
     for (;;)

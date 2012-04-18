@@ -155,7 +155,7 @@ void    on_close(SOCKET sockfd, SOCKET* socklist, int* count)
             break;
         }
     }
-    
+
     if (index < 0)
     {
         LOG_PRINT(_T("socket %d not found in list"), sockfd);
