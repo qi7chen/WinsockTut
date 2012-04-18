@@ -1,9 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "client", "client\client.vcxproj", "{7D182F55-1C93-4BE0-B05D-67B04B7B0388}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mtclients", "mt-clients\mt_client.vcxproj", "{090E3870-D6B1-443B-817B-4FA6666615ED}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mtclients", "mt_client.vcxproj", "{090E3870-D6B1-443B-817B-4FA6666615ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +9,6 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7D182F55-1C93-4BE0-B05D-67B04B7B0388}.Debug|Win32.ActiveCfg = Debug|Win32
-		{7D182F55-1C93-4BE0-B05D-67B04B7B0388}.Debug|Win32.Build.0 = Debug|Win32
-		{7D182F55-1C93-4BE0-B05D-67B04B7B0388}.Release|Win32.ActiveCfg = Release|Win32
-		{7D182F55-1C93-4BE0-B05D-67B04B7B0388}.Release|Win32.Build.0 = Release|Win32
 		{090E3870-D6B1-443B-817B-4FA6666615ED}.Debug|Win32.ActiveCfg = Debug|Win32
 		{090E3870-D6B1-443B-817B-4FA6666615ED}.Debug|Win32.Build.0 = Debug|Win32
 		{090E3870-D6B1-443B-817B-4FA6666615ED}.Release|Win32.ActiveCfg = Release|Win32

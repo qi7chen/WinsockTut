@@ -14,28 +14,28 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\common\utility.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\common\stdafx.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
     <ClCompile Include="clients.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\common\utility.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\stdafx.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\common\stdafx.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\common\utility.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="clients.h">
       <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\utility.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\stdafx.h">
+      <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

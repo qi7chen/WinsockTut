@@ -15,7 +15,7 @@ int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 3)
     {
-        _tprintf(_T("%s $host $port"), argv[0]);
+        _tprintf(_T("Usage: %s $host $port"), argv[0]);
         exit(1);
     }
 

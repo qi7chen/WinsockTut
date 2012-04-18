@@ -101,7 +101,9 @@ int _tmain(int argc, TCHAR* argv[])
         }
         try
         {
-            _tcout << AddressToString(addr) << _T("connected at ") << GetDateTimeString() << std::endl;
+            _tstring strAddr = AddressToString(addr);
+            _tstring strDate = GetDateTimeString();
+            _tprintf(_T("%s, %s connected.\n"), strDate.data(), strAddr.data());
             std::shared_ptr<thread> thrd_ptr(new thread(std::bind(handle_client, sock_accept)));
             thread_list.push_back(thrd_ptr);
         }
@@ -123,7 +125,7 @@ void    handle_client(SOCKET sockfd)
         int bytes_read = recv(sockfd, databuf, BUFSIZ, 0);
         if (bytes_read == SOCKET_ERROR)
         {
-            LOG_PRINT(_T("recv() failed"));
+            LOG_PRINT(_T("recv() failed\n"));
             closesocket(sockfd);
             break;
         }
@@ -137,7 +139,7 @@ void    handle_client(SOCKET sockfd)
         int bytes_send = send(sockfd, databuf, bytes_read, 0);
         if (bytes_send == SOCKET_ERROR)
         {
-            LOG_PRINT(_T("send() failed"));
+            LOG_PRINT(_T("send() failed\n"));
             closesocket(sockfd);
             break;
         }    

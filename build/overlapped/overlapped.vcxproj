@@ -10,26 +10,9 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\common\stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\..\common\utility.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="clients.cpp" />
-    <ClCompile Include="main.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\common\stdafx.h" />
-    <ClInclude Include="..\..\common\utility.h" />
-    <ClInclude Include="clients.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>mtclients</ProjectName>
-    <ProjectGuid>{090E3870-D6B1-443B-817B-4FA6666615ED}</ProjectGuid>
+    <ProjectName>overlapped</ProjectName>
+    <ProjectGuid>{908A2F0D-5A3D-4DFC-B629-8DCF063BF1CE}</ProjectGuid>
     <RootNamespace>Winsock</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
@@ -89,10 +72,9 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -102,6 +84,28 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\common\stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\common\thread.cpp">
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\common\utility.cpp">
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="overlapped.cpp" />
+    <ClCompile Include="worker.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\common\mutex.h" />
+    <ClInclude Include="..\common\stdafx.h" />
+    <ClInclude Include="..\common\thread.h" />
+    <ClInclude Include="..\common\utility.h" />
+    <ClInclude Include="overlapped.h" />
+    <ClInclude Include="worker.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

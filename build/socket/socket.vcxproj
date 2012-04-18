@@ -10,6 +10,17 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\common\stdafx.h" />
+    <ClInclude Include="..\..\src\common\thread.h" />
+    <ClInclude Include="..\..\src\common\utility.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\common\stdafx.cpp" />
+    <ClCompile Include="..\..\src\common\thread.cpp" />
+    <ClCompile Include="..\..\src\common\utility.cpp" />
+    <ClCompile Include="..\..\src\socket\socket.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>socket</ProjectName>
     <ProjectGuid>{C5266D5D-3364-4AE3-85CC-16439ABDCBEE}</ProjectGuid>
@@ -87,28 +98,6 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\common\stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\common\thread.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="..\common\utility.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="socket.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </ForcedIncludeFiles>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\common\stdafx.h" />
-    <ClInclude Include="..\common\thread.h" />
-    <ClInclude Include="..\common\utility.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

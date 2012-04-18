@@ -10,26 +10,32 @@
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
     <Filter Include="common">
-      <UniqueIdentifier>{b9a500de-45fd-4c12-acfa-7e1063512f3f}</UniqueIdentifier>
+      <UniqueIdentifier>{6b129b9b-84cf-4518-802a-5dfa05ed74ce}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="client.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\common\utility.cpp">
+    <ClInclude Include="..\..\src\common\thread.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\common\stdafx.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\utility.h">
       <Filter>common</Filter>
-    </ClCompile>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\stdafx.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\common\stdafx.h">
+    <ClCompile Include="..\..\src\common\utility.cpp">
       <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\common\utility.h">
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\thread.cpp">
       <Filter>common</Filter>
-    </ClInclude>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\stdafx.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\socket\socket.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

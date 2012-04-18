@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "iocp", "iocp\iocp.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "async_select", "async_select\async_select.vcxproj", "{1B86E10D-FAD9-4EB6-ACA7-D38ECAF2A264}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "select", "select\select.vcxproj", "{CA0D67DC-CC23-4374-8E1C-779983101810}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -43,6 +45,10 @@ Global
 		{1B86E10D-FAD9-4EB6-ACA7-D38ECAF2A264}.Debug|Win32.Build.0 = Debug|Win32
 		{1B86E10D-FAD9-4EB6-ACA7-D38ECAF2A264}.Release|Win32.ActiveCfg = Release|Win32
 		{1B86E10D-FAD9-4EB6-ACA7-D38ECAF2A264}.Release|Win32.Build.0 = Release|Win32
+		{CA0D67DC-CC23-4374-8E1C-779983101810}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CA0D67DC-CC23-4374-8E1C-779983101810}.Debug|Win32.Build.0 = Debug|Win32
+		{CA0D67DC-CC23-4374-8E1C-779983101810}.Release|Win32.ActiveCfg = Release|Win32
+		{CA0D67DC-CC23-4374-8E1C-779983101810}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

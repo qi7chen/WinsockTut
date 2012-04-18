@@ -6,6 +6,7 @@
 #include <utility>
 #include <iostream>
 #include <iphlpapi.h>
+#include <WinSock2.h>
 #include <WS2tcpip.h>
 
 
@@ -138,9 +139,19 @@ _tstring AddressToString(const sockaddr_in& addr)
 bool StringToAddress(const _tstring& straddr, sockaddr_in* paddr)
 {
     assert(paddr);
-    int addrlen = sizeof(*paddr);
-    return (WSAStringToAddress((LPTSTR)straddr.data(), AF_INET, NULL, 
-        (sockaddr*)paddr, &addrlen) != SOCKET_ERROR);
+    sockaddr_in  addr = {};
+    int addrlen = sizeof(addr);
+    int error = (WSAStringToAddress((LPTSTR)straddr.data(), AF_INET, NULL, 
+        (sockaddr*)&addr, &addrlen));
+    if (error != 0)
+    {
+        LOG_DEBUG(_T("WSAStringToAddress() failed"));
+    }
+    else
+    {
+        *paddr = addr;
+    }
+    return error == 0;
 }
 
 //  Format mac address
