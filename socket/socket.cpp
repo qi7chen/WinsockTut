@@ -1,6 +1,6 @@
 ﻿/**
  *  @file:   socket.cpp
- *  @brief:  a simple echo server, use fundamental api
+ *  @brief:  A simple echo server, use BSD socket api
  *
  *  @author: ichenq@gmail.com
  *  @date:   Oct 19, 2011
@@ -18,25 +18,25 @@
 
 
 
-void    handle_client(SOCKET client_socket);
+
+void    handle_client(SOCKET sockfd);
 
 
 
 int _tmain(int argc, TCHAR* argv[])
 {
-    if (argc != 4)
+    if (argc != 3)
     {
-        _tprintf(_T("Usage: %s $host $port $ipv6"), argv[0]);
+        _tprintf(_T("Usage: %s $host $port"), argv[0]);
         exit(1);
     }
 
     const TCHAR* host = argv[1];
     const TCHAR* port = argv[2];
-    bool ipv6 = (_ttoi(argv[3]) == 1);
 
 	ADDRINFOT* aiList = NULL;
 	ADDRINFOT hints = {};
-    hints.ai_family = (ipv6 ? AF_INET6 : AF_INET);
+    hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_CANONNAME;
@@ -47,7 +47,7 @@ int _tmain(int argc, TCHAR* argv[])
 		return 1;
 	}
 	
-	// loop through the info list, connect the first we can
+	// loop through the info list, connect the first
     SOCKET socket_listen = INVALID_SOCKET;
 	for (ADDRINFOT* pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
 	{
@@ -91,7 +91,9 @@ int _tmain(int argc, TCHAR* argv[])
     std::list<std::shared_ptr<thread>>  thread_list;
     for (;;)
     {
-        SOCKET sock_accept = accept(socket_listen, 0, 0);
+        sockaddr_in addr = {};
+        int len = sizeof(addr);
+        SOCKET sock_accept = accept(socket_listen, (sockaddr*)&addr, &len);
         if (sock_accept == INVALID_SOCKET)
         {
             LOG_PRINT(_T("listen() failed"));
@@ -99,9 +101,9 @@ int _tmain(int argc, TCHAR* argv[])
         }
         try
         {
-            std::shared_ptr<thread> thread_ptr;
-            thread_ptr.reset(new thread(std::bind(handle_client, sock_accept)));
-            thread_list.push_back(thread_ptr);
+            _tcout << AddressToString(addr) << _T("connected at ") << GetDateTimeString() << std::endl;
+            std::shared_ptr<thread> thrd_ptr(new thread(std::bind(handle_client, sock_accept)));
+            thread_list.push_back(thrd_ptr);
         }
         catch (std::bad_alloc&)
         {
@@ -113,31 +115,30 @@ int _tmain(int argc, TCHAR* argv[])
 }
 
 
-void    handle_client(SOCKET client_socket)
+void    handle_client(SOCKET sockfd)
 {
-    TCHAR databuf[BUFSIZ];
-
+    char databuf[BUFSIZ];
     for (;;)
     {
-        int bytes_read = recv(client_socket, (char*)databuf, BUFSIZ, 0);
+        int bytes_read = recv(sockfd, databuf, BUFSIZ, 0);
         if (bytes_read == SOCKET_ERROR)
         {
             LOG_PRINT(_T("recv() failed"));
-            closesocket(client_socket);
+            closesocket(sockfd);
             break;
         }
         else if (bytes_read == 0)
         {
-            closesocket(client_socket);
+            closesocket(sockfd);
             break;
         }
 
         // write back what we read
-        int bytes_send = send(client_socket, (const char*)databuf, bytes_read, 0);
+        int bytes_send = send(sockfd, databuf, bytes_read, 0);
         if (bytes_send == SOCKET_ERROR)
         {
             LOG_PRINT(_T("send() failed"));
-            closesocket(client_socket);
+            closesocket(sockfd);
             break;
         }    
     }    

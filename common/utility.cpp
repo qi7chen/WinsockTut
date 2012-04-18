@@ -25,7 +25,7 @@ _tstring GetErrorMessage(DWORD errorcode)
     {        
         return GetErrorMessage(::GetLastError()); // find out why we failed
     }
-    return _tstring(szmsg);
+    return _tstring(szmsg, dwLen);
 }
 
 
@@ -99,18 +99,23 @@ bool WriteTextToFile(const TCHAR* module, const TCHAR* format, ...)
 }
 
 // write formatted text to specified file
-bool LogErrorText(const TCHAR* msg, const TCHAR* file, size_t line, const TCHAR* func, size_t errorcode)
+bool LogErrorText(const TCHAR* module,
+    const TCHAR* msg, 
+    const TCHAR* file, 
+    const TCHAR* func, 
+    size_t line, 
+    size_t errorcode)
 {
-    assert(msg && file && func);
+    assert(module && msg && file && func);
     TCHAR buffer[BUFSIZ];
-    const _tstring& strdate = GetDateTimeString();
-    const _tstring& strerr = GetErrorMessage(errorcode);
+    const _tstring& strdate = GetDateTimeString(_T("%#c"), ".936");
+    const _tstring& errmsg = GetErrorMessage(errorcode);
     const TCHAR* format = _T("Date: %s\nFile: %s\nLine: %d\nFunction: %s()\nMessage: %s\nError: %d, %s\n");
-    int count = _stprintf_s(buffer, BUFSIZ, format, strdate.data(), file, line, func, msg, errorcode, strerr.data());
+    int count = _stprintf_s(buffer, BUFSIZ, format, strdate.data(), file, line, func, msg, 
+        errorcode, errmsg.data());
     if (count > 0)
     {
-        LOG_DEBUG(_T("%s"), buffer);
-        return true;
+        return WriteTextToFile(module, buffer);
     }
     return false;
 }
@@ -123,7 +128,7 @@ _tstring AddressToString(const sockaddr_in& addr)
     int error = WSAAddressToString((sockaddr*)&addr, sizeof(addr), NULL, szaddr, &buflen);
     if (error == SOCKET_ERROR)
     {
-        LOG_ERROR_ENV(_T("WSAAddressToString() failed"));
+        LOG_DEBUG(_T("WSAAddressToString() failed"));
         buflen = 0;
     }
     return _tstring(szaddr, buflen);

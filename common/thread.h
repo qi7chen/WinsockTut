@@ -9,6 +9,7 @@
 #pragma once
 
 #include "utility.h"
+#include <Windows.h>
 #include <memory>
 
 

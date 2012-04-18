@@ -1,13 +1,13 @@
 ﻿
 //
-//  use the /FI option to force include this file
+//  Use /FI to force include this file
 //
 
 #pragma once
 
 
 #ifndef _WIN32_WINNT
-#   define _WIN32_WINNT     0x0502      // Windows 2003
+#   define _WIN32_WINNT     0x0502      // Windows 2003 default
 #endif
 
 
@@ -16,7 +16,7 @@
 #endif
 
 #if _MSC_VER < 1600
-#error "This project need vc++ 10.0 or later to meet the new c++11 syntax"
+#error "This project need VC++ 10.0 or later for new C++11 language syntax"
 #endif
 
 

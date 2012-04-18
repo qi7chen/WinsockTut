@@ -15,7 +15,7 @@ unsigned thread::run_thread_func(void* pv)
         }
         catch (...)
         {
-            LOG_ERROR_MSG(_T("exception encountered when runing thread %d"), info->thread_id_);
+            LOG_ERROR(_T("thread %d encountered unhandled exception!"), info->thread_id_);
         }                
     }
 
@@ -28,7 +28,7 @@ void thread::start_thread()
         CREATE_SUSPENDED, &thread_info_->thread_id_);
     if (thread_handle == 0)
     {
-        LOG_ERROR_MSG(_T("_beginthreadex() failed"));
+        LOG_ERROR(_T("_beginthreadex() failed"));
     }
     else
     {

@@ -10,13 +10,13 @@
 
 
 #include <tchar.h>
-#include <wchar.h>
 #include <stdio.h>
 #include <assert.h>
 #include <WinSock2.h>
 #include <vector>
 #include <string>
 #include <sstream>
+#include <iostream>
 
 
 #pragma warning(disable: 4127)
@@ -29,34 +29,31 @@
 #   define _tcout           std::wcout
 #else
 #   define _tstringstream   std::stringstream
-#   define _tstring     std::string
-#   define _tcout       std::cout
+#   define _tstring         std::string
+#   define _tcout           std::cout
 #endif
-
-
-#define BEGIN_NETWORK_NAMESPACE     namespace network{
-#define END_NETWORK_NAMESPACE       }
 
 
 
 //////////////////////////////////////////////////////////////////////////
 // common utilities
 
-#define LOG_DEBUG(fmt, ...)     WriteTextToFile(_T("debug"), (fmt), __VA_ARGS__)
+#define LAST_ERROR_MSG          GetErrorMessage(::GetLastError()).c_str()
 
 
-#define LOG_ERROR_ENV(msg)      do { \
-                                LogErrorText((msg), _T(__FILE__), __LINE__, _T(__FUNCTION__), ::GetLastError()); \
-                                }while(false)
+#define LOG_TEXT(module, fmt, ...)  \
+    do { \
+    TCHAR _buffer[MAX_PATH]; \
+    SetVarArg(_buffer, MAX_PATH, (fmt), __VA_ARGS__); \
+    LogErrorText((module), _buffer, _T(__FILE__), _T(__FUNCTION__), __LINE__, ::GetLastError()); \
+    }while (false)
+
+#define LOG_ERROR(fmt, ...)     LOG_TEXT(_T("error"), (fmt), __VA_ARGS__)
+#define LOG_DEBUG(fmt, ...)     LOG_TEXT(_T("debug"), (fmt), __VA_ARGS__)
+#define LOG_WARNING(fmt, ...)   LOG_TEXT(_T("warning"), (fmt), __VA_ARGS__)
 
 
-#define LOG_ERROR_MSG(fmt, ...) do { \
-                                TCHAR _buffer[BUFSIZ]; \
-                                SetVarArg(_buffer, BUFSIZ, fmt, __VA_ARGS__); \
-                                LOG_ERROR_ENV(_buffer); }while(false)
-
-
-#define LOG_PRINT(fmt, ...)     do {_tprintf((fmt), __VA_ARGS__); LOG_ERROR_MSG((fmt), __VA_ARGS__);} while(false)
+#define LOG_PRINT(fmt, ...)     do {_tprintf((fmt), __VA_ARGS__); LOG_DEBUG((fmt), __VA_ARGS__);} while(false)
 
 
 
@@ -65,7 +62,34 @@ _tstring    ToString(const T& obj)
 {
     _tstringstream strm;
     strm << obj;
-    return std::move(strm.str());
+    return strm.str();
+}
+
+
+// trim string
+template <typename StringT>
+StringT&    TrimLeft(StringT& str)
+{
+    StringT::iterator iter = std::find_if(str.begin(), str.end(), 
+        std::not1(std::ptr_fun(isspace)));
+    str.erase(str.begin(), iter);
+    return str;
+}
+
+
+template <typename StringT>
+StringT&    TrimRight(StringT& str)
+{
+    StringT::reverse_iterator iter = std::find_if(str.rbegin(), str.rend(), 
+        std::not1(std::ptr_fun(isspace)));
+    str.erase(iter.base(), str.end());
+    return str;
+}
+
+template <typename StringT>
+StringT&    TrimString(StringT& str)
+{
+    return TrimLeft(TrimRight(str));
 }
 
 
@@ -89,11 +113,13 @@ bool        WriteTextToFile(const TCHAR* module, const TCHAR* format, ...);
 
 
 // log the information message of specified error
-bool        LogErrorText(const TCHAR* msg, 
+bool        LogErrorText(const TCHAR* module, 
+                        const TCHAR* msg, 
                         const TCHAR* file, 
-                        size_t line, 
                         const TCHAR* func, 
+                        size_t line,                          
                         size_t errorcode);
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -149,7 +175,7 @@ bool        StringToAddress(const _tstring& straddr, sockaddr_in* paddr);
 
 
 
-BEGIN_NETWORK_NAMESPACE
+
 
 // format mac address
 std::string FormateMAC(const BYTE* pMac, size_t len);
@@ -165,5 +191,3 @@ int         inet_pton(int af, const char* src, void* dst);
 const char* inet_ntop(int af, const void* src, char* dst, size_t size);
 #endif
 
-
-END_NETWORK_NAMESPACE
