@@ -41,7 +41,7 @@ _tstring GetDateTimeString(const TCHAR* format, const char* locale)
     {
         return _tstring();
     }
-    
+
     TCHAR szmsg[MAX_PATH];
     size_t len = _tcsftime_l(szmsg, _countof(szmsg), format, &st, loc);
     return _tstring(szmsg, len);
@@ -132,7 +132,7 @@ _tstring AddressToString(const sockaddr_in& addr)
         LOG_DEBUG(_T("WSAAddressToString() failed"));
         buflen = 0;
     }
-    return _tstring(szaddr, buflen);
+    return _tstring(szaddr);
 }
 
 

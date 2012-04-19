@@ -21,37 +21,25 @@
     <ClCompile Include="..\..\src\common\stdafx.cpp">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\common\thread.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\common\utility.cpp">
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\async_select\winapp.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\async_select\syncSelect.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\async_select\CmnDef.h">
-      <Filter>source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\async_select\resource.h">
-      <Filter>source</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\common\utility.h">
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\common\stdafx.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\common\thread.h">
-      <Filter>common</Filter>
+    <ClInclude Include="..\..\src\async_select\appdef.h">
+      <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\async_select\winapp.h">
-      <Filter>source</Filter>
+    <ClInclude Include="..\..\src\async_select\resource.h">
+      <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
