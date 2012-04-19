@@ -1,4 +1,4 @@
-
+﻿
 #include "appdef.h"
 
 static bool on_accepted(HWND hwnd, SOCKET sockfd);

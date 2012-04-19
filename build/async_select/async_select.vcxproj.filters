@@ -24,7 +24,7 @@
     <ClCompile Include="..\..\src\common\utility.cpp">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\async_select\winamain.cpp">
+    <ClCompile Include="..\..\src\async_select\winmain.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>

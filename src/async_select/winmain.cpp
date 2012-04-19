@@ -1,7 +1,6 @@
 ﻿/**
 *  @brief:  A simple echo server, use winsock Asynchronous Select I/O model
-*
-* 	@author: ichenq@gmail.com
+*  @author: ichenq@gmail.com
 *  @date:   Nov 24, 2011
 */
 
@@ -24,9 +23,9 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // main entry
 int APIENTRY _tWinMain(HINSTANCE hInstance, 
-                    HINSTANCE hPrevInstance, 
-                    LPTSTR lpCmdLine, 
-                    int nCmdShow)
+    HINSTANCE hPrevInstance, 
+    LPTSTR lpCmdLine, 
+    int nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);

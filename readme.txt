@@ -3,20 +3,25 @@ Winsock I/O model test samples
 
 Directory
 
-/-------+-common - common utilities
+/-------+-build- vs projects
         |
         |                        
-        +-socket - foudamental api samples
+        +-src - socket -- 	example use only basic socket api
+        |         |
+        |       select -- 	example use select model
+        |	  |
+	|     async_select --	example use windows async select model
+	|	  |
+	|     async_event --    example use windows async event, threaded
+	|	  |
+	|    complete_routine - example use complete routines
+	|	  |
+	|     overlap --	example use windows overlapped IO
+	|	  |
+	|       iocp  -- 	example use windows IOCP model
+	|
+	|
+        +-tests - test cases
         |
-        |
-        +-async_event - asynchrounous event model
-        |
-        |
-        +-iocp - I/O completion port model
-        |
-        |
-        +-tests ----+-client - client use foundamental api
-                    |
-                    |
-                    +-mt-clients - multi-clients with a single threaded completion port
+       
 
