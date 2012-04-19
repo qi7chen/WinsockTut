@@ -1,10 +1,10 @@
 ﻿/**
- *  @file:   thread.h
- *  @brief:  a simple thread class
- *
- *  @author: ichenq@gmail.com
- *  @date:   Oct 19, 2011
- */
+*  @file:   thread.h
+*  @brief:  a simple thread class
+*
+*  @author: ichenq@gmail.com
+*  @date:   Oct 19, 2011
+*/
 
 #pragma once
 
@@ -36,14 +36,15 @@ public:
         }
         catch (std::bad_alloc&)
         {
+            LOG_ERROR(_T("allocate new thread failed"));
             return ;
         }
-        
+
         thread_info_.reset(pbase);
         start_thread();
     }
 
-    
+
     void    terminate(unsigned exit_code);
     void    join(unsigned milsec);
 

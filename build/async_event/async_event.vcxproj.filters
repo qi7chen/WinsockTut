@@ -17,37 +17,37 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\common\stdafx.cpp">
-      <Filter>precompile</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\utility.cpp">
+    <ClInclude Include="..\..\src\common\thread.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\thread.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\utility.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="async_event.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\common\stdafx.h">
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\mutex.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\stdafx.h">
       <Filter>precompile</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\utility.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\thread.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\mutex.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="async_event.h">
+    <ClInclude Include="..\..\src\async_event\worker.h">
       <Filter>头文件</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\common\thread.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\utility.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\stdafx.cpp">
+      <Filter>precompile</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\async_event\worker.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\async_event\async_event.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

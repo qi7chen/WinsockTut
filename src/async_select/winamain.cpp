@@ -1,9 +1,9 @@
 ﻿/**
- *  @brief:  A simple echo server, use winsock Asynchronous Select I/O model
- *
- * 	@author: ichenq@gmail.com
- *  @date:   Nov 24, 2011
- */
+*  @brief:  A simple echo server, use winsock Asynchronous Select I/O model
+*
+* 	@author: ichenq@gmail.com
+*  @date:   Nov 24, 2011
+*/
 
 #include "../common/utility.h"
 #include "resource.h"
@@ -23,17 +23,20 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
 // main entry
-int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
+int APIENTRY _tWinMain(HINSTANCE hInstance, 
+                    HINSTANCE hPrevInstance, 
+                    LPTSTR lpCmdLine, 
+                    int nCmdShow)
 {
-	UNREFERENCED_PARAMETER(hPrevInstance);
-	UNREFERENCED_PARAMETER(lpCmdLine);
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);   
 
     return DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_ASYNCSELECT), NULL, DlgProc, (LPARAM)lpCmdLine);
 }
 
 
-
+// dialog proc
 INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -54,16 +57,14 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_COMMAND:
+        switch(LOWORD(wParam))
         {
-            switch(LOWORD(wParam))
+        case IDOK:
+        case IDCANCEL:
             {
-            case IDOK:
-            case IDCANCEL:
-                {
-                    EndDialog(hDlg, 0);
-                }
-                break;
+                EndDialog(hDlg, 0);
             }
+            break;
         }
         break;
 
@@ -98,7 +99,7 @@ bool AppendEditText(HWND hdlg, const TCHAR* text, int len)
         LOG_DEBUG(_T("buffer too small, count: %d, text: %s"), count, text);
         return false;
     }
-    
+
     _tcsncpy_s(textbuf + count, BUFSIZ-count, text, len);
     return SetDlgItemText(hdlg, IDC_EDIT_LOG, textbuf) == TRUE;
 }

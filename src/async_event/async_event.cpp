@@ -1,253 +1,106 @@
-﻿
-#include "async_event.h"
-#include <algorithm>
+﻿/**
+*  @brief:  A simple echo server, use threaded WSAAsynSelect mode
+*  @author: ichenq@gmail.com
+*  @date:   Oct 19, 2011
+*/
 
 
-async_event_server::async_event_server()
-    : total_events_(0), listen_socket_(INVALID_SOCKET)
+#include "worker.h"
+#include <vector>
+
+
+SOCKET  create_server_socket(const _tstring& strAddr);
+void    add_to_woker(std::vector<std::shared_ptr<worker>>& workers, SOCKET sockfd);
+
+int _tmain(int argc, TCHAR* argv[])
 {
-    memset(event_list_, 0, sizeof(event_list_));
-    memset(buffer_list_, 0, sizeof(buffer_list_));
-    memset(socket_list_, 1, sizeof(socket_list_));
-}
-
-
-
-bool async_event_server::start(const TCHAR* host, short port)
-{
-    if (!create_listen_socket(host, port))
+    if (argc != 3)
     {
-        return false;
+        _tprintf(_T("Usage: %s $host $port"), argv[0]);
+        exit(1);
     }
+
+    _tstring host = argv[1];
+    _tstring port = argv[2];
+
+    SOCKET sockfd = create_server_socket(host + _T(":") + port);
+    if (sockfd == INVALID_SOCKET)
+    {
+        return 1;
+    }
+
+    std::vector<std::shared_ptr<worker>> workers;
 
     for (;;)
     {
-        DWORD index = WSAWaitForMultipleEvents(total_events_, event_list_, FALSE, INFINITE, FALSE);
-        if (index == WSA_WAIT_FAILED)
+        SOCKET socknew = accept(sockfd, NULL, NULL);
+        if (socknew == INVALID_SOCKET)
         {
-            LOG_PRINT(_T("WSAWaitForMultipleEvents() failed"));
+            LOG_DEBUG(_T("accept() failed"));
             break;
         }
-        if (index >= total_events_)
-        {
-            continue;
-        }
 
-        char* buffer = buffer_list_[index];
-        if (buffer == nullptr)
-        {
-            continue;
-        }
-
-        WSAEVENT event = event_list_[index];
-        SOCKET socket = socket_list_[index];
-        WSAResetEvent(event);
-
-        WSANETWORKEVENTS net_events = {};
-        if (WSAEnumNetworkEvents(socket, event, &net_events) == SOCKET_ERROR)
-        {
-            LOG_PRINT(_T("WSAEnumNetworkEvents() failed"));
-            continue;
-        }
-
-        int events_flag = net_events.lNetworkEvents;
-        if (events_flag & FD_READ)
-        {
-            on_recv(socket, buffer, net_events.iErrorCode[FD_READ_BIT]);
-        }
-        if (events_flag & FD_WRITE)
-        {
-            //
-        }
-        if (events_flag & FD_ACCEPT)
-        {
-            on_accepted(socket, net_events.iErrorCode[FD_ACCEPT_BIT]);
-        }
-        if (events_flag & FD_CLOSE)
-        {
-            on_close(socket, net_events.iErrorCode[FD_CLOSE_BIT]);
-        }
+        add_to_woker(workers, socknew);
     }
+
 
     return 0;
 }
 
 
-void    async_event_server::on_accepted(SOCKET socket, int error_code)
+SOCKET create_server_socket(const _tstring& strAddr)
 {
-    if (error_code)
-    {
-        LOG_PRINT(_T("on_accepted() error code"));
-        on_close(socket, 0);
-        return ;
-    }
-
-    sockaddr_in peeraddr = {};
-    int addrlen = sizeof(peeraddr);
-    SOCKET socket_accept = accept(listen_socket_, (sockaddr*)&peeraddr, &addrlen);
-    if (socket_accept == INVALID_SOCKET)
-    {
-        LOG_PRINT(_T("accept() failed"));
-        return ;
-    }
-
-    if (!dispatch_event(socket_accept, FD_READ | FD_WRITE | FD_CLOSE))
-    {
-        closesocket(socket_accept);
-        return ;
-    }
-}
-
-void    async_event_server::on_recv(SOCKET socket, char* buffer, int error_code)
-{
-    if (error_code)
-    {
-        LOG_PRINT(_T("recv error on %d, %s"), socket, GetErrorMessage(error_code).data());
-    }
-
-    int bytes_read = recv(socket, buffer, BUFE_SIZE, 0);
-    if (bytes_read == SOCKET_ERROR || bytes_read == 0)
-    {
-        on_close(socket, 0);
-        return ;
-    }
-
-    do_send(socket, buffer, bytes_read, 0);
-}
-
-void    async_event_server::do_send(SOCKET socket, char* buffer, int msglen, int error_code)
-{
-    if (error_code)
-    {
-        LOG_PRINT(_T("send error on %d, %s"), socket, GetErrorMessage(error_code).data());
-    }
-
-    int bytes_sent = send(socket, buffer, msglen, 0);
-    if (bytes_sent == SOCKET_ERROR)
-    {
-        on_close(socket, 0);
-        return ;
-    }
-}
-
-void    async_event_server::on_close(SOCKET socket, int error_code)
-{
-    if (error_code)
-    {
-        LOG_PRINT(_T("%d closed, %s"), socket, GetErrorMessage(error_code).data());
-    }
-
-    closesocket(socket);
-    destroy_event(socket);
-}
-
-
-
-bool  async_event_server::create_listen_socket(const TCHAR* host, short port)
-{
-    _tstring straddr = host;
-    straddr += _T(":");
-    straddr += ToString(port);
     sockaddr_in addr = {};
-    if (!StringToAddress(straddr, &addr))
+    if (!StringToAddress(strAddr, &addr))
     {
-        LOG_PRINT(_T("StringToAddress() failed, %s"), straddr.data());
-        return false;
+        LOG_PRINT(_T("StringToAddress() failed, %s"), strAddr.data());
+        return INVALID_SOCKET;
     }
 
-    listen_socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (listen_socket_ == INVALID_SOCKET)
+    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd == INVALID_SOCKET)
     {
         LOG_PRINT(_T("socket() failed"));
-        return false;
+        return INVALID_SOCKET;
     }
 
-    int error = bind(listen_socket_, (sockaddr*)&addr, sizeof(addr));
-    if (error == SOCKET_ERROR)
+    if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("bind() failed, %s"), straddr.data());
-        closesocket(listen_socket_);
-        return false;
+        LOG_PRINT(_T("bind() failed, %s"), strAddr.data());
+        closesocket(sockfd);
+        return INVALID_SOCKET;
     }
 
-    int listen_max = SOMAXCONN > WSA_MAXIMUM_WAIT_EVENTS ? WSA_MAXIMUM_WAIT_EVENTS : SOMAXCONN;
-    error = listen(listen_socket_, listen_max);
-    if (error == SOCKET_ERROR)
+    if (listen(sockfd, SOMAXCONN) == SOCKET_ERROR)
     {
         LOG_PRINT(_T("listen() failed"));
-        closesocket(listen_socket_);
-        return false;
+        closesocket(sockfd);
+        return INVALID_SOCKET;
     }
 
-    if (!dispatch_event(listen_socket_, FD_ACCEPT))
-    {
-        closesocket(listen_socket_);
-        return false;
-    }
-
-    return true;
+    return sockfd;
 }
 
 
-bool async_event_server::dispatch_event(SOCKET socket, int events_flag)
+void add_to_woker(std::vector<std::shared_ptr<worker>>& workers, SOCKET sockfd)
 {
-    if (total_events_ == WSA_MAXIMUM_WAIT_EVENTS)
+    std::shared_ptr<worker> worker_ptr;
+    for (size_t i = 0; i < workers.size(); ++i)
     {
-        return false;
+        if (!workers[i]->full())
+        {
+            worker_ptr = workers[i];
+            break;
+        }
     }
 
-    WSAEVENT event = WSACreateEvent();
-    if (event == WSA_INVALID_EVENT)
+    // create a new one if cannot satisfy
+    if (!worker_ptr)
     {
-        return false;
-    }
-    
-    // allocate buffer
-    char* buffer = nullptr;
-    try
-    {
-        buffer = new char[BUFE_SIZE];
-    }
-    catch (std::bad_alloc&)
-    {
-        WSACloseEvent(event);
-        return false;
+        worker_ptr.reset(new worker);
+        worker_ptr->start();
+        workers.push_back(worker_ptr);
     }
 
-    // The WSAEventSelect function automatically sets socket to nonblocking mode
-    if (WSAEventSelect(socket, event, events_flag) == SOCKET_ERROR)
-    {
-        LOG_PRINT(_T("WSAEventSelect() failed, socket: %d"), socket);
-        WSACloseEvent(event);
-        delete [] buffer;
-        return false;
-    }
-    
-    event_list_[total_events_] = event;
-    socket_list_[total_events_] = socket;
-    buffer_list_[total_events_] = buffer;
-    ++total_events_;
-    return true;
-}
-
-bool async_event_server::destroy_event(SOCKET socket)
-{
-    SOCKET* position = std::find(socket_list_, socket_list_+total_events_, socket);
-    if (position == socket_list_ + total_events_)
-    {
-        return false;
-    }
-
-    int index = position - socket_list_;
-    WSACloseEvent(event_list_[index]);
-    delete [] buffer_list_[index];
-    --total_events_;
-    for (int i = index; i < WSA_MAXIMUM_WAIT_EVENTS; ++i)
-    {
-        event_list_[i] = event_list_[i+1];
-        socket_list_[i] = socket_list_[i+1];
-        buffer_list_[i] = buffer_list_[i+1];
-    }
-
-    return true;
+    worker_ptr->push_socket(sockfd);
 }

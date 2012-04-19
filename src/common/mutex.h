@@ -12,18 +12,14 @@
 #include <intrin.h>
 
 
-#pragma warning(push)
-#pragma warning(disable: 4324)
-
-
 
 //
 // a busy waiting spin lock
 //
 
-#define CACHE_ALIGN __declspec(align(64))
+#define CACHE_SIZE  64
 
-class CACHE_ALIGN spinlock
+class spinlock
 {
     enum {_UNLOCKED = 0, _LOCKED = 1};
 
@@ -62,12 +58,15 @@ private:
     void yield(unsigned k)
     {
         if (k < 4) {}
-        else if (k < 16) { _mm_pause();} // spin loop hint, @see http://siyobik.info/main/reference/instruction/PAUSE
+        // spin loop hint, @see http://siyobik.info/main/reference/instruction/PAUSE
+        else if (k < 16) { _mm_pause();} 
         else if (k < 32) {::Sleep(0);}
         else {::Sleep(1);}
     }
 
+    char    __padding1[CACHE_SIZE/2];
     long    lock_;
+    char    __padding2[CACHE_SIZE/2-sizeof(long)];
 };
 
 
@@ -85,7 +84,7 @@ public:
     {
         if (!::InitializeCriticalSectionAndSpinCount(&cs_, spin_count))
         {
-            LOG_ERROR_MSG(_T("InitializeCriticalSectionAndSpinCount() failed"));
+            LOG_DEBUG(_T("InitializeCriticalSectionAndSpinCount() failed"));
         }
     }
 
@@ -141,4 +140,4 @@ private:
     Lockable&  lock_;
 };
 
-#pragma warning(pop)
+

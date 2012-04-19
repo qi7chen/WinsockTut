@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\async_select\async_select.cpp" />
-    <ClCompile Include="..\..\src\async_select\winapp.cpp" />
+    <ClCompile Include="..\..\src\async_select\winamain.cpp" />
     <ClCompile Include="..\..\src\common\stdafx.cpp" />
     <ClCompile Include="..\..\src\common\utility.cpp" />
   </ItemGroup>
