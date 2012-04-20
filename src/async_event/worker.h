@@ -13,6 +13,9 @@
 #include "../common/thread.h"
 
 
+//
+// event thread worker
+//
 class worker
 {
 public:

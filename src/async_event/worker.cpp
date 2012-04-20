@@ -83,6 +83,7 @@ void worker::main_loop()
             continue;
         }
 
+        // handle socket events here
         event_handler(sockfd, &event_struct);
     }
 }

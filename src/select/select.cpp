@@ -14,7 +14,7 @@ bool    on_recv(SOCKET sockfd);
 
 
 
-
+// main entry
 int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 3)
@@ -83,10 +83,8 @@ int _tmain(int argc, TCHAR* argv[])
 }
 
 
-//
+//////////////////////////////////////////////////////////////////////////
 // handlers
-//
-
 
 bool    on_recv(SOCKET sockfd)
 {
@@ -146,6 +144,8 @@ bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count)
 void    on_close(SOCKET sockfd, SOCKET* socklist, int* count)
 {
     _tprintf(_T("%d closed at %s\n"), sockfd, GetDateTimeString().data());
+
+    // find index of this socket
     int index = -1;
     for (int i = 0; i < *count; ++i)
     {
@@ -163,6 +163,7 @@ void    on_close(SOCKET sockfd, SOCKET* socklist, int* count)
     }
 
     closesocket(sockfd);
+    // move all sockets after 'sockfd'
     for (int i = index; i < *count; ++i)
     {
         socklist[i] = socklist[i+1];
@@ -174,7 +175,10 @@ void    on_close(SOCKET sockfd, SOCKET* socklist, int* count)
 SOCKET  create_server_socket(const _tstring& strAddr)
 {
     sockaddr_in addr = {};
-    StringToAddress(strAddr, &addr);
+    if (!StringToAddress(strAddr, &addr))
+    {
+        return INVALID_SOCKET;
+    }
 
     SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET)

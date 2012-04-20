@@ -12,6 +12,9 @@
 SOCKET  create_server_socket(const _tstring& strAddr);
 void    add_to_woker(std::vector<std::shared_ptr<worker>>& workers, SOCKET sockfd);
 
+
+
+
 int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 3)
@@ -29,6 +32,7 @@ int _tmain(int argc, TCHAR* argv[])
         return 1;
     }
 
+    // all thread workers
     std::vector<std::shared_ptr<worker>> workers;
 
     for (;;)

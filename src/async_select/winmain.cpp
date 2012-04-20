@@ -23,14 +23,15 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // main entry
 int APIENTRY _tWinMain(HINSTANCE hInstance, 
-    HINSTANCE hPrevInstance, 
-    LPTSTR lpCmdLine, 
-    int nCmdShow)
+                    HINSTANCE hPrevInstance, 
+                    LPTSTR lpCmdLine, 
+                    int nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);   
 
+    // dialog box to handle socket events
     return DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_ASYNCSELECT), NULL, DlgProc, (LPARAM)lpCmdLine);
 }
 
@@ -38,7 +39,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 // dialog proc
 INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    UNREFERENCED_PARAMETER(lParam);
+
     switch(uMsg)
     {
     case WM_INITDIALOG:
@@ -50,6 +51,7 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 MessageBox(hDlg, _T("$program $host $port"), _T("Usage"), MB_OK);
                 return 1;
             }
+
             _tstring msg = _T("server listen at ") + strAddr;
             SetDlgItemText(hDlg, IDC_EDIT_LOG, msg.data());
         }
@@ -77,7 +79,7 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 
-
+// new text =  current text + appended text
 bool AppendEditText(HWND hdlg, const TCHAR* text, int len)
 {
     assert(text && len > 0);
