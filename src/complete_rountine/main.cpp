@@ -5,52 +5,102 @@
  *  @date:   Oct 19, 2011
  */
 
-#include "stdafx.h"
-#include "../../Common/Common.h"
-#include "../../Common/Mutex.h"
+
+#include "complete_routine.h"
+#include "../common/utility.h"
 
 
-enum {MODEL_SIMPLE = 1, MODEL_THREADED, MODEL_COROUTINE};
-
-
-int OverlapWithEvent(const char* host, short port);
-int OverlapWithCoRoutine(const char* szhost, short port);
+SOCKET  create_server_socket(const _tstring& strAddr);
 
 
 
-
-int main(int argc, char* argv[])
+int _tmain(int argc, TCHAR* argv[])
 {
-    short port = 3245;
-    const char* szHost = "127.0.0.1";
-    int model = 0;
-
-    if (argc < 4)
+    if (argc != 3)
     {
-        wprintf(_W("Usage: <program>  [@host] [@port] [@model]\n"));
-        return 0;
-    }
-    switch(argc)
-    {
-    case 4:
-        model = atoi(argv[3]);
-
-    case 3:
-        port = (short)atoi(argv[2]);
-
-    case 2:
-        szHost = argv[1];
+        _tprintf(_T("Usage: %s $host $port"), argv[0]);
+        return 1;
     }
 
-    switch(model)
+    _tstring host = argv[1];
+    _tstring port = argv[2];
+    SOCKET sockfd = create_server_socket(host + _T(":") + port);
+    if (sockfd == INVALID_SOCKET)
     {
-    case MODEL_SIMPLE:
-        return OverlapWithEvent(szHost, port);
-        break;
-
-    case MODEL_COROUTINE:
-        OverlapWithCoRoutine(szHost, port);
-        break;
+        return 1;
     }
+
+    // set socket to non-blocking mode
+    ULONG nonblock = 1;
+    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+    {
+        LOG_PRINT(_T("ioctlsocket() failed"));
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    for (;;)
+    {
+        sockaddr_in addr = {};
+        int addrlen = sizeof(addr);
+        SOCKET socknew = accept(sockfd, (sockaddr*)&addr, &addrlen);
+        if (socknew == INVALID_SOCKET)
+        {
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+            {   
+                LOG_DEBUG(_T("accept() failed"));
+                break;
+            }
+        }
+        else
+        {
+            socket_data* data = alloc_data(socknew);
+            if (data)
+            {
+                post_recv_request(data);
+            }
+        }
+
+        ::SleepEx(100, TRUE); // make this thread alertable
+    }
+
+    return 0;
 }
 
+
+
+
+SOCKET  create_server_socket(const _tstring& strAddr)
+{
+    sockaddr_in addr = {};
+    if (!StringToAddress(strAddr, &addr))
+    {
+        return INVALID_SOCKET;
+    }
+
+    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd == INVALID_SOCKET)
+    {
+        LOG_PRINT(_T("socket() failed, %s"), strAddr.data());
+        return INVALID_SOCKET;
+    }
+
+    int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+    if (error == SOCKET_ERROR)
+    {
+        LOG_PRINT(_T("bind() failed"));
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    error = listen(sockfd, SOMAXCONN);
+    if (error == SOCKET_ERROR)
+    {
+        LOG_PRINT(_T("listen() failed"));
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    _tprintf(_T("server listen at %s\n"), strAddr.data());
+    return sockfd;
+}
