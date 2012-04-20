@@ -18,7 +18,7 @@ worker::~worker()
 
 void worker::start()
 {
-    thrd_ptr_.reset(new thread(std::bind(&worker::main_loop, this)));
+    thrd_ptr_.reset(new thread(BIND(&worker::main_loop, this)));
 }
 
 

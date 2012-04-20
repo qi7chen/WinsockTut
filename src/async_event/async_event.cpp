@@ -10,7 +10,7 @@
 
 
 SOCKET  create_server_socket(const _tstring& strAddr);
-void    add_to_woker(std::vector<std::shared_ptr<worker>>& workers, SOCKET sockfd);
+void    add_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd);
 
 
 
@@ -33,7 +33,7 @@ int _tmain(int argc, TCHAR* argv[])
     }
 
     // all thread workers
-    std::vector<std::shared_ptr<worker>> workers;
+    std::vector<shared_ptr<worker>> workers;
 
     for (;;)
     {
@@ -86,9 +86,9 @@ SOCKET create_server_socket(const _tstring& strAddr)
 }
 
 
-void add_to_woker(std::vector<std::shared_ptr<worker>>& workers, SOCKET sockfd)
+void add_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd)
 {
-    std::shared_ptr<worker> worker_ptr;
+    shared_ptr<worker> worker_ptr;
     for (size_t i = 0; i < workers.size(); ++i)
     {
         if (!workers[i]->full())

@@ -53,7 +53,7 @@ _tstring  GenerateFullModuleFile(const TCHAR* module)
     assert(module);
     _tstring strdate = module + GetDateTimeString(_T("_%Y-%m-%d"), ".936");
     strdate.append(_T(".log"));
-    return std::move(strdate);
+    return strdate;
 }
 
 
@@ -82,13 +82,13 @@ bool WriteTextToFile(const TCHAR* module, const TCHAR* format, ...)
     }
 
     const _tstring& filename = GenerateFullModuleFile(module);
-    FILE* fp = nullptr;
+    FILE* fp = NULL;
 #if defined(_UNICODE) || defined(UNICODE)
     _wfopen_s(&fp, filename.data(), L"a+, ccs=UTF-16LE");
 #else
     fopen_s(&fp, filename.data(),  "a+");
 #endif
-    if (fp == nullptr)
+    if (fp == NULL)
     {
         return false;
     }

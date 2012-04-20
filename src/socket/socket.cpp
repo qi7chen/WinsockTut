@@ -40,7 +40,7 @@ int _tmain(int argc, TCHAR* argv[])
     }
 
     // all threads
-    std::list<std::shared_ptr<thread>>  thread_list;
+    std::list<shared_ptr<thread>>  thread_list;
 
     for (;;)
     {
@@ -59,7 +59,7 @@ int _tmain(int argc, TCHAR* argv[])
             _tprintf(_T("%s, %s connected.\n"), strDate.data(), strAddr.data());
 
             // one thread per connection
-            std::shared_ptr<thread> thrd_ptr(new thread(std::bind(handle_client, sock_accept)));
+            shared_ptr<thread> thrd_ptr(new thread(BIND(handle_client, sock_accept)));
             thread_list.push_back(thrd_ptr);
         }
         catch (std::bad_alloc&)

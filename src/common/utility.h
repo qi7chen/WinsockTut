@@ -21,6 +21,20 @@
 
 #pragma warning(disable: 4127)
 
+#include <boost/shared_ptr.hpp>
+#if _MSC_VER_ < 1600
+#   ifndef BOOST_BIND
+#   include <boost/bind.hpp>
+#   include <boost/shared_ptr.hpp>
+#   define BIND     boost::bind
+    using boost::shared_ptr;
+#   endif
+#else
+#   define BIND     std::bind
+    using std::shared_ptr;
+#endif
+
+
 
 
 #if defined(_UNICODE) || defined(UNICODE)
@@ -32,7 +46,6 @@
 #   define _tstring         std::string
 #   define _tcout           std::cout
 #endif
-
 
 
 //////////////////////////////////////////////////////////////////////////

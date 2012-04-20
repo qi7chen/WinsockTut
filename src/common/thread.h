@@ -29,7 +29,7 @@ public:
     template <typename F>
     thread(F f)
     {
-        thread_data_base* pbase = nullptr;
+        thread_data_base* pbase = NULL;
         try
         {
             pbase = new thread_data<F>(f);
@@ -57,7 +57,7 @@ private:
     static unsigned CALLBACK run_thread_func(void* pv);
 
 private:
-    std::shared_ptr<thread_data_base>   thread_info_;
+    std::auto_ptr<thread_data_base>   thread_info_;
 };
 
 

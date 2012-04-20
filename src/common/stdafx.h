@@ -15,8 +15,8 @@
 #   define WIN32_LEAN_AND_MEAN
 #endif
 
-#if _MSC_VER < 1600
-#error "This project need VC++ 10.0 or later for new C++11 language syntax"
+#if _MSC_VER < 1400
+#error "Your complier is too old!"
 #endif
 
 
@@ -51,3 +51,4 @@
 #include <iterator>
 
 
+#include "utility.h"
