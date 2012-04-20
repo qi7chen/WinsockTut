@@ -42,11 +42,11 @@
 
 
 #define LOG_TEXT(module, fmt, ...)  \
-    do { \
-    TCHAR _buffer[MAX_PATH]; \
-    SetVarArg(_buffer, MAX_PATH, (fmt), __VA_ARGS__); \
-    LogErrorText((module), _buffer, _T(__FILE__), _T(__FUNCTION__), __LINE__, ::GetLastError()); \
-    }while (false)
+                do { \
+                TCHAR _buffer[MAX_PATH]; \
+                SetVarArg(_buffer, MAX_PATH, (fmt), __VA_ARGS__); \
+                LogErrorText((module), _buffer, _T(__FILE__), _T(__FUNCTION__), __LINE__, ::GetLastError()); \
+                }while (false)
 
 #define LOG_ERROR(fmt, ...)     LOG_TEXT(_T("error"), (fmt), __VA_ARGS__)
 #define LOG_DEBUG(fmt, ...)     LOG_TEXT(_T("debug"), (fmt), __VA_ARGS__)
