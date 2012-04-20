@@ -17,49 +17,43 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\common\stdafx.cpp">
+    <ClInclude Include="..\..\src\common\mutex.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\thread.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\utility.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\stdafx.h">
       <Filter>precompile</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\utility.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\thread.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\iocp\iocp.h">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="iocp.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\iocp\worker.h">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="worker.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\inet_ntop.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\inet_pton.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\common\stdafx.h">
+    <ClCompile Include="..\..\src\common\thread.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\utility.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\stdafx.cpp">
       <Filter>precompile</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\utility.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\thread.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\mutex.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="iocp.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="worker.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
+    </ClCompile>
+    <ClCompile Include="..\..\src\iocp\iocp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\iocp\main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\iocp\worker.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

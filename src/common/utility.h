@@ -21,8 +21,8 @@
 
 #pragma warning(disable: 4127)
 
-#include <boost/shared_ptr.hpp>
-#if _MSC_VER_ < 1600
+
+#if _MSC_VER < 1600
 #   ifndef BOOST_BIND
 #   include <boost/bind.hpp>
 #   include <boost/shared_ptr.hpp>

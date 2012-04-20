@@ -70,7 +70,7 @@ private:
     HANDLE      completion_port_;
     mutex       mutex_;
 
-    std::vector<std::shared_ptr<thread>>    workers_;       // worker thread(s)
+    std::vector<shared_ptr<thread>>         workers_;       // worker thread(s)
     std::queue<PER_HANDLE_DATA*>            command_queue_; // commands queue for worker thread(s) to push
     std::list<PER_HANDLE_DATA*>             free_list_;     // handles to be reused
     std::map<SOCKET, PER_HANDLE_DATA*>      info_map_;      // handles in use

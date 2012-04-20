@@ -16,44 +16,4 @@
       <UniqueIdentifier>{a97aedc8-f769-4409-872d-d4f8652d2e54}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\common\stdafx.cpp">
-      <Filter>precompile</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\utility.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\thread.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="overlapped.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="worker.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\common\stdafx.h">
-      <Filter>precompile</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\utility.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\thread.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="worker.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="overlapped.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\mutex.h">
-      <Filter>common</Filter>
-    </ClInclude>
-  </ItemGroup>
 </Project>

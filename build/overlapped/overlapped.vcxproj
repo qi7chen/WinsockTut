@@ -84,28 +84,6 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\common\stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\common\thread.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="..\common\utility.cpp">
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</ForcedIncludeFiles>
-    </ClCompile>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="overlapped.cpp" />
-    <ClCompile Include="worker.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\common\mutex.h" />
-    <ClInclude Include="..\common\stdafx.h" />
-    <ClInclude Include="..\common\thread.h" />
-    <ClInclude Include="..\common\utility.h" />
-    <ClInclude Include="overlapped.h" />
-    <ClInclude Include="worker.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

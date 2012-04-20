@@ -71,12 +71,14 @@ iocp_server::iocp_server()
 
 iocp_server::~iocp_server()
 {
-    for (auto iter = info_map_.begin(); iter != info_map_.end(); ++iter)
+    for (std::map<SOCKET, PER_HANDLE_DATA*>::iterator iter = info_map_.begin(); 
+        iter != info_map_.end(); ++iter)
     {
         closesocket(iter->first);
         delete iter->second;
     }
-    for (auto iter = free_list_.begin(); iter != free_list_.end(); ++iter)
+    for (std::list<PER_HANDLE_DATA*>::iterator iter = free_list_.begin();
+        iter != free_list_.end(); ++iter)
     {
         closesocket((*iter)->socket_);
         delete *iter;
@@ -149,10 +151,10 @@ bool iocp_server::create_workers(DWORD concurrency /* = 0 */)
     }
     for (unsigned i = 0; i < concurrency; ++i)
     {
-        std::shared_ptr<thread> thrd_ptr;
+        shared_ptr<thread> thrd_ptr;
         try
         {
-            thrd_ptr.reset(new thread(std::bind(run_worker_loop, this)));
+            thrd_ptr.reset(new thread(BIND(run_worker_loop, this)));
         }
         catch (std::bad_alloc&)
         {
@@ -170,7 +172,7 @@ bool iocp_server::create_workers(DWORD concurrency /* = 0 */)
 bool  iocp_server::create_listen_socket(const sockaddr_in& addr)
 {
     PER_HANDLE_DATA* handle_data = alloc_socket_handle();
-    if (handle_data == nullptr)
+    if (handle_data == NULL)
     {
         return false;
     }
@@ -205,7 +207,7 @@ bool  iocp_server::create_listen_socket(const sockaddr_in& addr)
 // post another asyn accept request
 bool iocp_server::post_an_accept()
 {
-    auto iter = info_map_.find(listen_socket_);
+    std::map<SOCKET, PER_HANDLE_DATA*>::iterator iter = info_map_.find(listen_socket_);
     if (iter == info_map_.end())
     {
         return false;
@@ -214,7 +216,7 @@ bool iocp_server::post_an_accept()
     PER_HANDLE_DATA* listen_handle = iter->second;
 
     PER_HANDLE_DATA* accept_handle = alloc_socket_handle();
-    if (accept_handle == nullptr)
+    if (accept_handle == NULL)
     {
         return false;
     }
@@ -244,23 +246,23 @@ PER_HANDLE_DATA* iocp_server::alloc_socket_handle()
         SOCKET fd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (fd == INVALID_SOCKET)
         {
-            return nullptr;
+            return NULL;
         }
 
-        PER_HANDLE_DATA* handle_data = nullptr;
+        PER_HANDLE_DATA* handle_data = NULL;
         try
         {
             handle_data = new PER_HANDLE_DATA();
         }
         catch (std::bad_alloc&)
         {
-            return nullptr;
+            return NULL;
         }
         if (!AssociateDevice(completion_port(), (HANDLE)fd, (ULONG_PTR)handle_data))
         {
             ::closesocket(fd);
             delete handle_data;
-            return nullptr;
+            return NULL;
         }
 
         handle_data->socket_ = fd;
@@ -311,7 +313,7 @@ void    iocp_server::on_accepted(PER_HANDLE_DATA* listen_handle)
     fnGetAcceptExSockaddrs(info_ptr->addrbuf_, 0, ADDR_LEN, ADDR_LEN, (sockaddr**)&local_addr_ptr,
                            &local_len, (sockaddr**)&remote_addr_ptr, &remote_len);
 
-    auto iter = info_map_.find(socket_accept);
+    std::map<SOCKET, PER_HANDLE_DATA*>::iterator iter = info_map_.find(socket_accept);
     if (iter == info_map_.end())
     {
         LOG_PRINT(_T("accepted socket %d not found in map"), socket_accept);
@@ -396,7 +398,7 @@ void    iocp_server::wait_loop()
 {
     for (;;)
     {
-        PER_HANDLE_DATA* handle_data = nullptr;
+        PER_HANDLE_DATA* handle_data = NULL;
         {
             auto_lock lock(mutex_);
             if (!command_queue_.empty())
@@ -404,7 +406,7 @@ void    iocp_server::wait_loop()
                 handle_data = pop_command();
             }
         }
-        if (handle_data == nullptr)
+        if (handle_data == NULL)
         {
             ::Sleep(1);
             continue;
