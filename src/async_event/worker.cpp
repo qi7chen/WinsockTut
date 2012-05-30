@@ -6,7 +6,7 @@
 
 
 worker::worker()
-    : count_(0)
+    : count_(0), worker_thread_(0)
 {
     reset();
 }
@@ -18,7 +18,7 @@ worker::~worker()
 
 void worker::start()
 {
-    thrd_ptr_.reset(new thread(BIND(&worker::main_loop, this)));
+    worker_thread_ = create_thread(BIND(&worker::main_loop, this));
 }
 
 

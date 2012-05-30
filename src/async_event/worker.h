@@ -50,7 +50,7 @@ private:
     SOCKET      socklist_[WSA_MAXIMUM_WAIT_EVENTS + 1];
     size_t      count_;
 
-    shared_ptr<thread> thrd_ptr_;
+    unsigned    worker_thread_;
     spinlock    mutex_;
 
     typedef scoped_lock<spinlock> autolock;
