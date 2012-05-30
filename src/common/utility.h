@@ -116,7 +116,7 @@ _tstring    GenerateFullModuleFile(const TCHAR* strmodule);
 
 
 // get a date time string with specified locale setting
-_tstring    GetDateTimeString(const TCHAR* format = _T("%#c"), const char* locale = ".936");
+_tstring    GetDateTimeString(const TCHAR* format = _T("%#c"));
 
 
 int         SetVarArg(TCHAR* buffer, int buflen, const TCHAR* format, ...);

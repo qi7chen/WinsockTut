@@ -14,77 +14,22 @@
 
 
 
-class thread
-{
-public:
-    struct thread_data_base;
-
-    template <typename F>
-    class thread_data;
-
-public:
-    thread()
-    {}
-
-    template <typename F>
-    thread(F f)
-    {
-        thread_data_base* pbase = NULL;
-        try
-        {
-            pbase = new thread_data<F>(f);
-        }
-        catch (std::bad_alloc&)
-        {
-            LOG_ERROR(_T("allocate new thread failed"));
-            return ;
-        }
-
-        thread_info_.reset(pbase);
-        start_thread();
-    }
-
-
-    void    terminate(unsigned exit_code);
-    void    join(unsigned milsec);
-
-private:
-    thread(const thread&);
-    thread& operator = (const thread&);
-
-    void    start_thread();
-
-    static unsigned CALLBACK run_thread_func(void* pv);
-
-private:
-    std::auto_ptr<thread_data_base>   thread_info_;
-};
-
-
-
-struct thread::thread_data_base
+struct thread_data_base
 {
     HANDLE      thread_handle_;
     unsigned    thread_id_;
 
-    thread_data_base()
-        : thread_handle_(INVALID_HANDLE_VALUE),
-        thread_id_(0)
-    {}
-
-    virtual ~thread_data_base() 
-    {
-        thread_handle_ = INVALID_HANDLE_VALUE;
-        thread_id_ = 0;
-    }
+    thread_data_base();
+    virtual ~thread_data_base();
 
     virtual void run() = 0;    
 };
 
 
+
+
 template <typename F>
-class thread::thread_data 
-    : public thread::thread_data_base
+class thread_data : public thread_data_base
 {
 public:
     explicit thread_data(F f)
@@ -99,3 +44,27 @@ public:
 private:
     F       f_;
 };
+
+
+bool start_thread(thread_data_base* data);
+
+
+template <typename F>
+unsigned create_thread(F f)
+{
+    thread_data_base* pbase = NULL;
+    try
+    {
+        pbase = new thread_data<F>(f);
+    }
+    catch (std::bad_alloc&)
+    {
+        LOG_ERROR(_T("allocate new thread failed"));
+        return 0;
+    }
+    if (start_thread(pbase))
+    {
+        return (unsigned)pbase->thread_handle_;
+    }
+    return 0;
+}
