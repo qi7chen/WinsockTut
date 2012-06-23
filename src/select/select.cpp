@@ -1,4 +1,10 @@
-﻿
+﻿/**
+*  @file:   select.cpp
+*  @brief:  A simple echo server, use select
+*
+*  @author: ichenq@gmail.com
+*  @date:   Oct 19, 2011
+*/
 
 #include "../common/utility.h"
 #include <WinSock2.h>
@@ -114,7 +120,7 @@ bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count)
 {
     if (*count == FD_SETSIZE-1)
     {
-        LOG_PRINT(_T("got the select 64 limit"));
+        LOG_PRINT(_T("got the 64 limit"));
         return false;
     }
 
@@ -136,6 +142,8 @@ bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count)
         return false;
     }
 
+    _tprintf(_T("%s, socket %d accepted.\n"), GetDateTime().data(), socknew);
+
     socklist[*count] = socknew;
     (*count)++;
     return true;
@@ -143,7 +151,7 @@ bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count)
 
 void    on_close(SOCKET sockfd, SOCKET* socklist, int* count)
 {
-    _tprintf(_T("%d closed at %s\n"), sockfd, GetDateTimeString().data());
+    _tprintf(_T("%s, socket %d closed.\n"), GetDateTime().data(), sockfd);
 
     // find index of this socket
     int index = -1;

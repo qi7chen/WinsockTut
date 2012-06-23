@@ -1,5 +1,5 @@
 ﻿/**
-*  @brief:  A simple echo server, use winsock Asynchronous Select I/O model
+*  @brief:  A simple echo server, use async select
 *  @author: ichenq@gmail.com
 *  @date:   Nov 24, 2011
 */
@@ -10,8 +10,10 @@
 #include <tchar.h>
 #include <assert.h>
 #include <algorithm>
+#include <ShellAPI.h>
 
 
+#pragma comment(lib, "shell32.lib")
 
 #pragma warning(disable: 4996)
 
@@ -28,8 +30,15 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
                     int nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
-    UNREFERENCED_PARAMETER(nCmdShow);   
+    UNREFERENCED_PARAMETER(nCmdShow);
+
+    int nNumArgs = 0;
+    CommandLineToArgvW(GetCommandLineW(), &nNumArgs);
+    if (nNumArgs != 3)
+    {
+        MessageBox(NULL, _T("Usage: async_select $host $port"), _T("Invalid parameters"), MB_OK);
+        return 1;
+    }
 
     // dialog box to handle socket events
     return DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_ASYNCSELECT), NULL, DlgProc, (LPARAM)lpCmdLine);
@@ -92,8 +101,8 @@ bool AppendEditText(HWND hdlg, const TCHAR* text, int len)
     }
     else
     {
-        textbuf[count++] = _T('\r');
-        textbuf[count++] = _T('\n');
+        textbuf[count++] = ('\r');
+        textbuf[count++] = ('\n');
     }
     if (count + len + 2 >= BUFSIZ)
     {

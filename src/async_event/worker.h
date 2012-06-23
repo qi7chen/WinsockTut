@@ -9,8 +9,12 @@
 
 
 #include "../common/utility.h"
-#include "../common/mutex.h"
 #include "../common/thread.h"
+
+
+
+const unsigned WM_ADD_NEW_SOCKET = WM_USER + 0xff;
+
 
 
 //
@@ -22,14 +26,14 @@ public:
     worker();
     ~worker();
 
-    // should be called by manager thread
+    // called by main thread
     void start();
 
-    // push one socket to this worker
-    bool push_socket(SOCKET sockfd);
+    // 
+    unsigned get_id() const {return my_thread_;} ;
 
-    // when worker is full, you cannot push socket to it
-    bool full() ;
+    bool    is_full();
+
 
 private:
     worker(const worker&);
@@ -42,17 +46,19 @@ private:
     bool on_write(SOCKET sockfd, int error);
     bool on_close(SOCKET sockfd, int error);
 
+
+    // handle thread messages
+    bool handle_messages();
+
     // nonlock
     void reset();
+
 
 private:
     WSAEVENT    eventlist_[WSA_MAXIMUM_WAIT_EVENTS + 1]; // for convenience of deleting
     SOCKET      socklist_[WSA_MAXIMUM_WAIT_EVENTS + 1];
     size_t      count_;
 
-    shared_ptr<thread> thrd_ptr_;
-    spinlock    mutex_;
-
-    typedef scoped_lock<spinlock> autolock;
+    unsigned    my_thread_;
 };
 

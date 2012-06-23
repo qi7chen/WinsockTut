@@ -9,6 +9,10 @@
 *.pdb
 *.res
 *.exe
+*.htm
+*.rc
+*.dep
+*.aps
 *.manifest
 *.lastbuildstate
 *.unsuccessfulbuild

@@ -4,51 +4,72 @@
 
 
 
-unsigned thread::run_thread_func(void* pv)
+static unsigned CALLBACK run_thread_func(void* pv)
 {
-    thread_data_base* info = (thread_data_base*)pv;
-    if (info)
+    std::auto_ptr<thread_data_base> data((thread_data_base*)pv);    
+    if (data.get())
     {
+        // force this thread to create a message queue
+        while (!PostThreadMessage(data->thread_id_, 0, 0, 0))
+        {
+            Sleep(1);
+        }
+
         try
         {
-            info->run();
+            data->run();
         }
         catch (...)
         {
-            LOG_ERROR(_T("thread %d encountered unhandled exception!"), info->thread_id_);
-        }                
+            LOG_ERROR(_T("thread %d encountered unhandled exception!"), data->thread_id_);
+            return 1;
+        }
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
-void thread::start_thread()
+
+void start_thread(thread_data_base* data)
 {
-    uintptr_t thread_handle = _beginthreadex(0, 0, run_thread_func, thread_info_.get(), 
-        CREATE_SUSPENDED, &thread_info_->thread_id_);
+    uintptr_t thread_handle = _beginthreadex(0, 0, run_thread_func, data, 
+        CREATE_SUSPENDED, &data->thread_id_);
     if (thread_handle == 0)
     {
         LOG_ERROR(_T("_beginthreadex() failed"));
     }
     else
     {
-        thread_info_->thread_handle_ = (HANDLE)thread_handle;
-        ResumeThread(thread_info_->thread_handle_);
+        data->thread_handle_ = (HANDLE)thread_handle;
+        ::ResumeThread(data->thread_handle_);
     }
 }
 
-void thread::terminate(unsigned exitcode)
+// send message
+bool send_message_to(unsigned thread_id, 
+                     unsigned msg, 
+                     UINT_PTR wParam, 
+                     LONG_PTR lParam)
 {
-    if (thread_info_.get())
+    bool bOk = PostThreadMessage(thread_id, msg, wParam, lParam) == TRUE;
+    if (!bOk)
     {
-        ::TerminateThread(thread_info_->thread_handle_, exitcode);
+        LOG_ERROR(_T("PostThreadMessage() failed"));
     }
+    return bOk;
 }
 
-void thread::join(unsigned milsec)
+
+//////////////////////////////////////////////////////////////////////////
+
+thread_data_base::thread_data_base()
+    : thread_handle_(INVALID_HANDLE_VALUE), thread_id_(0)
 {
-    if (thread_info_.get())
-    {
-        ::WaitForSingleObject(thread_info_->thread_handle_, milsec);
-    }
+}
+
+thread_data_base::~thread_data_base()
+{
+    thread_handle_ = INVALID_HANDLE_VALUE;
+    thread_id_ = 0;
 }

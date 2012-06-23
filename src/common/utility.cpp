@@ -30,20 +30,15 @@ _tstring GetErrorMessage(DWORD errorcode)
 }
 
 
-_tstring GetDateTimeString(const TCHAR* format, const char* locale)
+_tstring GetDateTime(const TCHAR* format /* = _T("%Y-%m-%d %H:%M:%S") */)
 {    
-    assert(format && locale);
-    time_t now = time(NULL);
-    struct tm st = {};
-    errno_t error = localtime_s(&st, &now);
-    _locale_t loc = _create_locale(LC_TIME, locale);
-    if (loc == 0 || error != 0)
-    {
-        return _tstring();
-    }
-
+    assert(format);       
+    
     TCHAR szmsg[MAX_PATH];
-    size_t len = _tcsftime_l(szmsg, _countof(szmsg), format, &st, loc);
+    struct tm st = {};
+    time_t now = time(NULL);
+    errno_t error = localtime_s(&st, &now);
+    size_t len = (error ? 0 : _tcsftime(szmsg, _countof(szmsg), format, &st));
     return _tstring(szmsg, len);
 }
 
@@ -51,7 +46,7 @@ _tstring GetDateTimeString(const TCHAR* format, const char* locale)
 _tstring  GenerateFullModuleFile(const TCHAR* module)
 {
     assert(module);
-    _tstring strdate = module + GetDateTimeString(_T("_%Y-%m-%d"), ".936");
+    _tstring strdate = module + GetDateTime(_T("_%Y-%m-%d"));
     strdate.append(_T(".log"));
     return strdate;
 }
@@ -109,7 +104,7 @@ bool LogErrorText(const TCHAR* module,
 {
     assert(module && msg && file && func);
     TCHAR buffer[BUFSIZ];
-    const _tstring& strdate = GetDateTimeString(_T("%#c"), ".936");
+    const _tstring& strdate = GetDateTime(_T("%#c"));
     const _tstring& errmsg = GetErrorMessage(errorcode);
     const TCHAR* format = _T("Date: %s\nFile: %s\nLine: %d\nFunction: %s()\nMessage: %s\nError: %d, %s\n");
     int count = _stprintf_s(buffer, BUFSIZ, format, strdate.data(), file, line, func, msg, 

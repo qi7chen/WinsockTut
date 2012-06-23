@@ -115,8 +115,8 @@ _tstring    GetErrorMessage(DWORD errorcode);
 _tstring    GenerateFullModuleFile(const TCHAR* strmodule);
 
 
-// get a date time string with specified locale setting
-_tstring    GetDateTimeString(const TCHAR* format = _T("%#c"), const char* locale = ".936");
+// get a date time string 
+_tstring    GetDateTime(const TCHAR* format = _T("%Y-%m-%d %H:%M:%S"));
 
 
 int         SetVarArg(TCHAR* buffer, int buflen, const TCHAR* format, ...);

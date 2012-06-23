@@ -82,6 +82,8 @@ SOCKET create_server_socket(const _tstring& strAddr)
         return INVALID_SOCKET;
     }
 
+    _tprintf(_T("server listen at %s...\n"), strAddr.data());
+
     return sockfd;
 }
 
@@ -91,7 +93,7 @@ void add_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd)
     shared_ptr<worker> worker_ptr;
     for (size_t i = 0; i < workers.size(); ++i)
     {
-        if (!workers[i]->full())
+        if (!workers[i]->is_full())
         {
             worker_ptr = workers[i];
             break;
@@ -104,7 +106,8 @@ void add_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd)
         worker_ptr.reset(new worker);
         worker_ptr->start();
         workers.push_back(worker_ptr);
+        ::Sleep(500);    // wait worker thread been initialized
     }
-
-    worker_ptr->push_socket(sockfd);
+    
+    send_message_to(worker_ptr->get_id(), WM_ADD_NEW_SOCKET, sockfd, 0);
 }

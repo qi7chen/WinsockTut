@@ -1,6 +1,6 @@
 ﻿/**
 *  @file:   socket.cpp
-*  @brief:  A simple echo server, use BSD socket api
+*  @brief:  A simple echo server, use fundamental socket api
 *
 *  @author: ichenq@gmail.com
 *  @date:   Oct 19, 2011
@@ -24,6 +24,7 @@ SOCKET  create_server_socket(const TCHAR* host, const TCHAR* port);
 void    handle_client(SOCKET sockfd);
 
 
+
 // main entry
 int _tmain(int argc, TCHAR* argv[])
 {
@@ -39,9 +40,6 @@ int _tmain(int argc, TCHAR* argv[])
         return 1;
     }
 
-    // all threads
-    std::list<shared_ptr<thread>>  thread_list;
-
     for (;;)
     {
         sockaddr_in addr = {};
@@ -54,13 +52,10 @@ int _tmain(int argc, TCHAR* argv[])
         }
         try
         {
-            _tstring strAddr = AddressToString(addr);
-            _tstring strDate = GetDateTimeString();
-            _tprintf(_T("%s, %s connected.\n"), strDate.data(), strAddr.data());
+            _tprintf(_T("%s, socket %d accepted.\n"), GetDateTime().data(), sock_accept);
 
             // one thread per connection
-            shared_ptr<thread> thrd_ptr(new thread(BIND(handle_client, sock_accept)));
-            thread_list.push_back(thrd_ptr);
+            create_thread(BIND(handle_client, sock_accept));
         }
         catch (std::bad_alloc&)
         {
@@ -82,12 +77,10 @@ void    handle_client(SOCKET sockfd)
         if (bytes_read == SOCKET_ERROR)
         {
             LOG_PRINT(_T("recv() failed\n"));
-            closesocket(sockfd);
             break;
         }
         else if (bytes_read == 0)
         {
-            closesocket(sockfd);
             break;
         }
 
@@ -96,10 +89,12 @@ void    handle_client(SOCKET sockfd)
         if (bytes_send == SOCKET_ERROR)
         {
             LOG_PRINT(_T("send() failed\n"));
-            closesocket(sockfd);
             break;
         }    
-    }    
+    }
+
+    closesocket(sockfd);
+    _tprintf(_T("%s, socket %d closed.\n"), GetDateTime().data(), sockfd);
 }
 
 

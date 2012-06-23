@@ -1,6 +1,9 @@
 ﻿
 #include "appdef.h"
 
+
+
+
 static bool on_accepted(HWND hwnd, SOCKET sockfd);
 static bool on_recv(HWND hwnd, SOCKET sockfd);
 static bool on_closed(HWND hwnd, SOCKET sockfd);
@@ -38,7 +41,7 @@ bool InitializeServer(HWND hwnd, const _tstring& strAddr)
         return false;
     }
 
-    // set socket to non-blocking mode automa
+    // this system call set the socket to non-blocking mode automatically
     if (WSAAsyncSelect(sockfd, hwnd, WM_SOCKET, FD_ACCEPT) == SOCKET_ERROR)
     {
         closesocket(sockfd);
@@ -53,7 +56,7 @@ bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
 {
     if (error)
     {
-        LOG_PRINT(_T("an error(%d) encountered!"), error);
+        LOG_PRINT(_T("Error encountered, ID: %d\n."), error);
         return false;
     }
 
@@ -106,9 +109,7 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
         return false;
     }
 
-    _tstring msg = AddressToString(addr);
-    msg += _T(" accpeted at ");
-    msg += GetDateTimeString();
+    _tstring msg = GetDateTime() + _T(", socket ") + ToString(socknew) + _T(" accepted.\n");
     AppendEditText(hwnd, msg.data(), msg.length());
     return true;
 }
@@ -141,9 +142,7 @@ bool on_closed(HWND hwnd, SOCKET sockfd)
     }
     else
     {
-        _tstring msg = AddressToString(addr);
-        msg += _T(" closed at ");
-        msg += GetDateTimeString();
+        _tstring msg = GetDateTime() + _T(", socket ") + ToString(sockfd) + _T(" closed.\n");
         AppendEditText(hwnd, msg.data(), msg.length());
     }
 
