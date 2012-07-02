@@ -61,7 +61,7 @@ int _tmain(int argc, TCHAR* argv[])
             }
         }
 
-        ::SleepEx(100, TRUE); // make this thread alertable
+        ::SleepEx(50, TRUE); // make this thread alertable
     }
 
     return 0;
