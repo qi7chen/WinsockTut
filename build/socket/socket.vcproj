@@ -45,10 +45,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				UsePrecompiledHeader="2"
+				UsePrecompiledHeader="0"
 				WarningLevel="4"
 				DebugInformationFormat="4"
-				ForcedIncludeFiles="stdafx.h"
+				ForcedIncludeFiles=""
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -203,11 +203,11 @@
 			Name="common"
 			>
 			<File
-				RelativePath="..\..\src\common\thread.cpp"
+				RelativePath="..\..\src\common\logging.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\common\thread.h"
+				RelativePath="..\..\src\common\logging.h"
 				>
 			</File>
 			<File
