@@ -1,15 +1,15 @@
 ﻿/**
-*  @file:   socket.cpp
-*  @brief:  A simple echo server, use fundamental socket api
-*
-*  @author: ichenq@gmail.com
-*  @date:   Oct 19, 2011
+*  @file   socket.cpp
+*  @author ichenq@gmail.com
+*  @date   Oct 19, 2011
+*  @brief  A simple echo server, use fundamental socket api
+
 */
 
 
 
 #include "../common/utility.h"
-#include "../common/thread.h"
+#include "../common/logging.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <list>
@@ -20,8 +20,8 @@
 
 
 
-SOCKET  create_server_socket(const TCHAR* host, const TCHAR* port);
-void    handle_client(SOCKET sockfd);
+static SOCKET      create_listen_socket(const TCHAR* host, const TCHAR* port);
+static unsigned    handle_client(unsigned sockfd);
 
 
 
@@ -30,11 +30,11 @@ int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 3)
     {
-        _tprintf(_T("Usage: %s $host $port"), argv[0]);
+        _tprintf(_T("Usage: $program $host $port"));
         return 1;
     }
 
-    SOCKET sockfd = create_server_socket(argv[1], argv[2]);
+    SOCKET sockfd = create_listen_socket(argv[1], argv[2]);
     if (sockfd == INVALID_SOCKET)
     {
         return 1;
@@ -51,11 +51,11 @@ int _tmain(int argc, TCHAR* argv[])
             break;
         }
         try
-        {
-            _tprintf(_T("%s, socket %d accepted.\n"), GetDateTime().data(), sock_accept);
+        {            
+            _tprintf(_T("%s, socket %d accepted.\n"), Now().data(), sock_accept);
 
             // one thread per connection
-            create_thread(BIND(handle_client, sock_accept));
+            start_thread(handle_client, sock_accept);
         }
         catch (std::bad_alloc&)
         {
@@ -68,7 +68,7 @@ int _tmain(int argc, TCHAR* argv[])
 
 
 // run in client thread
-void    handle_client(SOCKET sockfd)
+unsigned    handle_client(unsigned sockfd)
 {
     char databuf[BUFSIZ];
     for (;;)
@@ -94,11 +94,13 @@ void    handle_client(SOCKET sockfd)
     }
 
     closesocket(sockfd);
-    _tprintf(_T("%s, socket %d closed.\n"), GetDateTime().data(), sockfd);
+    _tprintf( _T("%s, socket %d closed.\n"), Now().data(), sockfd);
+
+    return 0;
 }
 
 
-SOCKET  create_server_socket(const TCHAR* host, const TCHAR* port)
+SOCKET  create_listen_socket(const TCHAR* host, const TCHAR* port)
 {
     ADDRINFOT* aiList = NULL;
     ADDRINFOT hints = {};
@@ -138,11 +140,11 @@ SOCKET  create_server_socket(const TCHAR* host, const TCHAR* port)
             closesocket(sockfd);
             continue;
         }        
-        break; // connected, break the loop
+        break; // succeed, break the loop
     }
 
     FreeAddrInfo(aiList);
-    _tprintf(_T("server listen at %s:%s.\n"), host, port);
+    _tprintf(_T("%s, server listen at %s:%s.\n"), Now().data(), host, port);
 
     return sockfd;
 }

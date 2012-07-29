@@ -1,121 +1,81 @@
 ﻿
 #include "utility.h"
+#include "logging.h"
 #include <assert.h>
-#include <time.h>
 #include <locale.h>
-#include <utility>
-#include <iostream>
-#include <iphlpapi.h>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-
+#include <process.h>
+#include <iphlpapi.h>
+#include <utility>
 
 #pragma comment(lib, "Iphlpapi")
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "mswsock")
 
 
-
-
-_tstring GetErrorMessage(DWORD errorcode)
+static unsigned CALLBACK run_thread_func(void* pv)
 {
-    TCHAR szmsg[MAX_PATH];
-    DWORD dwLen = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errorcode,
-        0, szmsg, MAX_PATH-1, NULL);
-    if (dwLen == 0)
+    assert(pv);
+
+    // force this thread to create a message queue
+    while (!::PostThreadMessage(::GetCurrentThreadId(), 0, 0, 0))
+    {
+        Sleep(1);
+    }
+
+    try
+    {
+        unsigned* arglist = reinterpret_cast<unsigned*>(pv);
+        thread_func_type func = reinterpret_cast<thread_func_type>(arglist[0]);
+        unsigned param = arglist[1];
+        delete arglist;
+
+        func(param);
+    }
+    catch (...)
+    {
+        LOG_ERROR(_T("thread %d encountered unhandled exception!"), ::GetCurrentThreadId());
+        return 1;
+    }
+    return 0;
+}
+
+
+unsigned start_thread(thread_func_type thrd_func, unsigned param)
+{
+    unsigned* arglist = new unsigned[2];
+    arglist[0] = reinterpret_cast<unsigned>(thrd_func);
+    arglist[1] = param;
+
+    unsigned hThread = _beginthreadex(0, 0, run_thread_func, arglist, 
+        CREATE_SUSPENDED, NULL);
+    if (hThread == 0)
+    {
+        LOG_ERROR(_T("_beginthreadex() failed"));
+    }
+    else
     {        
-        return GetErrorMessage(::GetLastError()); // find out why we failed
+        ::ResumeThread(reinterpret_cast<HANDLE>(hThread));
     }
-    return _tstring(szmsg, dwLen);
+    return hThread;
 }
 
-
-_tstring GetDateTime(const TCHAR* format /* = _T("%Y-%m-%d %H:%M:%S") */)
-{    
-    assert(format);       
-    
-    TCHAR szmsg[MAX_PATH];
-    struct tm st = {};
-    time_t now = time(NULL);
-    errno_t error = localtime_s(&st, &now);
-    size_t len = (error ? 0 : _tcsftime(szmsg, _countof(szmsg), format, &st));
-    return _tstring(szmsg, len);
-}
-
-
-_tstring  GenerateFullModuleFile(const TCHAR* module)
+// send message
+bool send_message_to(unsigned thread_id, 
+                     unsigned msg, 
+                     unsigned wParam, 
+                     long lParam)
 {
-    assert(module);
-    _tstring strdate = module + GetDateTime(_T("_%Y-%m-%d"));
-    strdate.append(_T(".log"));
-    return strdate;
-}
-
-
-int  SetVarArg(TCHAR* buffer, int buflen, const TCHAR* format, ...)
-{
-    assert(buffer && format);
-    va_list ap;
-    va_start(ap, format);
-    int count = _vstprintf_s(buffer, buflen, format, ap);
-    va_end(ap);
-    return count;
-}
-
-bool WriteTextToFile(const TCHAR* module, const TCHAR* format, ...)
-{
-    assert(module && format);
-    TCHAR buffer[BUFSIZ];
-    va_list ap;
-    va_start(ap, format);
-    int count = _vstprintf_s(buffer, BUFSIZ, format, ap);
-    va_end(ap);
-
-    if (count <= 0)
+    bool bOk = ::PostThreadMessage(thread_id, msg, wParam, lParam) == TRUE;
+    if (!bOk)
     {
-        return false;
+        LOG_ERROR(_T("PostThreadMessage() failed"));
     }
-
-    const _tstring& filename = GenerateFullModuleFile(module);
-    FILE* fp = NULL;
-#if defined(_UNICODE) || defined(UNICODE)
-    _wfopen_s(&fp, filename.data(), L"a+, ccs=UTF-16LE");
-#else
-    fopen_s(&fp, filename.data(),  "a+");
-#endif
-    if (fp == NULL)
-    {
-        return false;
-    }
-
-    int item_write = fwrite(buffer, sizeof(TCHAR), count, fp);
-    fclose(fp);
-
-    return (item_write == count);
+    return bOk;
 }
 
-// write formatted text to specified file
-bool LogErrorText(const TCHAR* module,
-    const TCHAR* msg, 
-    const TCHAR* file, 
-    const TCHAR* func, 
-    size_t line, 
-    size_t errorcode)
-{
-    assert(module && msg && file && func);
-    TCHAR buffer[BUFSIZ];
-    const _tstring& strdate = GetDateTime(_T("%#c"));
-    const _tstring& errmsg = GetErrorMessage(errorcode);
-    const TCHAR* format = _T("Date: %s\nFile: %s\nLine: %d\nFunction: %s()\nMessage: %s\nError: %d, %s\n");
-    int count = _stprintf_s(buffer, BUFSIZ, format, strdate.data(), file, line, func, msg, 
-        errorcode, errmsg.data());
-    if (count > 0)
-    {
-        return WriteTextToFile(module, buffer);
-    }
-    return false;
-}
-
+//////////////////////////////////////////////////////////////////////////
 
 _tstring AddressToString(const sockaddr_in& addr)
 {
@@ -131,22 +91,20 @@ _tstring AddressToString(const sockaddr_in& addr)
 }
 
 
-bool StringToAddress(const _tstring& straddr, sockaddr_in* paddr)
+bool StringToAddress(const _tstring& strAddr, sockaddr_in* paddr)
 {
     assert(paddr);
     sockaddr_in  addr = {};
     int addrlen = sizeof(addr);
-    int error = (WSAStringToAddress((LPTSTR)straddr.data(), AF_INET, NULL, 
+    int error = (WSAStringToAddress(const_cast<LPTSTR>(strAddr.data()), AF_INET, NULL, 
         (sockaddr*)&addr, &addrlen));
     if (error != 0)
     {
         LOG_DEBUG(_T("WSAStringToAddress() failed"));
+        return false;
     }
-    else
-    {
-        *paddr = addr;
-    }
-    return error == 0;
+    *paddr = addr;
+    return true;
 }
 
 //  Format mac address
@@ -191,7 +149,7 @@ public:
         WSADATA data = {};
         if (WSAStartup(0, &data) == WSAVERNOTSUPPORTED)
         {
-            WSAStartup(data.wHighVersion, &data); // use the highest winsock version 
+            WSAStartup(data.wHighVersion, &data); // use the highest supported version 
         }
 
         setlocale(LC_CTYPE, ".936");

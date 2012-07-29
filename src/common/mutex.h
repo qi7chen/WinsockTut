@@ -1,9 +1,8 @@
 ﻿/**
- *  @file:   mutex.h
- *  @brief:  mutex for thread synchronization
- *
- *  @author: ichenq@gmail.com
- *  @date:   May 25, 2011
+ *  @file   mutex.h
+ *  @author ichenq@gmail.com
+ *  @date   May 25, 2011
+ *  @brief  mutex for thread synchronization
  */
 
 #pragma once
@@ -77,34 +76,26 @@ private:
 class mutex
 {
 public:
-    //  InitializeCriticalSection() will raise an exception if failed to 
-    //  allocate the critical section object.
-    //  InitializeCriticalSectionAndSpinCount() is more safe.
-    explicit mutex(size_t spin_count = 0)
+    mutex() 
     {
-        if (!::InitializeCriticalSectionAndSpinCount(&cs_, spin_count))
-        {
-            LOG_DEBUG(_T("InitializeCriticalSectionAndSpinCount() failed"));
-        }
+        ::InitializeCriticalSection(&cs_);
     }
-
     ~mutex()
     {
         ::DeleteCriticalSection(&cs_);
     }
 
-public:
-    bool try_lock()
+    bool try_lock() 
     {
         return (::TryEnterCriticalSection(&cs_) == TRUE);
     }
 
-    void lock()
+    void lock() 
     {
         ::EnterCriticalSection(&cs_);
     }
 
-    void unlock()
+    void unlock() 
     {
         ::LeaveCriticalSection(&cs_);
     }
@@ -128,7 +119,7 @@ public:
         lock_.lock();
     }
 
-    ~scoped_lock()
+    ~scoped_lock() 
     {
         lock_.unlock();
     }
