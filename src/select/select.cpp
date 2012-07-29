@@ -1,22 +1,22 @@
 ﻿/**
-*  @file:   select.cpp
-*  @brief:  A simple echo server, use select
-*
-*  @author: ichenq@gmail.com
-*  @date:   Oct 19, 2011
+*  @file   select.cpp
+*  @author ichenq@gmail.com
+*  @date   Oct 19, 2011
+*  @brief  A simple echo server, use select
 */
 
 #include "../common/utility.h"
+#include "../common/logging.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 
 
 
-SOCKET  create_server_socket(const _tstring& strAddr);
+static SOCKET  create_listen_socket(const _tstring& strAddr);
 
-void    on_close(SOCKET sockfd, SOCKET* socklist, int* count);
-bool    on_accept(SOCKET sockfd, SOCKET* socklist, int* count);
-bool    on_recv(SOCKET sockfd);
+static void    on_close(SOCKET sockfd, SOCKET* socklist, int* count);
+static bool    on_accept(SOCKET sockfd, SOCKET* socklist, int* count);
+static bool    on_recv(SOCKET sockfd);
 
 
 
@@ -32,7 +32,7 @@ int _tmain(int argc, TCHAR* argv[])
     _tstring host = argv[1];
     _tstring port = argv[2];
 
-    SOCKET sockfd = create_server_socket(host + _T(":") + port);
+    SOCKET sockfd = create_listen_socket(host + _T(":") + port);
     if (sockfd == INVALID_SOCKET)
     {
         return 1;
@@ -92,7 +92,7 @@ int _tmain(int argc, TCHAR* argv[])
 //////////////////////////////////////////////////////////////////////////
 // handlers
 
-bool    on_recv(SOCKET sockfd)
+bool on_recv(SOCKET sockfd)
 {
     char buf[BUFE_SIZE];
     int bytes = recv(sockfd, buf, BUFE_SIZE, 0);
@@ -142,16 +142,16 @@ bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count)
         return false;
     }
 
-    _tprintf(_T("%s, socket %d accepted.\n"), GetDateTime().data(), socknew);
+    _tprintf(_T("%s, socket %d accepted.\n"), Now().data(), socknew);
 
     socklist[*count] = socknew;
     (*count)++;
     return true;
 }
 
-void    on_close(SOCKET sockfd, SOCKET* socklist, int* count)
+void on_close(SOCKET sockfd, SOCKET* socklist, int* count)
 {
-    _tprintf(_T("%s, socket %d closed.\n"), GetDateTime().data(), sockfd);
+    _tprintf(_T("%s, socket %d closed.\n"), Now().data(), sockfd);
 
     // find index of this socket
     int index = -1;
@@ -180,7 +180,7 @@ void    on_close(SOCKET sockfd, SOCKET* socklist, int* count)
 }
 
 
-SOCKET  create_server_socket(const _tstring& strAddr)
+SOCKET  create_listen_socket(const _tstring& strAddr)
 {
     sockaddr_in addr = {};
     if (!StringToAddress(strAddr, &addr))
@@ -220,6 +220,6 @@ SOCKET  create_server_socket(const _tstring& strAddr)
         return INVALID_SOCKET;
     }
 
-    _tprintf(_T("server listen at %s\n"), strAddr.data());
+    _tprintf(_T("%s, server listen at %s\n"), Now().data(), strAddr.data());
     return sockfd;
 }

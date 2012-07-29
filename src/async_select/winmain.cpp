@@ -1,17 +1,15 @@
 ﻿/**
-*  @brief:  A simple echo server, use async select
-*  @author: ichenq@gmail.com
-*  @date:   Nov 24, 2011
-*/
+ *  @author ichenq@gmail.com
+ *  @date   Nov 24, 2011
+ *  @brief  A simple echo server, use async select
+ */
 
-#include "../common/utility.h"
+
 #include "resource.h"
 #include "appdef.h"
-#include <tchar.h>
 #include <assert.h>
-#include <algorithm>
 #include <ShellAPI.h>
-
+#include "../common/logging.h"
 
 #pragma comment(lib, "shell32.lib")
 
@@ -19,8 +17,11 @@
 
 
 
-INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
+static INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
+static bool StartServer(const _tstring& strHost, const _tstring& strPort);
+static void OnCommand(HWND hCtrl, DWORD dwNotifyCode);
 
+static HWND     g_hDlg;  // global dialog handle
 
 
 // main entry
@@ -29,19 +30,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
                     LPTSTR lpCmdLine, 
                     int nCmdShow)
 {
-    UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(nCmdShow);
-
-    int nNumArgs = 0;
+    std::pair<_tstring, _tstring>* dlgParam = NULL;
+    int nNumArgs = 0;    
     CommandLineToArgvW(GetCommandLineW(), &nNumArgs);
-    if (nNumArgs != 3)
+    if (nNumArgs == 3)
     {
-        MessageBox(NULL, _T("Usage: async_select $host $port"), _T("Invalid parameters"), MB_OK);
-        return 1;
+        _tstring strCmdLine = lpCmdLine;
+        size_t pos = strCmdLine.find(_T(' '));
+        if (pos != _tstring::npos)
+        {
+            const _tstring& strHost = strCmdLine.substr(0, pos);
+            const _tstring& strPort = strCmdLine.substr(pos+1);
+            dlgParam = new std::pair<_tstring, _tstring>(strHost, strPort);
+        }
     }
-
-    // dialog box to handle socket events
-    return DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_ASYNCSELECT), NULL, DlgProc, (LPARAM)lpCmdLine);
+    return DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_ASYNCSELECT), NULL, DlgProc, (LPARAM)dlgParam);
 }
 
 
@@ -53,16 +56,14 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
     case WM_INITDIALOG:
         {
-            _tstring strAddr = (LPTSTR)lParam;
-            std::replace(strAddr.begin(), strAddr.end(), _T(' '), _T(':'));
-            if (!InitializeServer(hDlg, strAddr))
-            {
-                MessageBox(hDlg, _T("$program $host $port"), _T("Usage"), MB_OK);
-                return 1;
-            }
+            g_hDlg = hDlg; // initialize global handle
 
-            _tstring msg = _T("server listen at ") + strAddr;
-            SetDlgItemText(hDlg, IDC_EDIT_LOG, msg.data());
+            std::pair<_tstring, _tstring>* dlgParam = (std::pair<_tstring, _tstring>*)lParam;
+            if (dlgParam != NULL)
+            {
+                StartServer(dlgParam->first, dlgParam->second);
+                delete dlgParam;
+            }
         }
         break;
 
@@ -74,6 +75,8 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 EndDialog(hDlg, 0);
             }
+        default:
+            OnCommand((HWND)lParam, HIWORD(wParam));
             break;
         }
         break;
@@ -87,16 +90,65 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+void OnCommand(HWND hCtrl, DWORD dwNotifyCode)
+{
+    if (hCtrl == GetDlgItem(g_hDlg, IDC_BUTTO_START))
+    {
+        TCHAR szbuf[MAX_PATH];
+        if (GetDlgItemText(g_hDlg, IDC_EDIT_HOST, szbuf, MAX_PATH) > 0)
+        {
+            _tstring strHost = szbuf;
+            if (GetDlgItemText(g_hDlg, IDC_EDIT_PORT, szbuf, MAX_PATH) > 0)
+            {
+                _tstring strPort = szbuf;
+                if (StartServer(strHost, strPort))
+                    return ;
+            }
+        }
+        _tstring msg = _T("start server failed.");
+        AppendLogText(msg.data(), msg.length());
+    }
+    else if (hCtrl == GetDlgItem(g_hDlg, IDC_BUTTON_STOP))
+    {
+        CloseServer();
+        EnableWindow(GetDlgItem(g_hDlg, IDC_EDIT_HOST), TRUE);
+        EnableWindow(GetDlgItem(g_hDlg, IDC_EDIT_PORT), TRUE);
+        EnableWindow(GetDlgItem(g_hDlg, IDC_BUTTO_START), TRUE);
+        EnableWindow(GetDlgItem(g_hDlg, IDC_BUTTON_STOP), FALSE);
+    }
+}
+
+bool StartServer(const _tstring& strHost, const _tstring& strPort)
+{
+    if (InitializeServer(g_hDlg, strHost, strPort))
+    {
+        
+        SetDlgItemText(g_hDlg, IDC_EDIT_HOST, strHost.data());
+        SetDlgItemText(g_hDlg, IDC_EDIT_PORT, strPort.data());
+        EnableWindow(GetDlgItem(g_hDlg, IDC_EDIT_HOST), FALSE);
+        EnableWindow(GetDlgItem(g_hDlg, IDC_EDIT_PORT), FALSE);
+        EnableWindow(GetDlgItem(g_hDlg, IDC_BUTTO_START), FALSE);
+        EnableWindow(GetDlgItem(g_hDlg, IDC_BUTTON_STOP), TRUE);
+        _tstring msg = Now() + _T(", server start listen at ") + strHost + _T(":") + strPort;
+        AppendLogText(msg.data(), msg.length());
+        return true;
+    }
+    else
+    {
+        _tstring msg = _T("initialize server failed.");
+        AppendLogText(msg.data(), msg.length());
+        return false;
+    }
+}
 
 // new text =  current text + appended text
-bool AppendEditText(HWND hdlg, const TCHAR* text, int len)
+bool AppendLogText(const TCHAR* text, int len)
 {
     assert(text && len > 0);
     TCHAR textbuf[BUFSIZ];
-    size_t count = GetDlgItemText(hdlg, IDC_EDIT_LOG, textbuf, BUFSIZ);
+    size_t count = GetDlgItemText(g_hDlg, IDC_EDIT_LOG, textbuf, BUFSIZ);
     if (count == 0 && GetLastError() != S_OK)
     {
-        LOG_DEBUG(_T("GetDlgItemText() failed)"));
         return false;
     }
     else
@@ -106,10 +158,9 @@ bool AppendEditText(HWND hdlg, const TCHAR* text, int len)
     }
     if (count + len + 2 >= BUFSIZ)
     {
-        LOG_DEBUG(_T("buffer too small, count: %d, text: %s"), count, text);
         return false;
     }
 
     _tcsncpy_s(textbuf + count, BUFSIZ-count, text, len);
-    return SetDlgItemText(hdlg, IDC_EDIT_LOG, textbuf) == TRUE;
+    return SetDlgItemText(g_hDlg, IDC_EDIT_LOG, textbuf) == TRUE;
 }

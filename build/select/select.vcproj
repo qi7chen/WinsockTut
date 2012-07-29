@@ -21,7 +21,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="0"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -45,10 +45,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				UsePrecompiledHeader="2"
+				UsePrecompiledHeader="0"
 				WarningLevel="4"
 				DebugInformationFormat="4"
-				ForcedIncludeFiles="stdafx.h"
+				ForcedIncludeFiles=""
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -202,6 +202,18 @@
 		<Filter
 			Name="common"
 			>
+			<File
+				RelativePath="..\..\src\common\config.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\common\logging.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\common\logging.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\src\common\utility.cpp"
 				>

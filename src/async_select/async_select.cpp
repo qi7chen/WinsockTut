@@ -1,19 +1,22 @@
 ﻿
 #include "appdef.h"
-
-
+#include "../common/logging.h"
+#include <set>
+#include <algorithm>
 
 
 static bool on_accepted(HWND hwnd, SOCKET sockfd);
-static bool on_recv(HWND hwnd, SOCKET sockfd);
-static bool on_closed(HWND hwnd, SOCKET sockfd);
+static bool on_recv(SOCKET sockfd);
+static void on_closed(SOCKET sockfd);
 
 
+static std::set<SOCKET>  g_socketList;
 
-bool InitializeServer(HWND hwnd, const _tstring& strAddr)
+
+bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPort)
 {
     sockaddr_in addr = {};
-    if (!StringToAddress(strAddr, &addr))
+    if (!StringToAddress(strHost + _T(":") + strPort, &addr))
     {
         return false;
     }
@@ -41,15 +44,26 @@ bool InitializeServer(HWND hwnd, const _tstring& strAddr)
         return false;
     }
 
-    // this system call set the socket to non-blocking mode automatically
+    // set the socket to non-blocking mode automatically
     if (WSAAsyncSelect(sockfd, hwnd, WM_SOCKET, FD_ACCEPT) == SOCKET_ERROR)
     {
         closesocket(sockfd);
         return false;
     }
+
+    g_socketList.insert(sockfd);
     return true;
 }
 
+void CloseServer()
+{
+    size_t count = g_socketList.size();
+    for_each(g_socketList.begin(), g_socketList.end(), on_closed);
+    g_socketList.clear();
+    TCHAR szmsg[MAX_PATH];
+    int len = _stprintf_s(szmsg, MAX_PATH, _T("%s, server closed with %d sockets"), Now().data(), count);
+    AppendLogText(szmsg, len);
+}
 
 
 bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
@@ -70,13 +84,13 @@ bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
 
     case FD_READ:
         {
-            on_recv(hwnd, sockfd);
+            on_recv(sockfd);
         }
         break;
 
     case FD_CLOSE:
         {
-            on_closed(hwnd, sockfd);
+            on_closed(sockfd);
         }
         break;
 
@@ -101,6 +115,7 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
         return false;
     }
 
+    // set the socket to non-blocking mode automatically
     int error = WSAAsyncSelect(socknew, hwnd, WM_SOCKET, FD_WRITE|FD_READ|FD_CLOSE);
     if (error == SOCKET_ERROR)
     {
@@ -109,42 +124,35 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
         return false;
     }
 
-    _tstring msg = GetDateTime() + _T(", socket ") + ToString(socknew) + _T(" accepted.\n");
-    AppendEditText(hwnd, msg.data(), msg.length());
+    g_socketList.insert(socknew);
+    _tstring msg = Now() + _T(", socket ") + ToString(socknew) + _T(" accepted.\n");
+    AppendLogText(msg.data(), msg.length());
     return true;
 }
 
-bool on_recv(HWND hwnd, SOCKET sockfd)
+bool on_recv(SOCKET sockfd)
 {
     static char databuf[BUFE_SIZE];
     int bytes = recv(sockfd, databuf, BUFE_SIZE, 0);
     if (bytes == SOCKET_ERROR || bytes == 0)
     {
-        return HandleNetEvents(hwnd, sockfd, FD_CLOSE, 0);
+        on_closed(sockfd);
+        return false;
     }
 
-    AppendEditText(hwnd, (TCHAR*)databuf, bytes/sizeof(TCHAR));
+    AppendLogText((TCHAR*)databuf, bytes/sizeof(TCHAR));
     bytes = send(sockfd, databuf, bytes, 0);
     if (bytes == 0)
     {
-        return HandleNetEvents(hwnd, sockfd, FD_CLOSE, 0);
+        on_closed(sockfd);
+        return false;
     }
     return true;
 }
 
-bool on_closed(HWND hwnd, SOCKET sockfd)
+void on_closed(SOCKET sockfd)
 {
-    sockaddr_in addr = {};
-    int addrlen = sizeof(addr);
-    if (getsockname(sockfd, (sockaddr*)&addr, &addrlen) == SOCKET_ERROR)
-    {
-        LOG_DEBUG(_T("getsockname() failed"));
-    }
-    else
-    {
-        _tstring msg = GetDateTime() + _T(", socket ") + ToString(sockfd) + _T(" closed.\n");
-        AppendEditText(hwnd, msg.data(), msg.length());
-    }
-
-    return closesocket(sockfd) == 0;
+    closesocket(sockfd);
+    _tstring msg = Now() + _T(", socket ") + ToString(sockfd) + _T(" closed.\n");
+    AppendLogText(msg.data(), msg.length());    
 }

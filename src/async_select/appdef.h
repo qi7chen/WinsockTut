@@ -15,12 +15,14 @@
 
 
 // initialize WSAAsynSelect server
-bool InitializeServer(HWND hwnd, const _tstring& strAddr);
+bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPort);
 
+// 
+void CloseServer();
 
 // socket events handler
 bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error);
 
 
 // append text to edit control
-bool AppendEditText(HWND hdlg, const TCHAR* text, int len);
+bool AppendLogText(const TCHAR* text, int len);

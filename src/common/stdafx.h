@@ -50,5 +50,3 @@
 #include <functional>
 #include <iterator>
 
-
-#include "utility.h"
