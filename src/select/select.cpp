@@ -12,7 +12,7 @@
 
 
 
-static SOCKET  create_listen_socket(const _tstring& strAddr);
+static SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort);
 
 static void    on_close(SOCKET sockfd, SOCKET* socklist, int* count);
 static bool    on_accept(SOCKET sockfd, SOCKET* socklist, int* count);
@@ -29,10 +29,7 @@ int _tmain(int argc, TCHAR* argv[])
         return 1;
     }
 
-    _tstring host = argv[1];
-    _tstring port = argv[2];
-
-    SOCKET sockfd = create_listen_socket(host + _T(":") + port);
+    SOCKET sockfd = create_listen_socket(argv[1], argv[2]);
     if (sockfd == INVALID_SOCKET)
     {
         return 1;
@@ -180,9 +177,10 @@ void on_close(SOCKET sockfd, SOCKET* socklist, int* count)
 }
 
 
-SOCKET  create_listen_socket(const _tstring& strAddr)
+SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort)
 {
     sockaddr_in addr = {};
+    const _tstring& strAddr = strHost + _T(":") + strPort;
     if (!StringToAddress(strAddr, &addr))
     {
         return INVALID_SOCKET;
@@ -220,6 +218,6 @@ SOCKET  create_listen_socket(const _tstring& strAddr)
         return INVALID_SOCKET;
     }
 
-    _tprintf(_T("%s, server listen at %s\n"), Now().data(), strAddr.data());
+    _tprintf(_T("%s, server start listen at %s\n"), Now().data(), strAddr.data());
     return sockfd;
 }

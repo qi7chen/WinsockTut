@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="complete_routine"
-	ProjectGUID="{7B8FADF1-33DC-4174-ACAC-46D7E2BCE4BE}"
+	Name="tests"
+	ProjectGUID="{4B009293-CEE7-4E1F-8AD3-9D06D936E1F1}"
 	RootNamespace="boost"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
@@ -173,15 +173,15 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\src\complete_rountine\complete_routine.cpp"
+				RelativePath="..\..\tests\test_client\clients.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\complete_rountine\complete_routine.h"
+				RelativePath="..\..\tests\test_client\clients.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\complete_rountine\main.cpp"
+				RelativePath="..\..\tests\test_client\main.cpp"
 				>
 			</File>
 		</Filter>
@@ -216,10 +216,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\common\logging.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\common\mutex.h"
 				>
 			</File>
 			<File

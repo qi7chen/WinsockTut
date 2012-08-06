@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="complete_routine"
-	ProjectGUID="{7B8FADF1-33DC-4174-ACAC-46D7E2BCE4BE}"
+	Name="overlapped"
+	ProjectGUID="{4592864F-3066-4C1F-BF06-03ADA0EDEE95}"
 	RootNamespace="boost"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
@@ -173,15 +173,15 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\src\complete_rountine\complete_routine.cpp"
+				RelativePath="..\..\src\overlapped\overlapped.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\complete_rountine\complete_routine.h"
+				RelativePath="..\..\src\overlapped\worker.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\complete_rountine\main.cpp"
+				RelativePath="..\..\src\overlapped\worker.h"
 				>
 			</File>
 		</Filter>
@@ -219,7 +219,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\common\mutex.h"
+				RelativePath="..\..\src\common\thread.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\common\thread.h"
 				>
 			</File>
 			<File

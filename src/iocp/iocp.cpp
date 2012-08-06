@@ -1,5 +1,6 @@
 
 #include "iocp.h"
+#include "../common/logging.h"
 #include <MSWSock.h>
 #include <functional>
 #include "worker.h"
@@ -36,7 +37,7 @@ bool init_extend_function_poiner(SOCKET socket)
                            sizeof(guid_acceptex), &fnAcceptEx, sizeof(fnAcceptEx), &bytes, NULL, NULL);
     if (error == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("get AcceptEx pointer failed"));
+        LOG_ERROR(_T("get AcceptEx pointer failed"));
         return false;
     }
 
@@ -44,7 +45,7 @@ bool init_extend_function_poiner(SOCKET socket)
                        sizeof(guid_getacceptexaddr), &fnGetAcceptExSockaddrs, sizeof(fnGetAcceptExSockaddrs), &bytes, NULL, NULL);
     if (error == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("get GetAcceptExSockaddrs pointer failed"));
+        LOG_ERROR(_T("get GetAcceptExSockaddrs pointer failed"));
         return false;
     }
 
@@ -52,7 +53,7 @@ bool init_extend_function_poiner(SOCKET socket)
                        sizeof(guid_disconnectex), &fnDisconnectEx, sizeof(fnDisconnectEx), &bytes, NULL, NULL);
     if (error == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("get DisconnectEx pointer failed"));
+        LOG_ERROR(_T("get DisconnectEx pointer failed"));
         return false;
     }
 
@@ -92,7 +93,7 @@ bool iocp_server::start(const TCHAR* host, short port)
 {
     if (!create_completion_port(0))
     {
-        LOG_PRINT(_T("CreateIoCompletionPort() failed"));
+        LOG_ERROR(_T("CreateIoCompletionPort() failed"));
         return false;
     }
 
@@ -109,7 +110,7 @@ bool iocp_server::start(const TCHAR* host, short port)
     sockaddr_in addr = {};
     if (!StringToAddress(straddr, &addr))
     {
-        LOG_PRINT(_T("StringToAddress() failed, %s"), straddr.data());
+        LOG_ERROR(_T("StringToAddress() failed, %s"), straddr.data());
         return false;
     }
 
@@ -151,17 +152,8 @@ bool iocp_server::create_workers(DWORD concurrency /* = 0 */)
     }
     for (unsigned i = 0; i < concurrency; ++i)
     {
-        shared_ptr<thread> thrd_ptr;
-        try
-        {
-            thrd_ptr.reset(new thread(BIND(run_worker_loop, this)));
-        }
-        catch (std::bad_alloc&)
-        {
-            continue;
-        }
-
-        workers_.push_back(thrd_ptr);
+        unsigned thread_id = create_thread(std::tr1::bind(run_worker_loop, this));
+        workers_.push_back(thread_id);
     }
 
     return !workers_.empty();
@@ -183,7 +175,7 @@ bool  iocp_server::create_listen_socket(const sockaddr_in& addr)
     int error = ::bind(listen_socket_, (sockaddr*)&addr, sizeof(addr));
     if (error != 0)
     {
-        LOG_PRINT(_T("bind() failed"));
+        LOG_ERROR(_T("bind() failed"));
         free_socket_handle(handle_data);
         listen_socket_ = INVALID_SOCKET;
         return false;
@@ -286,7 +278,7 @@ void iocp_server::free_socket_handle(PER_HANDLE_DATA* handle_data)
     assert(handle_data);
     if (std::find(free_list_.begin(), free_list_.end(), handle_data) != free_list_.end())
     {
-        LOG_PRINT(_T("socket %d handle already in free list"), handle_data->socket_);
+        LOG_ERROR(_T("socket %d handle already in free list"), handle_data->socket_);
         return ;
     }
 
@@ -316,7 +308,7 @@ void    iocp_server::on_accepted(PER_HANDLE_DATA* listen_handle)
     std::map<SOCKET, PER_HANDLE_DATA*>::iterator iter = info_map_.find(socket_accept);
     if (iter == info_map_.end())
     {
-        LOG_PRINT(_T("accepted socket %d not found in map"), socket_accept);
+        LOG_ERROR(_T("accepted socket %d not found in map"), socket_accept);
         return ;
     }
 

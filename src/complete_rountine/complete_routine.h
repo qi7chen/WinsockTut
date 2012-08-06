@@ -22,9 +22,8 @@ struct socket_data
 socket_data* alloc_data(SOCKET sockfd);
 
 
-
 // close socket and free resource
-void free_data(socket_data*& ptr);
+void free_data(socket_data* data);
 
 
 // post a async recv request

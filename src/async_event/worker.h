@@ -1,15 +1,15 @@
 ﻿/**
-*  @file:   woker.h
-*  @brief:  thread abstraction, for event dispatching
-*  @author: ichenq@gmail.com
-*  @date:   Oct 19, 2011
+*  @file   woker.h
+*  @author ichenq@gmail.com
+*  @date   Oct 19, 2011
+*  @brief  worker thread abstraction, for event dispatching
 */
 
 #pragma once
 
 
 #include "../common/utility.h"
-#include "../common/thread.h"
+#include "../common/logging.h"
 
 
 

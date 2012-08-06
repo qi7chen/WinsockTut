@@ -9,7 +9,7 @@ def test_small_msg(host, port, loop_count):
     s = socket.create_connection((host, port))
     msg = 'a quick fox jumps over the lazy dog\n'
     for _ in range(loop_count):
-        s.send(msg)
+        s.send(buffer(msg))
         data = s.recv(1024)
         if data != msg:
             print('test small message failed', repr(data))
@@ -33,7 +33,8 @@ def test_large_data(host, port, loop_count):
 
     
 if __name__ == '__main__':
-    test_case = "test_small_msg('10.226.34.41', 3245, 10)"
-    t1 = timeit.Timer(test_case, "from __main__ import test_small_msg")
-    print(t1.timeit(10))
+    test_small_msg('127.0.0.1', 3245, 2)
+    #test_case = "test_small_msg('192.168.0.59', 3245, 1)"
+    #t1 = timeit.Timer(test_case, "from __main__ import test_small_msg")
+    #print(t1.timeit(10))
     

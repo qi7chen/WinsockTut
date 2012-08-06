@@ -14,66 +14,8 @@
 #pragma comment(lib, "mswsock")
 
 
-static unsigned CALLBACK run_thread_func(void* pv)
-{
-    assert(pv);
-
-    // force this thread to create a message queue
-    while (!::PostThreadMessage(::GetCurrentThreadId(), 0, 0, 0))
-    {
-        Sleep(1);
-    }
-
-    try
-    {
-        unsigned* arglist = reinterpret_cast<unsigned*>(pv);
-        thread_func_type func = reinterpret_cast<thread_func_type>(arglist[0]);
-        unsigned param = arglist[1];
-        delete arglist;
-
-        func(param);
-    }
-    catch (...)
-    {
-        LOG_ERROR(_T("thread %d encountered unhandled exception!"), ::GetCurrentThreadId());
-        return 1;
-    }
-    return 0;
-}
 
 
-unsigned start_thread(thread_func_type thrd_func, unsigned param)
-{
-    unsigned* arglist = new unsigned[2];
-    arglist[0] = reinterpret_cast<unsigned>(thrd_func);
-    arglist[1] = param;
-
-    unsigned hThread = _beginthreadex(0, 0, run_thread_func, arglist, 
-        CREATE_SUSPENDED, NULL);
-    if (hThread == 0)
-    {
-        LOG_ERROR(_T("_beginthreadex() failed"));
-    }
-    else
-    {        
-        ::ResumeThread(reinterpret_cast<HANDLE>(hThread));
-    }
-    return hThread;
-}
-
-// send message
-bool send_message_to(unsigned thread_id, 
-                     unsigned msg, 
-                     unsigned wParam, 
-                     long lParam)
-{
-    bool bOk = ::PostThreadMessage(thread_id, msg, wParam, lParam) == TRUE;
-    if (!bOk)
-    {
-        LOG_ERROR(_T("PostThreadMessage() failed"));
-    }
-    return bOk;
-}
 
 //////////////////////////////////////////////////////////////////////////
 

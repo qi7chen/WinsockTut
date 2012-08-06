@@ -1,5 +1,5 @@
 ﻿#include "worker.h"
-
+#include "../common/thread.h"
 #include <functional>
 #include <algorithm>
 
@@ -18,7 +18,7 @@ worker::~worker()
 
 void worker::start()
 {
-    my_thread_ = create_thread(BIND(&worker::main_loop, this));
+    my_thread_ = create_thread(std::tr1::bind(&worker::main_loop, this));
 }
 
 
@@ -41,7 +41,8 @@ void worker::main_loop()
         }
 
         // 50 ms time out
-        size_t nready = WSAWaitForMultipleEvents(count_, eventlist_, TRUE, 50, FALSE);
+        size_t nready = WSAWaitForMultipleEvents(count_, eventlist_, 
+            TRUE, 50, FALSE);
         if (nready == WSA_WAIT_FAILED)
         {
             LOG_PRINT(_T("WSAWaitForMultipleEvents() failed"));
@@ -159,7 +160,7 @@ bool worker::on_close(SOCKET sockfd, int error)
     }
     --count_;
 
-    _tprintf(_T("%s, socket %d closed.\n"), GetDateTime().data(), sockfd);
+    _tprintf(_T("%s, socket %d closed.\n"), Now().data(), sockfd);
 
     return true;
 }
@@ -218,7 +219,7 @@ bool worker::handle_messages()
         return false;
     }
 
-    _tprintf(_T("%s, socket %d connected.\n"), GetDateTime().data(), sockfd);
+    _tprintf(_T("%s, socket %d connected.\n"), Now().data(), sockfd);
     eventlist_[count_] = hEvent;
     socklist_[count_] = sockfd;
     count_++;

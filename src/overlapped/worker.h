@@ -7,29 +7,30 @@
 
 #pragma once
 
+#include "../common/config.h"
 #include "../common/utility.h"
-#include "../common/mutex.h"
-#include "../common/thread.h"
 
 
-class overlap_server;
 
-class worker
+enum 
 {
-public:
-    worker();
-
-    void start(overlap_server* server);
-
-private:
-    worker(const worker&);
-    worker& operator = (const worker&);
-
-    void  wait_loop(overlap_server* server);
-
-private:
-    spinlock    mutex_;
-    int         total_count_;
-    WSAEVENT    event_list_[WSA_MAXIMUM_WAIT_EVENTS];
-    std::shared_ptr<thread> work_thread_;
+    WM_NEW_SOCKET = WM_USER + 0xf0,
+    WM_THREAD_LIMIT,
 };
+
+
+static const unsigned MAX_COUNT = WSA_MAXIMUM_WAIT_EVENTS;
+static const unsigned MAX_MS = 50;
+
+
+struct tagSocketData
+{
+    unsigned total_count;
+    WSAEVENT eventList[MAX_COUNT];
+    PER_HANDLE_DATA* dataList[MAX_COUNT];
+};
+
+
+void worker_routine();
+
+

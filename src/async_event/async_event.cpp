@@ -4,13 +4,15 @@
 *  @date:   Oct 19, 2011
 */
 
-
+#include "../common/thread.h"
 #include "worker.h"
 #include <vector>
 
 
-SOCKET  create_server_socket(const _tstring& strAddr);
-void    add_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd);
+using std::tr1::shared_ptr;
+
+static SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort);
+static void    add_socket_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd);
 
 
 
@@ -19,14 +21,11 @@ int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 3)
     {
-        _tprintf(_T("Usage: %s $host $port"), argv[0]);
+        _tprintf(_T("Usage: $program $host $port"));
         return 1;
     }
 
-    _tstring host = argv[1];
-    _tstring port = argv[2];
-
-    SOCKET sockfd = create_server_socket(host + _T(":") + port);
+    SOCKET sockfd = create_listen_socket(argv[1], argv[2]);
     if (sockfd == INVALID_SOCKET)
     {
         return 1;
@@ -44,7 +43,7 @@ int _tmain(int argc, TCHAR* argv[])
             break;
         }
 
-        add_to_woker(workers, socknew);
+        add_socket_to_woker(workers, socknew);
     }
 
 
@@ -52,9 +51,10 @@ int _tmain(int argc, TCHAR* argv[])
 }
 
 
-SOCKET create_server_socket(const _tstring& strAddr)
+SOCKET create_listen_socket(const _tstring& strHost, const _tstring& strPort)
 {
     sockaddr_in addr = {};
+    const _tstring& strAddr = strHost + _T(":") + strPort;
     if (!StringToAddress(strAddr, &addr))
     {
         LOG_PRINT(_T("StringToAddress() failed, %s"), strAddr.data());
@@ -82,13 +82,13 @@ SOCKET create_server_socket(const _tstring& strAddr)
         return INVALID_SOCKET;
     }
 
-    _tprintf(_T("server listen at %s...\n"), strAddr.data());
+    _tprintf(_T("%s, server start listen at %s...\n"), Now().data(), strAddr.data());
 
     return sockfd;
 }
 
 
-void add_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd)
+void add_socket_to_woker(std::vector<shared_ptr<worker>>& workers, SOCKET sockfd)
 {
     shared_ptr<worker> worker_ptr;
     for (size_t i = 0; i < workers.size(); ++i)

@@ -1,10 +1,10 @@
 
-
 #include "complete_routine.h"
+#include "../common/logging.h"
 #include <map>
 
 
-static std::map<int, socket_data*> g_debug;
+static std::map<int, socket_data*> g_sockList;
 
 
 
@@ -22,24 +22,24 @@ socket_data* alloc_data(SOCKET sockfd)
     }
     
     data->socket_ = sockfd;
-    data->overlap_.hEvent = (WSAEVENT)data; // windows didn't use hEvent in complete routine
+    data->overlap_.hEvent = (WSAEVENT)data; // winsock didn't use hEvent in complete routine
     data->wsabuf_.buf = data->databuf_;
     data->wsabuf_.len = sizeof(data->databuf_);
     
-    g_debug[sockfd] = data;
+    g_sockList[sockfd] = data;
 
     return data;
 }
 
 
-void free_data(socket_data*& data)
+void free_data(socket_data* data)
 {
     if (data)
     {
-        g_debug.erase(data->socket_);
         closesocket(data->socket_);
+        g_sockList.erase(data->socket_);
         delete data;        
-        data = NULL;
+        _tprintf(_T("%s, socket %d closed.\n"), Now().data(), data->socket_);
     }
 }
 
@@ -51,18 +51,17 @@ bool post_recv_request(socket_data* data)
     DWORD recv_bytes = 0;
     int error = WSARecv(data->socket_, &data->wsabuf_, 1, &recv_bytes, &flags, 
         &data->overlap_, recv_complete);
-    if (error == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
+    if (error == 0 || 
+        (error == SOCKET_ERROR && WSAGetLastError() == WSA_IO_PENDING))
+    {
+        return true;
+    }
+    else
     {
         LOG_DEBUG(_T("WSARecv() failed"));
         free_data(data);
         return false;
     }
-    if (error == 0 && recv_bytes == 0) // client closed
-    {
-        free_data(data);
-        return false;
-    }
-    return true;
 }
 
 
@@ -82,25 +81,22 @@ void CALLBACK recv_complete(DWORD error,
     }
 
     // send data back
+    memset(&data->overlap_, 0, sizeof(data->overlap_));
+    data->overlap_.hEvent = (WSAEVENT)data;
     data->wsabuf_.len = bytes_transferred;
     DWORD bytes_send = 0;
     error = WSASend(data->socket_, &data->wsabuf_, 1, &bytes_send, flags, 
                 &data->overlap_, send_complete);
-    if (error == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
+    if (error == 0 || 
+        (error == SOCKET_ERROR && WSAGetLastError() == WSA_IO_PENDING))
     {
-        LOG_DEBUG(_T("WSASend() failed"));
-        free_data(data);
+        // succeed
         return ;
     }
-    if (error == 0 && bytes_send == 0) // client closed
+    else 
     {
         free_data(data);
-        return ;
     }
-
-    // post another recv
-    data->wsabuf_.len = sizeof(data->databuf_);
-    post_recv_request(data);
 }
 
 
@@ -116,4 +112,8 @@ void CALLBACK send_complete(DWORD error,
         free_data(data);
         return ;
     }
+
+    // post another recv
+    data->wsabuf_.len = sizeof(data->databuf_);
+    post_recv_request(data);
 }

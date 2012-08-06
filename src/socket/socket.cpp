@@ -10,6 +10,7 @@
 
 #include "../common/utility.h"
 #include "../common/logging.h"
+#include "../common/thread.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <list>
@@ -55,7 +56,7 @@ int _tmain(int argc, TCHAR* argv[])
             _tprintf(_T("%s, socket %d accepted.\n"), Now().data(), sock_accept);
 
             // one thread per connection
-            start_thread(handle_client, sock_accept);
+            create_thread(std::tr1::bind(handle_client, sock_accept));
         }
         catch (std::bad_alloc&)
         {
@@ -144,7 +145,7 @@ SOCKET  create_listen_socket(const TCHAR* host, const TCHAR* port)
     }
 
     FreeAddrInfo(aiList);
-    _tprintf(_T("%s, server listen at %s:%s.\n"), Now().data(), host, port);
+    _tprintf(_T("%s, server start listen at %s:%s.\n"), Now().data(), host, port);
 
     return sockfd;
 }

@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "complete_routine", "complet
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "iocp", "iocp\iocp.vcproj", "{A8C8488C-4AA8-4B43-9E06-6F316655221C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "overlapped", "overlapped\overlapped.vcproj", "{4592864F-3066-4C1F-BF06-03ADA0EDEE95}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -43,6 +45,10 @@ Global
 		{A8C8488C-4AA8-4B43-9E06-6F316655221C}.Debug|Win32.Build.0 = Debug|Win32
 		{A8C8488C-4AA8-4B43-9E06-6F316655221C}.Release|Win32.ActiveCfg = Release|Win32
 		{A8C8488C-4AA8-4B43-9E06-6F316655221C}.Release|Win32.Build.0 = Release|Win32
+		{4592864F-3066-4C1F-BF06-03ADA0EDEE95}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4592864F-3066-4C1F-BF06-03ADA0EDEE95}.Debug|Win32.Build.0 = Debug|Win32
+		{4592864F-3066-4C1F-BF06-03ADA0EDEE95}.Release|Win32.ActiveCfg = Release|Win32
+		{4592864F-3066-4C1F-BF06-03ADA0EDEE95}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -211,6 +211,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\common\thread.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\common\utility.cpp"
 				>
 			</File>

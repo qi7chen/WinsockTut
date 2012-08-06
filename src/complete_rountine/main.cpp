@@ -8,9 +8,10 @@
 
 #include "complete_routine.h"
 #include "../common/utility.h"
+#include "../common/logging.h"
 
-
-SOCKET  create_server_socket(const _tstring& strAddr);
+static const int TIME_OUT = 50;
+static SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort);
 
 
 
@@ -22,21 +23,10 @@ int _tmain(int argc, TCHAR* argv[])
         return 1;
     }
 
-    _tstring host = argv[1];
-    _tstring port = argv[2];
-    SOCKET sockfd = create_server_socket(host + _T(":") + port);
+    SOCKET sockfd = create_listen_socket(argv[1], argv[2]);
     if (sockfd == INVALID_SOCKET)
     {
         return 1;
-    }
-
-    // set socket to non-blocking mode
-    ULONG nonblock = 1;
-    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
-    {
-        LOG_PRINT(_T("ioctlsocket() failed"));
-        closesocket(sockfd);
-        return INVALID_SOCKET;
     }
 
     for (;;)
@@ -55,13 +45,14 @@ int _tmain(int argc, TCHAR* argv[])
         else
         {
             socket_data* data = alloc_data(socknew);
+            _tprintf(_T("%s, socket %d accepted.\n"), Now().data(), socknew);
             if (data)
             {
                 post_recv_request(data);
             }
         }
 
-        ::SleepEx(50, TRUE); // make this thread alertable
+        ::SleepEx(TIME_OUT, TRUE); // make this thread alertable
     }
 
     return 0;
@@ -70,9 +61,10 @@ int _tmain(int argc, TCHAR* argv[])
 
 
 
-SOCKET  create_server_socket(const _tstring& strAddr)
+SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort)
 {
     sockaddr_in addr = {};
+    const _tstring& strAddr = strHost + _T(":") + strPort;
     if (!StringToAddress(strAddr, &addr))
     {
         return INVALID_SOCKET;
@@ -101,6 +93,15 @@ SOCKET  create_server_socket(const _tstring& strAddr)
         return INVALID_SOCKET;
     }
 
-    _tprintf(_T("server listen at %s\n"), strAddr.data());
+    // set socket to non-blocking mode
+    ULONG nonblock = 1;
+    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+    {
+        LOG_PRINT(_T("ioctlsocket() failed"));
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    _tprintf(_T("%s, server start listen at %s\n"), Now().data(), strAddr.data());
     return sockfd;
 }
