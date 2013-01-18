@@ -9,7 +9,7 @@ namespace detail {
 unsigned CALLBACK run_thread_func(void* pv)
 {
     assert(pv);
-    std::tr1::shared_ptr<thread_data_base> sp(reinterpret_cast<thread_data_base*>(pv));
+    std::auto_ptr<thread_data_base> sp(reinterpret_cast<thread_data_base*>(pv));
 
     try
     {
@@ -17,7 +17,7 @@ unsigned CALLBACK run_thread_func(void* pv)
     }
     catch(...)
     {
-        LOG_ERROR(_T("Unhandled exception occurs of thread %d\n"), sp->thread_id_);
+        LOG_DEBUG(_T("Unhandled exception occurs of thread %d\n"), sp->thread_id_);
     }
 
     return 0;

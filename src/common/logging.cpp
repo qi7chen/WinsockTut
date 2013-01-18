@@ -2,17 +2,9 @@
 #include <time.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 
-_tstring Now()
-{
-    TCHAR szbuf[32] = {};
-    struct tm st = {};
-    time_t now = time(NULL);
-    localtime_s(&st, &now);
-    _tcsftime(szbuf, _countof(szbuf), _T("%Y-%m-%d %H:%M:%S"), &st);
-    return szbuf;
-}
 
 _tstring GenModuleFileName(const TCHAR* szModule)
 {

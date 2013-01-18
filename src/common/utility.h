@@ -8,33 +8,13 @@
 #pragma once
 
 
-#include "config.h"
+#include "cmndef.h"
+#include <assert.h>
 #include <vector>
 
 
-
-enum { BUFE_SIZE = 8192 };
-
-
-enum OperType
-{
-    OperClose,
-    OperConnect, 
-    OperAccept, 
-    OperSend, 
-    OperRecv, 
-    OperDisconnect,
-};
-
-
-struct PER_HANDLE_DATA 
-{
-    WSAOVERLAPPED   overlap_;
-    SOCKET          socket_;
-    WSABUF          wsbuf_;
-    char            buffer_[BUFE_SIZE];
-    OperType        opertype_;
-};
+// get curent time
+_tstring Now();
 
 
 template <typename T>
@@ -78,3 +58,13 @@ std::string FormateMAC(const BYTE* pMac, size_t len);
 void    GetMAC(std::vector<std::string>& vec);
 
 
+struct global_init
+{
+public:
+    global_init();
+    ~global_init();
+
+private:
+    global_init(const global_init&);
+    global_init& operator = (const global_init&);
+};

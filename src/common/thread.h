@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 
-#include "config.h"
+#include "cmndef.h"
 #include <memory>
 
 

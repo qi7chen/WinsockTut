@@ -9,15 +9,17 @@
 #include <iphlpapi.h>
 #include <utility>
 
-#pragma comment(lib, "Iphlpapi")
-#pragma comment(lib, "ws2_32")
-#pragma comment(lib, "mswsock")
-
-
-
-
 
 //////////////////////////////////////////////////////////////////////////
+_tstring Now()
+{
+    TCHAR szbuf[32] = {};
+    struct tm st = {};
+    time_t now = time(NULL);
+    localtime_s(&st, &now);
+    _tcsftime(szbuf, _countof(szbuf), _T("%Y-%m-%d %H:%M:%S"), &st);
+    return szbuf;
+}
 
 _tstring AddressToString(const sockaddr_in& addr)
 {
@@ -26,7 +28,6 @@ _tstring AddressToString(const sockaddr_in& addr)
     int error = WSAAddressToString((sockaddr*)&addr, sizeof(addr), NULL, szaddr, &buflen);
     if (error == SOCKET_ERROR)
     {
-        LOG_DEBUG(_T("WSAAddressToString() failed"));
         buflen = 0;
     }
     return _tstring(szaddr);
@@ -42,7 +43,6 @@ bool StringToAddress(const _tstring& strAddr, sockaddr_in* paddr)
         (sockaddr*)&addr, &addrlen));
     if (error != 0)
     {
-        LOG_DEBUG(_T("WSAStringToAddress() failed"));
         return false;
     }
     *paddr = addr;
@@ -62,53 +62,23 @@ std::string FormateMAC(const unsigned char* pMac, size_t len)
     return std::string(szBuf);
 }
 
-
-// Get mac address and push_back to a vector
-void GetMAC(std::vector<std::string>& vec)
+//////////////////////////////////////////////////////////////////////////
+global_init::global_init()
 {
-    ULONG   nBufLen = 0;
-    GetAdaptersInfo(NULL, &nBufLen);
-    PIP_ADAPTER_INFO pAdapterInfo = (PIP_ADAPTER_INFO)malloc(nBufLen);
-    if (GetAdaptersInfo(pAdapterInfo, &nBufLen) == ERROR_SUCCESS)
+    WSADATA data = {};
+    if (WSAStartup(0, &data) == WSAVERNOTSUPPORTED)
     {
-        for (PIP_ADAPTER_INFO pAdapter = pAdapterInfo; pAdapter != NULL; pAdapter = pAdapter->Next)
-        {
-            vec.push_back(FormateMAC(pAdapter->Address, pAdapter->AddressLength));
-        }
+        WSAStartup(data.wHighVersion, &data); // use the highest supported version 
     }
-    free(pAdapterInfo);
+
+    setlocale(LC_CTYPE, ".936");
+    std::locale loc(".936");
+    std::wcout.imbue(loc);
+}
+
+global_init::~global_init()
+{
+    WSACleanup();
 }
 
 
-
-//////////////////////////////////////////////////////////////////////////
-
-struct global_init
-{
-public:
-    global_init()
-    {
-        WSADATA data = {};
-        if (WSAStartup(0, &data) == WSAVERNOTSUPPORTED)
-        {
-            WSAStartup(data.wHighVersion, &data); // use the highest supported version 
-        }
-
-        setlocale(LC_CTYPE, ".936");
-        std::locale loc(".936");
-        std::wcout.imbue(loc);
-    }
-
-    ~global_init()
-    {
-        WSACleanup();
-    }
-
-private:
-    global_init(const global_init&);
-    global_init& operator = (const global_init&);
-};
-
-
-// initialize winsock
-static const global_init  g_init;
