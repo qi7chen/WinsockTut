@@ -13,8 +13,16 @@
 #include <vector>
 
 
-// get curent time
-_tstring Now();
+struct global_init
+{
+public:
+    global_init();
+    ~global_init();
+
+private:
+    global_init(const global_init&);
+    global_init& operator = (const global_init&);
+};
 
 
 template <typename T>
@@ -25,8 +33,30 @@ _tstring    ToString(const T& obj)
     return strm.str();
 }
 
+// get curent time
+_tstring Now();
+
+// last error message
+_tstring GetErrorMessage(DWORD dwErrorCode);
 
 
+// converts a sockaddr_in structure into a human-readable string
+_tstring	AddressToString(const sockaddr_in& addr);
+
+
+// converts a numeric string to a sockaddr_in structure
+bool        StringToAddress(const _tstring& strAddr, sockaddr_in* pAddr);
+
+
+
+// format mac address
+std::string FormateMAC(const BYTE* pMac, size_t len);
+
+
+// get mac address and push back to a vector
+void    GetMAC(std::vector<std::string>& vec);
+
+// 
 inline HANDLE   CreateCompletionPort(size_t concurrency)
 {
     return ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, concurrency);
@@ -40,31 +70,4 @@ inline bool     AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PT
 }
 
 
-
-// converts a sockaddr_in structure into a human-readable string 
-_tstring	AddressToString(const sockaddr_in& addr);
-
-
-// converts a numeric string to a sockaddr_in structure
-bool        StringToAddress(const _tstring& straddr, sockaddr_in* paddr);
-
-
-
-// format mac address
-std::string FormateMAC(const BYTE* pMac, size_t len);
-
-
-// get mac address and push back to a vector
-void    GetMAC(std::vector<std::string>& vec);
-
-
-struct global_init
-{
-public:
-    global_init();
-    ~global_init();
-
-private:
-    global_init(const global_init&);
-    global_init& operator = (const global_init&);
-};
+#define LAST_ERROR_MSG      GetErrorMessage(::GetLastError()).c_str()

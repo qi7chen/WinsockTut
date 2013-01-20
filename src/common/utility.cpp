@@ -21,6 +21,18 @@ _tstring Now()
     return szbuf;
 }
 
+_tstring GetErrorMessage(DWORD dwErrorCode)
+{
+    TCHAR szMsg[MAX_PATH];
+    DWORD dwLen = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErrorCode,
+        0, szMsg, MAX_PATH-1, NULL);
+    if (dwLen == 0)
+    {        
+        return GetErrorMessage(::GetLastError()); // find out why we failed
+    }
+    return _tstring(szMsg, dwLen);
+}
+
 _tstring AddressToString(const sockaddr_in& addr)
 {
     TCHAR szaddr[MAX_PATH];
@@ -34,9 +46,9 @@ _tstring AddressToString(const sockaddr_in& addr)
 }
 
 
-bool StringToAddress(const _tstring& strAddr, sockaddr_in* paddr)
+bool StringToAddress(const _tstring& strAddr, sockaddr_in* pAddr)
 {
-    assert(paddr);
+    assert(pAddr);
     sockaddr_in  addr = {};
     int addrlen = sizeof(addr);
     int error = (WSAStringToAddress(const_cast<LPTSTR>(strAddr.data()), AF_INET, NULL, 
@@ -45,7 +57,7 @@ bool StringToAddress(const _tstring& strAddr, sockaddr_in* paddr)
     {
         return false;
     }
-    *paddr = addr;
+    *pAddr = addr;
     return true;
 }
 
