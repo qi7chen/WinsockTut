@@ -2,7 +2,6 @@
 //  by ichenq@gmail.com at Oct 19, 2011
 
 #include "../common/utility.h"
-#include "../common/logging.h"
 #include <WS2tcpip.h>   // addrinfo
 #include <process.h>    // _beginthreadex
 

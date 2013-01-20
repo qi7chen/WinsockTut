@@ -3,7 +3,6 @@
 //  Oct 19, 2011
 
 #include "appdef.h"
-#include "../common/logging.h"
 #include <set>
 #include <algorithm>
 

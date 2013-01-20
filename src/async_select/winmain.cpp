@@ -7,7 +7,7 @@
 #include "appdef.h"
 #include <assert.h>
 #include <ShellAPI.h>
-#include "../common/logging.h"
+
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "shell32")
