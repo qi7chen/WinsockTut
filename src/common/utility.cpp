@@ -1,6 +1,5 @@
 ﻿
 #include "utility.h"
-#include "logging.h"
 #include <assert.h>
 #include <locale.h>
 #include <WinSock2.h>
@@ -72,6 +71,15 @@ std::string FormateMAC(const unsigned char* pMac, size_t len)
         nPos += 3;
     }
     return std::string(szBuf);
+}
+
+bool send_message_to(unsigned thread_id, 
+                     unsigned msg, 
+                     unsigned param1 /* = 0 */, 
+                     long param2 /* = 0 */)
+{
+    BOOL status = ::PostThreadMessage(thread_id, msg, param1, param2);
+    return (status == TRUE);
 }
 
 //////////////////////////////////////////////////////////////////////////

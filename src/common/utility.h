@@ -71,3 +71,10 @@ inline bool     AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PT
 
 
 #define LAST_ERROR_MSG      GetErrorMessage(::GetLastError()).c_str()
+
+
+// send message to a thread
+bool send_message_to(unsigned thread_id, 
+                     unsigned msg, 
+                     unsigned param1 /* = 0 */, 
+                     long param2 /* = 0 */);
