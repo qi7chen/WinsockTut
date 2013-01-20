@@ -1,40 +1,49 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 import socket
-import timeit
+import select
+import pdb
 
-def test_small_msg(host, port, loop_count):
-    s = socket.create_connection((host, port))
-    msg = 'a quick fox jumps over the lazy dog\n'
-    for _ in range(loop_count):
-        s.send(buffer(msg))
-        data = s.recv(1024)
-        if data != msg:
-            print('test small message failed', repr(data))
-            return False
-    print('test small message passed')
-    return True
+def fd_handler(fd):
+    msg = fd.recv(1024)
+    if len(msg) == 0: 
+        fd.close()
+    else:
+        print(msg)
+        fd.send(msg)
 
-def test_large_data(host, port, loop_count):
-    s = socket.create_connection((host, port))
-    # 36kb
-    msg = 'a quick fox jumps over the lazy dog\n' * 1024
-    for _ in range(loop_count):
-        s.send(msg)
-        data = s.recv(102400)
-        if data != msg:
-            print('test large message failed', repr(data))
-            return False
-    print('test large message passed')
-    return True
+def create_connections(host, port, count):
+    mydic = {}
+    for x in range(count):
+        s = socket.create_connection((host, port))
+        s.setblocking(0)
+        mydic[s] = fd_handler
+    return mydic
 
-
+def dispatch(mydict):
+    readlist = mydict.keys()
+    while True:
+        infds, outfds, errfds = select.select(readlist, [], [], 0)
+        if len(infds) == 0: break
+        for fd in infds:
+            handler = mydict.get(fd)
+            if handler: 
+                handler(fd)
+            else: 
+                fd.close()
     
+
+def test_case(host, port, count):
+    msg = 'a quick fox jumps over the lazy dog\n'
+    mydict = create_connections(host, port, count)
+    for s in mydict.keys():
+        s.send(msg)
+    dispatch(mydict)
+
 if __name__ == '__main__':
-    test_small_msg('127.0.0.1', 3245, 2)
-    #test_case = "test_small_msg('192.168.0.59', 3245, 1)"
-    #t1 = timeit.Timer(test_case, "from __main__ import test_small_msg")
-    #print(t1.timeit(10))
+    host = '192.168.0.9'
+    port = 3245
+    count = 1
+    test_case(host, port, count)
     

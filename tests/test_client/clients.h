@@ -1,3 +1,5 @@
+//  test case
+//  by ichenq@gmail.com at Oct 19, 2011
 
 #include <winsock2.h>
 #include <MSWSock.h>

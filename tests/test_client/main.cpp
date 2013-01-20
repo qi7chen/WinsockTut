@@ -9,6 +9,10 @@
 #include <stdlib.h>
 #include "clients.h"
 
+#pragma comment(lib, "ws2_32")
+
+global_init init;
+
 int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 4)

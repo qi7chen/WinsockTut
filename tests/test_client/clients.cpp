@@ -21,17 +21,15 @@ bool clients::start(const TCHAR* host, short port, int count)
     comletport_handle_ = CreateCompletionPort(0);
     if (comletport_handle_ == INVALID_HANDLE_VALUE)
     {
-        _tprintf(_T("CreateCompletionPort() failed"));
+        _tprintf(_T("CreateCompletionPort() failed, %s."), LAST_ERROR_MSG);
         return false;
     }
 
-    _tstring straddr = host;
-    straddr += _T(":");
-    straddr += ToString(port);
+    _tstring straddr = host + (_T(":") + ToString(port));
     sockaddr_in remote_addr = {};
     if (!StringToAddress(straddr, &remote_addr))
     {
-        _tprintf(_T("StringToAddress() failed"));
+        _tprintf(_T("StringToAddress() failed, %s."), LAST_ERROR_MSG);
         return false;
     }
 
@@ -83,8 +81,9 @@ bool clients::start(const TCHAR* host, short port, int count)
 void  clients::on_connected(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
-    char szmsg[MAX_PATH] = ("The quick fox jumps over a lazy dog");
-    size_t len = strlen(szmsg)+1;;
+    _tprintf(_T("socket %d connected at %s.\n"), handle_data->socket_, Now().data());
+    TCHAR szmsg[MAX_PATH] = _T("The quick fox jumps over a lazy dog");
+    size_t len = (_tcslen(szmsg) + 1) * sizeof(TCHAR);
     handle_data->wsbuf_.len = len;
     memcpy_s(handle_data->buffer_, sizeof(handle_data->buffer_), szmsg, len);
     handle_data->opertype_ =  OperSend;
@@ -102,6 +101,10 @@ void  clients::on_recv(PER_HANDLE_DATA* handle_data)
     assert(handle_data);
     DWORD recv_bytes = handle_data->overlap_.InternalHigh;
     handle_data->wsbuf_.len = recv_bytes;
+    TCHAR* pbuf = (TCHAR*)handle_data->wsbuf_.buf;
+    pbuf[recv_bytes/sizeof(TCHAR)] = _T('\0');
+    _tprintf(_T("message of socket %d: %s.\n"), handle_data->socket_, pbuf);
+
     handle_data->opertype_ =  OperSend;
     DWORD bytes_send = 0;
     int error = WSASend(handle_data->socket_, &handle_data->wsbuf_, 1, &bytes_send,
@@ -130,6 +133,7 @@ void  clients::after_sent(PER_HANDLE_DATA* handle_data)
 void  clients::on_close(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
+    _tprintf(_T("socket %d closed at %s.\n"), handle_data->socket_, Now().data());
     closesocket(handle_data->socket_);
     free_handle_data(handle_data);
 }
@@ -153,7 +157,7 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
             sizeof(guid_connectex), &fnconnectex_, sizeof(fnconnectex_), &bytes, 0, 0);
         if (error == SOCKET_ERROR)
         {
-            _tprintf(_T("WSAIoctl() failed"));
+            _tprintf(_T("WSAIoctl() failed, %s."), LAST_ERROR_MSG);
             closesocket(sock_fd);
             return false;
         }
@@ -164,7 +168,7 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
     int error = bind(sock_fd, (sockaddr*)&localaddr, sizeof(localaddr));
     if (error == SOCKET_ERROR)
     {
-        _tprintf(_T("bind() failed"));
+        _tprintf(_T("bind() failed, %s."), LAST_ERROR_MSG);
         closesocket(sock_fd);
         return false;
     }
@@ -178,7 +182,7 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
 
     if (!AssociateDevice(comletport_handle_, (HANDLE)sock_fd, (ULONG_PTR)handle_data))
     {
-        _tprintf(_T("AssociateDevice() failed, fd: %d"), sock_fd);
+        _tprintf(_T("AssociateDevice() failed [%d], %s."), sock_fd, LAST_ERROR_MSG);
         closesocket(sock_fd);
         free_handle_data(handle_data);
         return false;
@@ -188,7 +192,7 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
         NULL, &handle_data->overlap_);
     if (!bOK && WSAGetLastError() != WSA_IO_PENDING)
     {
-        _tprintf(_T("ConnectEx() failed, fd: %d"), sock_fd);
+        _tprintf(_T("ConnectEx() failed [%d], %s."), sock_fd, LAST_ERROR_MSG);
         closesocket(sock_fd);
         free_handle_data(handle_data);
         return false;
