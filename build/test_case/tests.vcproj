@@ -186,38 +186,8 @@
 			</File>
 		</Filter>
 		<Filter
-			Name="precompile"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
-			<File
-				RelativePath="..\..\src\common\stdafx.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\common\stdafx.h"
-				>
-			</File>
-		</Filter>
-		<Filter
 			Name="common"
 			>
-			<File
-				RelativePath="..\..\src\common\logging.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\common\logging.h"
-				>
-			</File>
 			<File
 				RelativePath="..\..\src\common\utility.cpp"
 				>

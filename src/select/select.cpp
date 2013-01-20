@@ -1,31 +1,34 @@
-﻿/**
-*  @file   select.cpp
-*  @author ichenq@gmail.com
-*  @date   Oct 19, 2011
-*  @brief  A simple echo server, use select
-*/
+﻿//  A simple echo server use select model
+//  by ichenq@gmail.com 
+//  Oct 19, 2011
 
 #include "../common/utility.h"
-#include "../common/logging.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#include <algorithm>
+
+#pragma warning(disable: 4127)
+#pragma comment(lib, "ws2_32")
 
 
 
-static SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort);
+SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort);
 
-static void    on_close(SOCKET sockfd, SOCKET* socklist, int* count);
-static bool    on_accept(SOCKET sockfd, SOCKET* socklist, int* count);
-static bool    on_recv(SOCKET sockfd);
+// event handlers
+void    on_close(SOCKET sockfd, SOCKET* socklist, int* count_ptr);
+bool    on_accept(SOCKET sockfd, SOCKET* socklist, int* count_ptr);
+bool    on_recv(SOCKET sockfd);
 
 
+// initialize winsock and other environment
+static global_init g_global_init;
 
 // main entry
 int _tmain(int argc, TCHAR* argv[])
 {
     if (argc != 3)
     {
-        _tprintf(_T("Usage: %s $host $port"), argv[0]);
+        _tprintf(_T("Usage: $program $host $port"));
         return 1;
     }
 
@@ -34,18 +37,23 @@ int _tmain(int argc, TCHAR* argv[])
     {
         return 1;
     }
-
-    int total_count = 0;
+    
+    // total socket descriptor
     SOCKET socklist[FD_SETSIZE] = {};
-    FD_SET readset = {};
+
+    // we only concern readable socket set
+    FD_SET readset = {}; 
+
+    // how many client sockets are avaliable
+    int total_count = 0;
 
     for (;;)
     {
         FD_ZERO(&readset);
-        FD_SET(sockfd, &readset);
+        FD_SET(sockfd, &readset); // add listen socket
         for (int i = 0; i < total_count; ++i)
         {
-            FD_SET(socklist[i], &readset);
+            FD_SET(socklist[i], &readset); // add client sockets
         }
 
         // 50 ms
@@ -53,12 +61,11 @@ int _tmain(int argc, TCHAR* argv[])
         int nready = select(0, &readset, NULL, NULL, &timeout);
         if (nready == SOCKET_ERROR)
         {
-            LOG_PRINT(_T("select() failed"));
+            _tprintf(_T("select() failed, %s"), LAST_ERROR_MSG);
             break;
         }
-        if (nready == 0)
-        {
-            // handle timers here
+        if (nready == 0) // time limit expired, timer callback can be handled here
+        {            
             continue;
         }
 
@@ -69,6 +76,7 @@ int _tmain(int argc, TCHAR* argv[])
             {
                 if (!on_recv(socklist[i]))
                 {
+                    // recv failed, close the socket
                     on_close(socklist[i], socklist, &total_count);
                 }
             }
@@ -81,7 +89,7 @@ int _tmain(int argc, TCHAR* argv[])
         }
     }
 
-    closesocket(sockfd);
+    closesocket(sockfd); // close the listen socket
     return 0;
 }
 
@@ -95,10 +103,10 @@ bool on_recv(SOCKET sockfd)
     int bytes = recv(sockfd, buf, BUFE_SIZE, 0);
     if (bytes == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("recv() failed."));
+        _tprintf(_T("recv() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
-    if (bytes == 0) // closed
+    if (bytes == 0) // gracefully closed
     {
         return false;
     }
@@ -106,18 +114,19 @@ bool on_recv(SOCKET sockfd)
     bytes = send(sockfd, buf, bytes, 0);
     if (bytes == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("send() failed."));
+        _tprintf(_T("send() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
     return true;
 }
 
-bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count)
+bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count_ptr)
 {
-    if (*count == FD_SETSIZE-1)
+    assert(count_ptr);
+    if (*count_ptr == FD_SETSIZE - 1)
     {
-        LOG_PRINT(_T("got the 64 limit"));
+        _tprintf(_T("got the 64 limit.\n"));
         return false;
     }
 
@@ -126,54 +135,43 @@ bool on_accept(SOCKET sockfd, SOCKET* socklist, int* count)
     int socknew = accept(sockfd, (sockaddr*)&addr, &addrlen);
     if (socknew == INVALID_SOCKET)
     {
-        LOG_PRINT(_T("accept() failed"));
+        _tprintf(_T("accept() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
-    // set socket to non-blocking mode
+    // set to non-blocking mode
     ULONG nonblock = 1;
     if (ioctlsocket(socknew, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("ioctlsocket() failed"));
+        _tprintf(_T("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
         closesocket(socknew);
         return false;
     }
 
-    _tprintf(_T("%s, socket %d accepted.\n"), Now().data(), socknew);
+    _tprintf(_T("socket %d accepted at %s.\n"), socknew, Now().data());
 
-    socklist[*count] = socknew;
-    (*count)++;
+    socklist[*count_ptr] = socknew;
+    (*count_ptr)++;
     return true;
 }
 
-void on_close(SOCKET sockfd, SOCKET* socklist, int* count)
+void on_close(SOCKET sockfd, SOCKET* socklist, int* count_ptr)
 {
-    _tprintf(_T("%s, socket %d closed.\n"), Now().data(), sockfd);
+    assert(count_ptr);
+    _tprintf(_T("socket %d closed at %s.\n"), sockfd, Now().data());
 
     // find index of this socket
-    int index = -1;
-    for (int i = 0; i < *count; ++i)
+    SOCKET* listend = socklist + (*count_ptr+1);
+    bool removed = (std::remove(socklist, listend, sockfd) != listend);
+    if (!removed)
     {
-        if (socklist[i] == sockfd)
-        {
-            index = i;
-            break;
-        }
+        _tprintf(_T("socket %d not found in list.\n"), sockfd);
     }
-
-    if (index < 0)
+    else
     {
-        LOG_PRINT(_T("socket %d not found in list"), sockfd);
-        return ;
+        closesocket(sockfd);
+        (*count_ptr)--;
     }
-
-    closesocket(sockfd);
-    // move all sockets after 'sockfd'
-    for (int i = index; i < *count; ++i)
-    {
-        socklist[i] = socklist[i+1];
-    }
-    (*count)--;
 }
 
 
@@ -183,20 +181,21 @@ SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort)
     const _tstring& strAddr = strHost + _T(":") + strPort;
     if (!StringToAddress(strAddr, &addr))
     {
+        _tprintf(_T("cannot convert '%s' to socket address, %s"), strAddr.data(), LAST_ERROR_MSG);
         return INVALID_SOCKET;
     }
 
     SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET)
     {
-        LOG_PRINT(_T("socket() failed, %s"), strAddr.data());
+        _tprintf(_T("socket() failed, %s"), LAST_ERROR_MSG);
         return 0;
     }
 
     int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
     if (error == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("bind() failed"));
+        _tprintf(_T("bind() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return INVALID_SOCKET;
     }
@@ -204,7 +203,7 @@ SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort)
     error = listen(sockfd, SOMAXCONN);
     if (error == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("listen() failed"));
+        _tprintf(_T("listen() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return INVALID_SOCKET;
     }
@@ -213,11 +212,11 @@ SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort)
     ULONG nonblock = 1;
     if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("ioctlsocket() failed"));
+        _tprintf(_T("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return INVALID_SOCKET;
     }
 
-    _tprintf(_T("%s, server start listen at %s\n"), Now().data(), strAddr.data());
+    _tprintf(_T("server listen at %s, %s.\n"), strAddr.data(), Now().data());
     return sockfd;
 }

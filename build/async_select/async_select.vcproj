@@ -211,14 +211,6 @@
 			Name="common"
 			>
 			<File
-				RelativePath="..\..\src\common\logging.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\common\logging.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\common\utility.cpp"
 				>
 			</File>

@@ -1,4 +1,7 @@
-﻿
+﻿//  A simple echo server use asynchrounous select model
+//  by ichenq@gmail.com 
+//  Oct 19, 2011
+
 #include "appdef.h"
 #include "../common/logging.h"
 #include <set>
@@ -16,22 +19,24 @@ static std::set<SOCKET>  g_socketList;
 bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPort)
 {
     sockaddr_in addr = {};
-    if (!StringToAddress(strHost + _T(":") + strPort, &addr))
+    _tstring strAddress = strHost + _T(":") + strPort;
+    if (!StringToAddress(strAddress, &addr))
     {
+        PrintLog(_T("StringToAddress() failed, '%s', %s"), strAddress.data(), LAST_ERROR_MSG);
         return false;
     }
 
     SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET)
     {
-        LOG_PRINT(_T("socket() failed"));
+        PrintLog(_T("socket() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
     int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
     if (error == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("bind() failed"));
+        PrintLog(_T("bind() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
@@ -39,7 +44,7 @@ bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPor
     error = listen(sockfd, SOMAXCONN);
     if (error == SOCKET_ERROR)
     {
-        LOG_PRINT(_T("listen() failed"));
+        PrintLog(_T("listen() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
@@ -47,6 +52,7 @@ bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPor
     // set the socket to non-blocking mode automatically
     if (WSAAsyncSelect(sockfd, hwnd, WM_SOCKET, FD_ACCEPT) == SOCKET_ERROR)
     {
+        PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
@@ -60,9 +66,7 @@ void CloseServer()
     size_t count = g_socketList.size();
     for_each(g_socketList.begin(), g_socketList.end(), on_closed);
     g_socketList.clear();
-    TCHAR szmsg[MAX_PATH];
-    int len = _stprintf_s(szmsg, MAX_PATH, _T("%s, server closed with %d sockets"), Now().data(), count);
-    AppendLogText(szmsg, len);
+    PrintLog(_T("server[%d] closed at %s.\n"), count, Now().data());
 }
 
 
@@ -70,7 +74,7 @@ bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
 {
     if (error)
     {
-        LOG_PRINT(_T("Error encountered, ID: %d\n."), error);
+        on_closed(sockfd);
         return false;
     }
 
@@ -111,7 +115,7 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
     SOCKET socknew = accept(sockfd, (sockaddr*)&addr, &addrlen);
     if (socknew == INVALID_SOCKET)
     {
-        LOG_DEBUG(_T("accpet() failed"));
+        PrintLog(_T("accpet() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
@@ -119,14 +123,13 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
     int error = WSAAsyncSelect(socknew, hwnd, WM_SOCKET, FD_WRITE|FD_READ|FD_CLOSE);
     if (error == SOCKET_ERROR)
     {
-        LOG_DEBUG(_T("WSAAsyncSelect() failed"));
+        PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(socknew);
         return false;
     }
 
     g_socketList.insert(socknew);
-    _tstring msg = Now() + _T(", socket ") + ToString(socknew) + _T(" accepted.\n");
-    AppendLogText(msg.data(), msg.length());
+    PrintLog(_T("socket %d accepted at %s.\n"), socknew, Now().data());
     return true;
 }
 
@@ -139,8 +142,7 @@ bool on_recv(SOCKET sockfd)
         on_closed(sockfd);
         return false;
     }
-
-    AppendLogText((TCHAR*)databuf, bytes/sizeof(TCHAR));
+    
     bytes = send(sockfd, databuf, bytes, 0);
     if (bytes == 0)
     {
@@ -153,6 +155,6 @@ bool on_recv(SOCKET sockfd)
 void on_closed(SOCKET sockfd)
 {
     closesocket(sockfd);
-    _tstring msg = Now() + _T(", socket ") + ToString(sockfd) + _T(" closed.\n");
-    AppendLogText(msg.data(), msg.length());    
+    g_socketList.erase(sockfd);
+    PrintLog(_T("socket %d closed at %s.\n"), sockfd, Now().data());    
 }

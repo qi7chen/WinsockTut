@@ -24,5 +24,5 @@ void CloseServer();
 bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error);
 
 
-// append text to edit control
-bool AppendLogText(const TCHAR* text, int len);
+// print text to edit control
+void PrintLog(const TCHAR* fmt, ...);

@@ -1,8 +1,6 @@
-﻿/**
- *  @author ichenq@gmail.com
- *  @date   Nov 24, 2011
- *  @brief  A simple echo server, use async select
- */
+﻿//  A simple echo server use asynchrounous select model
+//  by ichenq@gmail.com 
+//  Nov 24, 2011
 
 
 #include "resource.h"
@@ -11,18 +9,32 @@
 #include <ShellAPI.h>
 #include "../common/logging.h"
 
-#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "shell32")
 
 #pragma warning(disable: 4996)
 
 
 
-static INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-static bool StartServer(const _tstring& strHost, const _tstring& strPort);
-static void OnCommand(HWND hCtrl, DWORD dwNotifyCode);
+// dialog winproc
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-static HWND     g_hDlg;  // global dialog handle
+// start network server
+bool StartServer(const _tstring& strHost, const _tstring& strPort);
 
+// on windows command
+void OnCommand(HWND hCtrl, DWORD dwNotifyCode);
+
+// append log text to gui window
+bool AppendLogText(const TCHAR* text, int len);
+
+
+// global dialog handle
+static HWND     g_hDlg;  
+
+
+// initialize winsock and other environment
+static global_init g_global_init;
 
 // main entry
 int APIENTRY _tWinMain(HINSTANCE hInstance, 
@@ -57,12 +69,10 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_INITDIALOG:
         {
             g_hDlg = hDlg; // initialize global handle
-
-            std::pair<_tstring, _tstring>* dlgParam = (std::pair<_tstring, _tstring>*)lParam;
-            if (dlgParam != NULL)
+            std::auto_ptr< std::pair<_tstring, _tstring> > dlgParam((std::pair<_tstring, _tstring>*)lParam);
+            if (dlgParam.get())
             {
                 StartServer(dlgParam->first, dlgParam->second);
-                delete dlgParam;
             }
         }
         break;
@@ -84,7 +94,6 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_SOCKET:
         HandleNetEvents(hDlg, wParam, WSAGETSELECTEVENT(lParam), WSAGETSELECTERROR(lParam));
         break;
-
     }
 
     return 0;
@@ -121,22 +130,19 @@ void OnCommand(HWND hCtrl, DWORD dwNotifyCode)
 bool StartServer(const _tstring& strHost, const _tstring& strPort)
 {
     if (InitializeServer(g_hDlg, strHost, strPort))
-    {
-        
+    {        
         SetDlgItemText(g_hDlg, IDC_EDIT_HOST, strHost.data());
         SetDlgItemText(g_hDlg, IDC_EDIT_PORT, strPort.data());
         EnableWindow(GetDlgItem(g_hDlg, IDC_EDIT_HOST), FALSE);
         EnableWindow(GetDlgItem(g_hDlg, IDC_EDIT_PORT), FALSE);
         EnableWindow(GetDlgItem(g_hDlg, IDC_BUTTO_START), FALSE);
         EnableWindow(GetDlgItem(g_hDlg, IDC_BUTTON_STOP), TRUE);
-        _tstring msg = Now() + _T(", server start listen at ") + strHost + _T(":") + strPort;
-        AppendLogText(msg.data(), msg.length());
+        PrintLog(_T("server start listen [%s:%s] at %s.\r\n"), strHost.data(), strPort.data(), Now().data());
         return true;
     }
     else
     {
-        _tstring msg = _T("initialize server failed.");
-        AppendLogText(msg.data(), msg.length());
+        PrintLog( _T("initialize server failed.\n"));
         return false;
     }
 }
@@ -163,4 +169,18 @@ bool AppendLogText(const TCHAR* text, int len)
 
     _tcsncpy_s(textbuf + count, BUFSIZ-count, text, len);
     return SetDlgItemText(g_hDlg, IDC_EDIT_LOG, textbuf) == TRUE;
+}
+
+void PrintLog(const TCHAR* fmt, ...)
+{
+    assert(fmt);
+    TCHAR buffer[BUFSIZ];
+    va_list ap;
+    va_start(ap, fmt);
+    int count = _vstprintf_s(buffer, _countof(buffer), fmt, ap);
+    va_end(ap);
+    if (count > 0)
+    {
+        AppendLogText(buffer, count);
+    }
 }
