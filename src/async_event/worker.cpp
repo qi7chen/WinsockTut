@@ -1,9 +1,22 @@
 ﻿#include "worker.h"
-#include "../common/thread.h"
+#include <process.h>
 #include <functional>
 #include <algorithm>
 
 
+unsigned CALLBACK NativeThreadFunc(void* param)
+{
+    // force windows initialize a message queue for this thread
+    PeekMessage(NULL, NULL, 0, 0, PM_NOREMOVE); 
+    worker* pWorker = (worker*)param;
+    if (pWorker)
+    {
+        pWorker->main_loop();
+    }
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 worker::worker()
     : count_(0), my_thread_(0)
@@ -18,7 +31,7 @@ worker::~worker()
 
 void worker::start()
 {
-    my_thread_ = create_thread(std::tr1::bind(&worker::main_loop, this));
+    _beginthreadex(NULL, 0, NativeThreadFunc, this, 0, &my_thread_);
 }
 
 
@@ -45,7 +58,7 @@ void worker::main_loop()
             TRUE, 50, FALSE);
         if (nready == WSA_WAIT_FAILED)
         {
-            LOG_PRINT(_T("WSAWaitForMultipleEvents() failed"));
+            _tprintf(_T("WSAWaitForMultipleEvents() failed, %s"), LAST_ERROR_MSG);
             break;
         }
         else if (nready == WSA_WAIT_TIMEOUT)
@@ -64,7 +77,7 @@ void worker::main_loop()
             WSANETWORKEVENTS event_struct = {};
             if (WSAEnumNetworkEvents(sockfd, hEvent, &event_struct) == SOCKET_ERROR)
             {
-                LOG_DEBUG(_T("WSAEnumNetworkEvents() failed"));
+                _tprintf(_T("WSAEnumNetworkEvents() failed, %s"), LAST_ERROR_MSG);
                 on_close(sockfd, 0);
                 continue;
             }
@@ -96,12 +109,6 @@ int  worker::event_handler(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
 
 bool worker::on_recv(SOCKET sockfd, int error)
 {
-    if (error)
-    {
-        LOG_PRINT(_T("Error encountered, ID: %d\n"), error);
-        return false;
-    }
-
     char databuf[BUFE_SIZE];
     int bytes = recv(sockfd, databuf, BUFE_SIZE, 0);
     if (bytes == SOCKET_ERROR && bytes == 0)
@@ -122,11 +129,6 @@ bool worker::on_recv(SOCKET sockfd, int error)
 bool worker::on_write(SOCKET sockfd, int error)
 {
     UNREFERENCED_PARAMETER(sockfd);
-    if (error)
-    {
-        LOG_PRINT(_T("Error encountered, ID: %d\n"), error);
-        return false;
-    }
 
     // do nothing here
     return true;
@@ -135,16 +137,10 @@ bool worker::on_write(SOCKET sockfd, int error)
 
 bool worker::on_close(SOCKET sockfd, int error)
 {
-    if (error)
-    {
-        LOG_PRINT(_T("Error encountered, ID: %d\n"), error);
-        return false;
-    }
-
     size_t index = std::find(socklist_, socklist_+count_, sockfd) - socklist_;
     if (index < 0 || index > count_)
     {
-        LOG_PRINT(_T("socket %d not found in list"), sockfd);
+        _tprintf(_T("socket %d not found.\n"), sockfd);
         return false;
     }
 
@@ -153,15 +149,11 @@ bool worker::on_close(SOCKET sockfd, int error)
     WSACloseEvent(hEvent);
     closesocket(sockfd);
 
-    for (size_t i = index; i < count_; ++i)
-    {
-        eventlist_[i] = eventlist_[i+1];
-        socklist_[i] = socklist_[i+1];
-    }
+    std::remove(socklist_, socklist_+count_, sockfd);
+    std::remove(eventlist_, eventlist_+count_, hEvent);
     --count_;
 
-    _tprintf(_T("%s, socket %d closed.\n"), Now().data(), sockfd);
-
+    _tprintf(_T("socket %d closed at %s.\n"), sockfd, Now().data());
     return true;
 }
 
@@ -183,7 +175,7 @@ void worker::reset()
     count_ = 0;
 }
 
-
+// communicate with other thread(s)
 bool worker::handle_messages()
 {
     SOCKET sockfd = INVALID_SOCKET;
@@ -192,9 +184,11 @@ bool worker::handle_messages()
     {
         if (GetMessage(&msg, NULL, 0, 0))
         {
-            if (msg.message == WM_ADD_NEW_SOCKET)
+            switch(msg.message)
             {
+            case WM_ADD_NEW_SOCKET:
                 sockfd = msg.wParam;
+                break;
             }
         }
     }
@@ -207,7 +201,7 @@ bool worker::handle_messages()
     WSAEVENT hEvent = WSACreateEvent();
     if (hEvent == WSA_INVALID_EVENT)
     {
-        LOG_DEBUG(_T("WSACreateEvent() failed"));
+        _tprintf(_T("WSACreateEvent() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
@@ -215,11 +209,11 @@ bool worker::handle_messages()
     if (WSAEventSelect(sockfd, hEvent, FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR)
     {
         WSACloseEvent(hEvent);
-        LOG_DEBUG(_T("WSAEventSelect() failed"));
+        _tprintf(_T("WSAEventSelect() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
-    _tprintf(_T("%s, socket %d connected.\n"), Now().data(), sockfd);
+    _tprintf(_T("socket %d connected at %s.\n"), sockfd, Now().data());
     eventlist_[count_] = hEvent;
     socklist_[count_] = sockfd;
     count_++;

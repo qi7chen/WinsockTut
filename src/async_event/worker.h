@@ -9,12 +9,10 @@
 
 
 #include "../common/utility.h"
-#include "../common/logging.h"
 
 
-
+// thread message
 const unsigned WM_ADD_NEW_SOCKET = WM_USER + 0xff;
-
 
 
 //
@@ -34,12 +32,13 @@ public:
 
     bool    is_full();
 
+    void    main_loop();
 
 private:
     worker(const worker&);
     worker& operator = (const worker&);
 
-    void main_loop();
+   
     int  event_handler(SOCKET sockfd, const WSANETWORKEVENTS* events);
 
     bool on_recv(SOCKET sockfd, int error);
