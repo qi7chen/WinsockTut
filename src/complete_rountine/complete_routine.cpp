@@ -1,6 +1,5 @@
 
 #include "complete_routine.h"
-#include "../common/logging.h"
 #include <map>
 
 
@@ -17,12 +16,13 @@ socket_data* alloc_data(SOCKET sockfd)
     }
     catch (std::bad_alloc&)
     {
-        LOG_DEBUG(_T("allocate socket data failed"));
+        _tprintf(_T("allocate socket data failed.\n"));
         return NULL;
     }
-    
+        
+    // winsock didn't use hEvent in complete routine model
+    data->overlap_.hEvent = (WSAEVENT)data; 
     data->socket_ = sockfd;
-    data->overlap_.hEvent = (WSAEVENT)data; // winsock didn't use hEvent in complete routine
     data->wsabuf_.buf = data->databuf_;
     data->wsabuf_.len = sizeof(data->databuf_);
     
@@ -36,10 +36,10 @@ void free_data(socket_data* data)
 {
     if (data)
     {
+         _tprintf(_T("socket %d closed at %s.\n"), data->socket_, Now().data());
         closesocket(data->socket_);
         g_sockList.erase(data->socket_);
-        delete data;        
-        _tprintf(_T("%s, socket %d closed.\n"), Now().data(), data->socket_);
+        delete data;
     }
 }
 
@@ -58,7 +58,7 @@ bool post_recv_request(socket_data* data)
     }
     else
     {
-        LOG_DEBUG(_T("WSARecv() failed"));
+        _tprintf(_T("WSARecv() failed [%d], %s"), data->socket_, LAST_ERROR_MSG);
         free_data(data);
         return false;
     }
