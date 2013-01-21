@@ -173,59 +173,21 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\src\overlapped\overlapped.cpp"
+				RelativePath="..\..\src\overlapped\main.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\overlapped\worker.cpp"
+				RelativePath="..\..\src\overlapped\overlap_worker.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\overlapped\worker.h"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="precompile"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
-			<File
-				RelativePath="..\..\src\common\stdafx.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\common\stdafx.h"
+				RelativePath="..\..\src\overlapped\overlap_worker.h"
 				>
 			</File>
 		</Filter>
 		<Filter
 			Name="common"
 			>
-			<File
-				RelativePath="..\..\src\common\logging.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\common\logging.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\common\thread.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\common\thread.h"
-				>
-			</File>
 			<File
 				RelativePath="..\..\src\common\utility.cpp"
 				>
