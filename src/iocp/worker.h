@@ -1,14 +1,13 @@
-/**
- *  @file:   worker.h
- *  @brief: 
- *  @author: ichenq@gmail.com
- *  @date:   Oct 19, 2011
- */
+//  I/O Completion Port worker thread
+//  by ichenq@gmail.com at Oct 19, 2011
 
 #pragma once
 
 
-class iocp_server;
+// timeout milliseconds
+enum {MAX_TIMEOUT = 50};
 
 
-void run_worker_loop(iocp_server* server);
+// workder thread entry
+unsigned CALLBACK NativeThreadFunc(void* param);
+

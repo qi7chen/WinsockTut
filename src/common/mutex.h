@@ -63,6 +63,7 @@ private:
         else {::Sleep(1);}
     }
 
+    // pad to cache line length
     char    __padding1[CACHE_SIZE/2];
     long    lock_;
     char    __padding2[CACHE_SIZE/2-sizeof(long)];

@@ -5,9 +5,6 @@
 #include "../common/utility.h"
 
 
-
-
-
 void run_worker_loop(iocp_server* server)
 {
     assert(server);
@@ -18,16 +15,24 @@ void run_worker_loop(iocp_server* server)
     for (;;)
     {
         BOOL status = ::GetQueuedCompletionStatus(server->completion_port(), &bytes_transferred,
-                      (ULONG_PTR*)&handle_data, &overlap, INFINITE);
+                      (ULONG_PTR*)&handle_data, &overlap, MAX_TIMEOUT);
         if (status == FALSE)
         {
             if (overlap != NULL)
             {
                 handle_data->opertype_ = OperDisconnect;
             }
-            else
+            else 
             {
-                break;
+                if (GetLastError() == WAIT_TIMEOUT)
+                {
+                    // handle timers here
+                    continue;
+                }
+                else
+                {
+                    _tprintf(_T("GetQueuedCompletionStatus() failed, %s"), LAST_ERROR_MSG);
+                }
             }
         }
 
@@ -39,4 +44,12 @@ void run_worker_loop(iocp_server* server)
 
         server->push_command(handle_data);
     }
+}
+
+unsigned CALLBACK NativeThreadFunc(void* param)
+{
+    assert(param);
+    iocp_server* server = (iocp_server*)param;
+    run_worker_loop(server);
+    return 0;
 }

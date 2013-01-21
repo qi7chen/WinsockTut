@@ -1,10 +1,5 @@
-/**
- *  @file:   iocp.h
- *  @brief:  a simple echo server use I/O completion port
- *
- *  @author: ichenq@gmail.com
- *  @date:   Oct 19, 2011
- */
+//  I/O Completion Port manager
+//  by ichenq@gmail.com at Oct 19, 2011
 
 #pragma once
 
@@ -19,7 +14,6 @@
 #include <queue>
 #include <memory>
 #include "../common/utility.h"
-#include "../common/thread.h"
 #include "../common/mutex.h"
 
 
@@ -30,7 +24,7 @@ public:
     iocp_server();
     ~iocp_server();
 
-    bool    start(const TCHAR* host, short port);
+    bool    start(const TCHAR* host, const TCHAR* port);
 
     HANDLE  completion_port() {return completion_port_;}
 
@@ -49,12 +43,11 @@ private:
     void    on_closed(PER_HANDLE_DATA* handle_data);
     
     // main loop
-    void        wait_loop();
+    void    wait_loop();
 
-    bool        create_workers(DWORD concurrency = 0);
-    bool        create_completion_port(unsigned concurrency);    
-    bool        create_listen_socket(const sockaddr_in& addr);
-    bool        post_an_accept(); 
+    bool    create_workers(DWORD concurrency);   
+    bool    create_listen_socket(const _tstring& host, const _tstring& port);
+    bool    post_an_accept(); 
 
     PER_HANDLE_DATA*    pop_command();
     
@@ -66,14 +59,26 @@ private:
 private:
     typedef scoped_lock<mutex>  auto_lock;
 
+    // listen socket descriptor
     SOCKET      listen_socket_;
+
+    // completion port handle
     HANDLE      completion_port_;
+
+    // mutex object
     mutex       mutex_;
 
-    std::vector<unsigned>                   workers_;       // worker thread(s)
-    std::queue<PER_HANDLE_DATA*>            command_queue_; // commands queue for worker thread(s) to push
-    std::list<PER_HANDLE_DATA*>             free_list_;     // handles to be reused
-    std::map<SOCKET, PER_HANDLE_DATA*>      info_map_;      // handles in use
+    // worker thread(s)
+    std::vector<unsigned>                   workers_;
+
+    // commands queue for worker thread(s) to push
+    std::queue<PER_HANDLE_DATA*>            command_queue_; 
+
+    // handles to be reused
+    std::list<PER_HANDLE_DATA*>             free_list_;
+
+    // handles in use
+    std::map<SOCKET, PER_HANDLE_DATA*>      info_map_;
 };
 
 
