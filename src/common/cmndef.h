@@ -10,7 +10,7 @@
 
 
 #ifndef _WIN32
-#error "This library is only windows specific!"
+#error "This library is windows only!"
 #endif
 
 
@@ -43,7 +43,7 @@
 
 enum { BUFE_SIZE = 8192 };
 
-
+// socket operation type
 enum OperType
 {
     OperClose,
@@ -54,12 +54,12 @@ enum OperType
     OperDisconnect,
 };
 
-
+// data per socket handle
 struct PER_HANDLE_DATA 
 {
-    WSAOVERLAPPED   overlap_;
-    SOCKET          socket_;
-    WSABUF          wsbuf_;
-    char            buffer_[BUFE_SIZE];
-    OperType        opertype_;
+    WSAOVERLAPPED   overlap_;           // overlap structure
+    SOCKET          socket_;            // socket descriptor
+    WSABUF          wsbuf_;             // WSABUF structure
+    char            buffer_[BUFE_SIZE]; // data buffer
+    OperType        opertype_;          // operation type
 };
