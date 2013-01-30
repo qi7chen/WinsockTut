@@ -9,5 +9,5 @@ enum {MAX_TIMEOUT = 50};
 
 
 // workder thread entry
-unsigned CALLBACK NativeThreadFunc(void* param);
+unsigned __stdcall NativeThreadFunc(void* param);
 
