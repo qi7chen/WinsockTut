@@ -88,7 +88,8 @@ global_init::global_init()
     WSADATA data = {};
     if (WSAStartup(0, &data) == WSAVERNOTSUPPORTED)
     {
-        WSAStartup(data.wHighVersion, &data); // use the highest supported version 
+        // use the highest supported version 
+        CHECK(WSAStartup(data.wHighVersion, &data) == 0);
     }
 
     setlocale(LC_CTYPE, ".936");

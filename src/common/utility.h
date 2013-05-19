@@ -12,6 +12,26 @@
 #include <assert.h>
 #include <vector>
 
+
+#ifndef _WIDE_STR
+#define __WIDE_STR(str)     L ## str
+#define _WIDE_STR(str)      __WIDE_STR(str)
+#endif 
+
+#ifndef _STR_WIDE
+#   if defined(_UNICODE) || defined(UNICODE)
+#   define _STR_WIDE(str)      _WIDE_STR(str)
+#   else
+#   define _STR_WIDE(str)      str
+#   endif
+#endif
+
+
+#define CHECK(expr)   if (!(expr)) {                            \
+    MessageBox(NULL, _STR_WIDE(#expr), LAST_ERROR_MSG, MB_OK);  \
+    throw ;}
+
+
 // global initialize helper
 struct global_init
 {
