@@ -5,7 +5,7 @@ Winsock网络编程示例，使用7种不同的I/O模型来实现一个简单的echo server。
 
 ##目录
 ### build  
-visual C++ 工程文件。
+[Premake4](http://industriousone.com/premake/download)工程脚本
 
 ### src
 1. socket
