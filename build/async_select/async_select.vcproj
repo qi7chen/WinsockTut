@@ -197,18 +197,6 @@
 				>
 			</File>
 		</Filter>
-		<Filter
-			Name="resource"
-			>
-			<File
-				RelativePath="..\..\src\async_select\async_select.rc"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\async_select\resource.h"
-				>
-			</File>
-		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

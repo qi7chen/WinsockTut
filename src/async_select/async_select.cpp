@@ -19,23 +19,20 @@ bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPor
 {
     sockaddr_in addr = {};
     _tstring strAddress = strHost + _T(":") + strPort;
-    if (!StringToAddress(strAddress, &addr))
-    {
-        PrintLog(_T("StringToAddress() failed, '%s', %s"), strAddress.data(), LAST_ERROR_MSG);
-        return false;
-    }
+    CHECK (StringToAddress(strAddress, &addr));
+
 
     SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET)
     {
-        PrintLog(_T("socket() failed, %s"), LAST_ERROR_MSG);
+		//PrintLog(_T("socket() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
     int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
     if (error == SOCKET_ERROR)
     {
-        PrintLog(_T("bind() failed, %s"), LAST_ERROR_MSG);
+		//PrintLog(_T("bind() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
@@ -43,7 +40,7 @@ bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPor
     error = listen(sockfd, SOMAXCONN);
     if (error == SOCKET_ERROR)
     {
-        PrintLog(_T("listen() failed, %s"), LAST_ERROR_MSG);
+		//PrintLog(_T("listen() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
@@ -51,7 +48,7 @@ bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPor
     // set the socket to non-blocking mode automatically
     if (WSAAsyncSelect(sockfd, hwnd, WM_SOCKET, FD_ACCEPT) == SOCKET_ERROR)
     {
-        PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
+		//PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
@@ -62,10 +59,10 @@ bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPor
 
 void CloseServer()
 {
-    size_t count = g_socketList.size();
+    //size_t count = g_socketList.size();
     for_each(g_socketList.begin(), g_socketList.end(), on_closed);
     g_socketList.clear();
-    PrintLog(_T("server[%d] closed at %s.\n"), count, Now().data());
+    //PrintLog(_T("server[%d] closed at %s.\n"), count, Now().data());
 }
 
 
@@ -88,6 +85,12 @@ bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
     case FD_READ:
         {
             on_recv(sockfd);
+        }
+        break;
+
+    case FD_WRITE:
+        {
+            // nothing
         }
         break;
 
@@ -114,7 +117,7 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
     SOCKET socknew = accept(sockfd, (sockaddr*)&addr, &addrlen);
     if (socknew == INVALID_SOCKET)
     {
-        PrintLog(_T("accpet() failed, %s"), LAST_ERROR_MSG);
+        //PrintLog(_T("accpet() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
@@ -122,13 +125,13 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
     int error = WSAAsyncSelect(socknew, hwnd, WM_SOCKET, FD_WRITE|FD_READ|FD_CLOSE);
     if (error == SOCKET_ERROR)
     {
-        PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
+        //PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(socknew);
         return false;
     }
 
     g_socketList.insert(socknew);
-    PrintLog(_T("socket %d accepted at %s.\n"), socknew, Now().data());
+    //PrintLog(_T("socket %d accepted at %s.\n"), socknew, Now().data());
     return true;
 }
 
@@ -155,5 +158,5 @@ void on_closed(SOCKET sockfd)
 {
     closesocket(sockfd);
     g_socketList.erase(sockfd);
-    PrintLog(_T("socket %d closed at %s.\n"), sockfd, Now().data());    
+    //PrintLog(_T("socket %d closed at %s.\n"), sockfd, Now().data());    
 }

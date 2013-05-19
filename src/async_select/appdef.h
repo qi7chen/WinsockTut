@@ -14,15 +14,13 @@
 
 
 
-// initialize WSAAsynSelect server
+// Initialize WSAAsynSelect server
 bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPort);
 
-// 
+// Release socket resouce
 void CloseServer();
 
-// socket events handler
+// Socket events handler
 bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error);
 
 
-// print text to edit control
-void PrintLog(const TCHAR* fmt, ...);
