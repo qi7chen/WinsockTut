@@ -27,9 +27,10 @@
 #endif
 
 
-#define CHECK(expr)   if (!(expr)) {                            \
+#define CHECK(expr)   if (!(expr)) { \
     MessageBox(NULL, _STR_WIDE(#expr), LAST_ERROR_MSG, MB_OK);  \
-    throw ;}
+    exit(1); }
+   
 
 
 // global initialize helper
