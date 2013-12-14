@@ -1,13 +1,14 @@
-
 #include "clients.h"
-#include <WS2tcpip.h>
+#include <assert.h>
 
+
+using std::string;
 
 
 
 clients::clients()
     : comletport_handle_(INVALID_HANDLE_VALUE),
-      fnconnectex_(NULL)
+      fnConnectEx(NULL)
 {
 }
 
@@ -16,22 +17,19 @@ clients::~clients()
     CloseHandle(comletport_handle_);
 }
 
-bool clients::start(const TCHAR* host, short port, int count)
+bool clients::start(const char* host, short port, int count)
 {
     comletport_handle_ = CreateCompletionPort(0);
     if (comletport_handle_ == INVALID_HANDLE_VALUE)
     {
-        _tprintf(_T("CreateCompletionPort() failed, %s."), LAST_ERROR_MSG);
+        fprintf(stderr, ("CreateCompletionPort() failed, %s."), LAST_ERROR_MSG);
         return false;
     }
 
-    _tstring straddr = host + (_T(":") + ToString(port));
     sockaddr_in remote_addr = {};
-    if (!StringToAddress(straddr, &remote_addr))
-    {
-        _tprintf(_T("StringToAddress() failed, %s."), LAST_ERROR_MSG);
-        return false;
-    }
+    remote_addr.sin_family = AF_INET;
+    remote_addr.sin_addr.s_addr = inet_addr(host);
+    remote_addr.sin_port = htons(port);
 
     for (int i = 0; i < count; ++i)
     {
@@ -44,7 +42,7 @@ bool clients::start(const TCHAR* host, short port, int count)
     for (;;)
     {
         int error = GetQueuedCompletionStatus(comletport_handle_, &bytes_transferred, 
-            (ULONG_PTR*)&handle_data, &overlap, INFINITE);
+            (ULONG_PTR*)&handle_data, &overlap, 500);
         if (error == 0)
         {
             if (overlap == NULL) 
@@ -78,12 +76,13 @@ bool clients::start(const TCHAR* host, short port, int count)
     return true;
 }
 
+// 连接成功后发送一条消息
 void  clients::on_connected(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
-    _tprintf(_T("socket %d connected at %s.\n"), handle_data->socket_, Now().data());
-    TCHAR szmsg[MAX_PATH] = _T("The quick fox jumps over a lazy dog");
-    size_t len = (_tcslen(szmsg) + 1) * sizeof(TCHAR);
+    fprintf(stdout, ("socket %d connected at %s.\n"), handle_data->socket_, Now().data());
+    char szmsg[MAX_PATH] = ("The quick fox jumps over a lazy dog");
+    size_t len = strlen(szmsg) + 1;
     handle_data->wsbuf_.len = len;
     memcpy_s(handle_data->buffer_, sizeof(handle_data->buffer_), szmsg, len);
     handle_data->opertype_ =  OperSend;
@@ -96,14 +95,18 @@ void  clients::on_connected(PER_HANDLE_DATA* handle_data)
     }
 }
 
+// 收到Server返回后再次发送
 void  clients::on_recv(PER_HANDLE_DATA* handle_data)
 {
+    // 暂停1秒
+    ::Sleep(1000);
+
     assert(handle_data);
     DWORD recv_bytes = handle_data->overlap_.InternalHigh;
     handle_data->wsbuf_.len = recv_bytes;
-    TCHAR* pbuf = (TCHAR*)handle_data->wsbuf_.buf;
-    pbuf[recv_bytes/sizeof(TCHAR)] = _T('\0');
-    _tprintf(_T("message of socket %d: %s.\n"), handle_data->socket_, pbuf);
+    char* pbuf = (char*)handle_data->wsbuf_.buf;
+    pbuf[recv_bytes/sizeof(char)] = ('\0');
+    fprintf(stdout, ("message of socket %d: %s.\n"), handle_data->socket_, pbuf);
 
     handle_data->opertype_ =  OperSend;
     DWORD bytes_send = 0;
@@ -115,6 +118,7 @@ void  clients::on_recv(PER_HANDLE_DATA* handle_data)
     }
 }
 
+// 发送成功后发起读取请求
 void  clients::after_sent(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);    
@@ -130,45 +134,46 @@ void  clients::after_sent(PER_HANDLE_DATA* handle_data)
     }
 }
 
+// 关闭套接字，释放资源
 void  clients::on_close(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
-    _tprintf(_T("socket %d closed at %s.\n"), handle_data->socket_, Now().data());
+    fprintf(stdout, ("socket %d closed at %s.\n"), handle_data->socket_, Now().data());
     closesocket(handle_data->socket_);
     free_handle_data(handle_data);
 }
 
-
-
+// 创建一个客户端连接
 bool clients::create_one_client(const sockaddr_in& remote_addr)
 {
     SOCKET sock_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock_fd == INVALID_SOCKET)
     {
-        _tprintf(_T("socket() failed"));
+        fprintf(stderr, ("socket() failed"));
         return false;
     }
 
-    if (fnconnectex_ == NULL)
+    if (fnConnectEx == NULL)
     {
         GUID guid_connectex = WSAID_CONNECTEX;
         DWORD bytes = 0;
         int error = WSAIoctl(sock_fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid_connectex,
-            sizeof(guid_connectex), &fnconnectex_, sizeof(fnconnectex_), &bytes, 0, 0);
+            sizeof(guid_connectex), &fnConnectEx, sizeof(fnConnectEx), &bytes, 0, 0);
         if (error == SOCKET_ERROR)
         {
-            _tprintf(_T("WSAIoctl() failed, %s."), LAST_ERROR_MSG);
+            fprintf(stderr, ("WSAIoctl() failed, %s."), LAST_ERROR_MSG);
             closesocket(sock_fd);
             return false;
         }
     }
 
+    // ConnectEx()需要本地套接字先bind()
     sockaddr_in localaddr = {};
     localaddr.sin_family = AF_INET;
     int error = bind(sock_fd, (sockaddr*)&localaddr, sizeof(localaddr));
     if (error == SOCKET_ERROR)
     {
-        _tprintf(_T("bind() failed, %s."), LAST_ERROR_MSG);
+        fprintf(stderr, ("bind() failed, %s."), LAST_ERROR_MSG);
         closesocket(sock_fd);
         return false;
     }
@@ -182,17 +187,17 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
 
     if (!AssociateDevice(comletport_handle_, (HANDLE)sock_fd, (ULONG_PTR)handle_data))
     {
-        _tprintf(_T("AssociateDevice() failed [%d], %s."), sock_fd, LAST_ERROR_MSG);
+        fprintf(stderr, ("AssociateDevice() failed [%d], %s."), sock_fd, LAST_ERROR_MSG);
         closesocket(sock_fd);
         free_handle_data(handle_data);
         return false;
     }
     
-    BOOL bOK = fnconnectex_(sock_fd, (sockaddr*)&remote_addr, sizeof(remote_addr), NULL, 0,
+    BOOL bOK = fnConnectEx(sock_fd, (sockaddr*)&remote_addr, sizeof(remote_addr), NULL, 0,
         NULL, &handle_data->overlap_);
     if (!bOK && WSAGetLastError() != WSA_IO_PENDING)
     {
-        _tprintf(_T("ConnectEx() failed [%d], %s."), sock_fd, LAST_ERROR_MSG);
+        fprintf(stderr, ("ConnectEx() failed [%d], %s."), sock_fd, LAST_ERROR_MSG);
         closesocket(sock_fd);
         free_handle_data(handle_data);
         return false;
@@ -201,6 +206,8 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
     return true;
 }
 
+
+// 申请客户端连接所需的资源
 PER_HANDLE_DATA* clients::alloc_handle_data(SOCKET sock_fd)
 {
     if (info_map_.count(sock_fd))
@@ -215,7 +222,7 @@ PER_HANDLE_DATA* clients::alloc_handle_data(SOCKET sock_fd)
     }
     catch (std::bad_alloc&)
     {
-        _tprintf(_T("allocate handle data failed"));       
+        fprintf(stderr, ("allocate handle data failed.\n"));
         return NULL;
     }
 
