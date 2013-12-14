@@ -112,3 +112,28 @@ solution 'WinsockExamples'
         }
         setTargetObjDir('bin')
         
+        
+solution 'TestClient'
+    configurations {'Debug', 'Release'}
+    location ('./' .. (_ACTION or ''))
+    language 'C++'
+    flags {'ExtraWarnings'}
+    configuration 'Debug'
+        defines { 'DEBUG' }
+        flags { 'Symbols' }
+        
+    configuration 'Release'
+        defines { 'NDEBUG' }
+        flags { 'Optimize' }    
+    
+    project 'TestClient'
+        kind 'ConsoleApp'
+        
+        files {
+            '../src/common/**.h',
+            '../src/common/**.cpp',
+            '../tests/test_client/**.h',
+            '../tests/test_client/**.cpp'
+        }
+        setTargetObjDir('bin')
+        
