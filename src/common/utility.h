@@ -2,100 +2,154 @@
  *  @file   utility.h
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  common utilities
+ *  @brief  类型定义及工具函数集合
  */
 
 #pragma once
 
-
-#include "cmndef.h"
-#include <assert.h>
-#include <vector>
-
-
-#ifndef _WIDE_STR
-#define __WIDE_STR(str)     L ## str
-#define _WIDE_STR(str)      __WIDE_STR(str)
-#endif 
-
-#ifndef _STR_WIDE
-#   if defined(_UNICODE) || defined(UNICODE)
-#   define _STR_WIDE(str)      _WIDE_STR(str)
-#   else
-#   define _STR_WIDE(str)      str
-#   endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT     0x0502      // Windows 2003
 #endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Winsock2.h>
+#include <WS2tcpip.h>
+#include <MSWSock.h>
+#include <string>
+
+
+// 默认缓冲区大小
+enum { kDefaultBufferSize = 8192 };
+
+// 套接字操作类型
+enum OperType
+{
+    OperClose,
+    OperConnect,
+    OperAccept,
+    OperSend,
+    OperRecv,
+    OperDisconnect,
+};
+
+// 每个套接字对应的数据结构
+struct PER_HANDLE_DATA 
+{
+    WSAOVERLAPPED   overlap_;
+    SOCKET          socket_;
+    WSABUF          wsbuf_;
+    char            buffer_[kDefaultBufferSize];
+    OperType        opertype_;
+};
+
+
+// 错误描述
+#define LAST_ERROR_MSG      GetErrorMessage(::GetLastError()).c_str()
 
 
 #define CHECK(expr)   if (!(expr)) { \
-    MessageBox(NULL, _STR_WIDE(#expr), LAST_ERROR_MSG, MB_OK);  \
+    MessageBoxA(NULL, #expr, LAST_ERROR_MSG, MB_OK);  \
     exit(1); }
    
 
 
-// global initialize helper
-struct global_init
+// 获取当前时间
+std::string      Now();
+
+// 获取当前线程的错误描述
+std::string      GetErrorMessage(DWORD dwError);
+
+
+// 创建I/O完成端口句柄
+inline HANDLE   CreateCompletionPort(DWORD dwConcurrency)
+{
+    return ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, dwConcurrency);
+}
+
+
+// 将设备句柄关联到I/O完成端口
+inline bool AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PTR completionkey)
+{    
+    HANDLE handle = ::CreateIoCompletionPort(hDevice, hCompletionPort, completionkey, 0);
+    return (handle == hCompletionPort);
+}
+
+// 创建一个线程
+DWORD StartThread(unsigned (CALLBACK* routine) (void*), int var);
+
+
+// Winsock自动初始化
+struct WinsockInit
 {
 public:
-    global_init();
-    ~global_init();
+    WinsockInit();
+    ~WinsockInit();
 
 private:
-    global_init(const global_init&);
-    global_init& operator = (const global_init&);
+    WinsockInit(const WinsockInit&);
+    WinsockInit& operator = (const WinsockInit&);
 };
 
 
-template <typename T>
-_tstring    ToString(const T& obj)
+//
+// 用Win32临界区实现的锁对象
+//
+class Mutex
 {
-    _tstringstream strm;
-    strm << obj;
-    return strm.str();
-}
+public:
+    Mutex() 
+    {
+        ::InitializeCriticalSection(&cs_);
+    }
+    ~Mutex()
+    {
+        ::DeleteCriticalSection(&cs_);
+    }
 
-// get curent time
-_tstring Now();
+    bool TryLock() 
+    {
+        return (::TryEnterCriticalSection(&cs_) == TRUE);
+    }
 
-// last error message
-_tstring GetErrorMessage(DWORD dwErrorCode);
+    void Lock() 
+    {
+        ::EnterCriticalSection(&cs_);
+    }
 
+    void UnLock() 
+    {
+        ::LeaveCriticalSection(&cs_);
+    }
 
-// converts a sockaddr_in structure into a human-readable string
-_tstring	AddressToString(const sockaddr_in& addr);
+private:
+    Mutex(const Mutex&);
+    Mutex& operator = (const Mutex&);
 
+    CRITICAL_SECTION    cs_;
+};
 
-// converts a numeric string to a sockaddr_in structure
-bool        StringToAddress(const _tstring& strAddr, sockaddr_in* pAddr);
-
-
-
-// format mac address
-std::string FormateMAC(const BYTE* pMac, size_t len);
-
-
-// get mac address and push back to a vector
-void    GetMAC(std::vector<std::string>& vec);
-
-// 
-inline HANDLE   CreateCompletionPort(size_t concurrency)
+// RAII
+template <typename Lockable>
+class ScopedGuard
 {
-    return ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, concurrency);
-}
+public:
+    explicit ScopedGuard(Lockable& lock)
+        : lock_(lock)
+    {
+        lock_.Lock();
+    }
 
+    ~ScopedGuard() 
+    {
+        lock_.UnLock();
+    }
 
-inline bool     AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PTR completionkey)
-{
-    assert(hCompletionPort != INVALID_HANDLE_VALUE);
-    return (::CreateIoCompletionPort(hDevice, hCompletionPort, completionkey, 0) == hCompletionPort);
-}
+private:
+    ScopedGuard(const ScopedGuard&);
+    ScopedGuard& operator = (const ScopedGuard&);
 
-
-#define LAST_ERROR_MSG      GetErrorMessage(::GetLastError()).c_str()
-
-
-// send message to a thread
-bool send_message_to(unsigned thread_id, 
-                     unsigned msg, 
-                     unsigned param1  = 0, 
-                     long param2 = 0);
+    Lockable&  lock_;
+};

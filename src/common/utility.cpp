@@ -1,103 +1,44 @@
-﻿
-#include "utility.h"
-#include <assert.h>
-#include <locale.h>
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+﻿#include "utility.h"
+#include <time.h>
 #include <process.h>
-#include <iphlpapi.h>
-#include <utility>
 
+#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "mswsock")
+
+using std::string;
 
 //////////////////////////////////////////////////////////////////////////
-_tstring Now()
-{
-    TCHAR szbuf[32] = {};
+string  Now()
+{    
     struct tm st = {};
     time_t now = time(NULL);
     localtime_s(&st, &now);
-    _tcsftime(szbuf, _countof(szbuf), _T("%Y-%m-%d %H:%M:%S"), &st);
-    return szbuf;
+    char buffer[MAX_PATH];
+    int count = strftime(buffer, _countof(buffer), ("%Y-%m-%d %H:%M:%S"), &st);
+    return string(buffer, count);
 }
 
-_tstring GetErrorMessage(DWORD dwErrorCode)
+string GetErrorMessage(DWORD dwErrorCode)
 {
-    TCHAR szMsg[MAX_PATH];
-    DWORD dwLen = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErrorCode,
-        0, szMsg, MAX_PATH-1, NULL);
-    if (dwLen == 0)
-    {        
-        return GetErrorMessage(::GetLastError()); // find out why we failed
-    }
-    return _tstring(szMsg, dwLen);
+    char description[MAX_PATH];
+    DWORD count = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErrorCode,
+        0, description, MAX_PATH-1, NULL);
+    return string(description, count);
 }
 
-_tstring AddressToString(const sockaddr_in& addr)
+DWORD StartThread(unsigned (CALLBACK* routine) (void*), int var)
 {
-    TCHAR szaddr[MAX_PATH];
-    DWORD buflen = _countof(szaddr);
-    int error = WSAAddressToString((sockaddr*)&addr, sizeof(addr), NULL, szaddr, &buflen);
-    if (error == SOCKET_ERROR)
-    {
-        buflen = 0;
-    }
-    return _tstring(szaddr);
+    return _beginthreadex(NULL, 0, routine, (void*)var, 0, NULL);
 }
 
-
-bool StringToAddress(const _tstring& strAddr, sockaddr_in* pAddr)
+WinsockInit::WinsockInit()
 {
-    assert(pAddr);
-    sockaddr_in  addr = {};
-    int addrlen = sizeof(addr);
-    int error = (WSAStringToAddress(const_cast<LPTSTR>(strAddr.data()), AF_INET, NULL, 
-        (sockaddr*)&addr, &addrlen));
-    if (error != 0)
-    {
-        return false;
-    }
-    *pAddr = addr;
-    return true;
-}
-
-//  Format mac address
-std::string FormateMAC(const unsigned char* pMac, size_t len)
-{
-    assert(pMac != NULL);
-    char szBuf[MAX_PATH] = {};
-    for (size_t i = 0, nPos = 0; i < len && nPos < MAX_PATH; ++i)
-    {
-        sprintf_s(szBuf + nPos, MAX_PATH - nPos, (i + 1 == len ? "%02x" : "%02x-"), pMac[i]);
-        nPos += 3;
-    }
-    return std::string(szBuf);
-}
-
-bool send_message_to(unsigned thread_id, 
-                     unsigned msg, 
-                     unsigned param1 /* = 0 */, 
-                     long param2 /* = 0 */)
-{
-    BOOL status = ::PostThreadMessage(thread_id, msg, param1, param2);
-    return (status == TRUE);
-}
-
-//////////////////////////////////////////////////////////////////////////
-global_init::global_init()
-{
+    // http://msdn.microsoft.com/en-us/library/windows/desktop/ms742213(v=vs.85).aspx
     WSADATA data = {};
-    if (WSAStartup(0, &data) == WSAVERNOTSUPPORTED)
-    {
-        // use the highest supported version 
-        CHECK(WSAStartup(data.wHighVersion, &data) == 0);
-    }
-
-    setlocale(LC_CTYPE, ".936");
-    std::locale loc(".936");
-    std::wcout.imbue(loc);
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 }
 
-global_init::~global_init()
+WinsockInit::~WinsockInit()
 {
     WSACleanup();
 }
