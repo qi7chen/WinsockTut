@@ -20,7 +20,7 @@ function setTargetObjDir(outDir)
 	end
 end
 
-solution 'winsock-samples'
+solution 'WinsockExamples'
     configurations {'Debug', 'Release'}
     location ('./' .. (_ACTION or ''))
     language 'C++'
@@ -37,85 +37,76 @@ solution 'winsock-samples'
     configuration "vs*"
         defines { "_CRT_SECURE_NO_WARNINGS" }
     
-    project 'socket'
+    project 'Socket'
         kind 'ConsoleApp'
         
         files {
-            '../src/common/cmndef.h',
-            '../src/common/utility.h',
-            '../src/common/utility.cpp',
+            '../src/common/**.h',
+            '../src/common/**.cpp',
             '../src/socket/**.cpp'
         }
         setTargetObjDir('bin')
         
-    project 'select'
+    project 'Select'
         kind 'ConsoleApp'
         
         files {
-            '../src/common/cmndef.h',
-            '../src/common/utility.h',
-            '../src/common/utility.cpp',
+            '../src/common/**.h',
+            '../src/common/**.cpp',
             '../src/select/**.cpp'
         }
         setTargetObjDir('bin')
 
-    project 'async_select'
+    project 'AsyncSelect'
         kind 'ConsoleApp'
         
         files {
-            '../src/common/cmndef.h',
-            '../src/common/utility.h',
-            '../src/common/utility.cpp',
+            '../src/common/**.h',
+            '../src/common/**.cpp',
             '../src/async_select/**.h',
             '../src/async_select/**.cpp'
         }
         setTargetObjDir('bin')
 
-    project 'async_event'
+    project 'AsyncEvent'
         kind 'ConsoleApp'
         
         files {
-            '../src/common/cmndef.h',
-            '../src/common/mutex.h',
-            '../src/common/utility.h',
-            '../src/common/utility.cpp',
+            '../src/common/**.h',
+            '../src/common/**.cpp',
             '../src/async_event/**.h',
             '../src/async_event/**.cpp'
         }
         setTargetObjDir('bin')
 
-    project 'complete_routine'
+    project 'CompleteRoutine'
         kind 'ConsoleApp'
         
         files {
-            '../src/common/cmndef.h',
-            '../src/common/utility.h',
-            '../src/common/utility.cpp',
+            '../src/common/**.h',
+            '../src/common/**.cpp',
             '../src/complete_routine/**.h',
             '../src/complete_routine/**.cpp'
         }
         setTargetObjDir('bin')
 
-    project 'overlapped'
+    project 'Overlapped'
         kind 'ConsoleApp'
         
         files {
-            '../src/common/cmndef.h',
-            '../src/common/utility.h',
-            '../src/common/utility.cpp',
+            '../src/common/**.h',
+            '../src/common/**.cpp',
             '../src/overlapped/**.h',
             '../src/overlapped/**.cpp'
         } 
         setTargetObjDir('bin')
         
-    project 'iocp'
+    project 'IOCP'
         kind 'ConsoleApp'
         
         files {
-            '../src/common/cmndef.h',
-            '../src/common/mutex.h',
-            '../src/common/utility.h',
-            '../src/common/utility.cpp',
+            '../src/common/**.h',
+            '../src/common/**.cpp',
             '../src/iocp/**.h',
             '../src/iocp/**.cpp'
         }
