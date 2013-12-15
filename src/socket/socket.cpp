@@ -16,10 +16,10 @@
 unsigned CALLBACK handle_client(void* param)
 {
     SOCKET sockfd = (SOCKET)param;
-    char databuf[BUFSIZ];
+    char databuf[kDefaultBufferSize];
     for (;;)
     {
-        int bytes_read = recv(sockfd, databuf, BUFSIZ, 0);
+        int bytes_read = recv(sockfd, databuf, kDefaultBufferSize, 0);
         if (bytes_read == SOCKET_ERROR)
         {
             fprintf(stderr, ("socket %d recv() failed, %s"), sockfd, LAST_ERROR_MSG);

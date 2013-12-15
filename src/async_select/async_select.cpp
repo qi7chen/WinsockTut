@@ -94,8 +94,8 @@ void on_closed(SOCKET sockfd)
 
 bool on_recv(SOCKET sockfd)
 {
-    char databuf[BUFSIZ];
-    int bytes = recv(sockfd, databuf, BUFSIZ, 0);
+    char databuf[kDefaultBufferSize];
+    int bytes = recv(sockfd, databuf, kDefaultBufferSize, 0);
     if (bytes == SOCKET_ERROR || bytes == 0)
     {
         on_closed(sockfd);

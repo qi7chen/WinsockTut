@@ -21,8 +21,8 @@ std::set<SOCKET>    g_total_sockets;
 // 处理接收数据
 bool on_recv(SOCKET sockfd)
 {
-    char buf[BUFSIZ];
-    int bytes = recv(sockfd, buf, BUFSIZ, 0);
+    char buf[kDefaultBufferSize];
+    int bytes = recv(sockfd, buf, kDefaultBufferSize, 0);
     if (bytes == SOCKET_ERROR)
     {
         fprintf(stderr, ("recv() failed, %s"), LAST_ERROR_MSG);
