@@ -18,6 +18,17 @@ static std::map<SOCKET, WSAEVENT>  g_event_list;
 static std::map<WSAEVENT, SOCKET>  g_socket_list;
 
 
+int make_event_array(WSAEVENT* array, int max_count)
+{
+    int count = 0;
+    for (std::map<SOCKET, WSAEVENT>::const_iterator iter = g_event_list.begin();
+        iter != g_event_list.end() && max_count-- > 0; ++iter)
+    {
+        array[count++] = iter->second;
+    }
+    return count;
+}
+
 // 创建监听套接字(非阻塞)
 SOCKET create_listen_socket(const char* host, int port)
 {
@@ -77,8 +88,8 @@ bool on_close(SOCKET sockfd, int error)
 
 bool on_recv(SOCKET sockfd, int error)
 {
-    char databuf[BUFSIZ];
-    int bytes = recv(sockfd, databuf, BUFSIZ, 0);
+    char databuf[kDefaultBufferSize];
+    int bytes = recv(sockfd, databuf, kDefaultBufferSize, 0);
     if (bytes == SOCKET_ERROR && bytes == 0)
     {
         return on_close(sockfd, 0);
@@ -161,13 +172,8 @@ bool event_loop()
         return true;
     }
 
-    int count = 0;
     WSAEVENT eventlist[WSA_MAXIMUM_WAIT_EVENTS] = {}; 
-    for (std::map<SOCKET, WSAEVENT>::const_iterator iter = g_event_list.begin();
-        iter != g_event_list.end(); ++iter)
-    {
-        eventlist[count++] = iter->second;
-    }
+    int count = make_event_array(eventlist, WSA_MAXIMUM_WAIT_EVENTS);
 
     // 等待网络事件
     size_t nready = WSAWaitForMultipleEvents(count, eventlist, FALSE, 100, FALSE);            
