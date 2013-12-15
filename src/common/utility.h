@@ -133,23 +133,23 @@ private:
 
 // RAII
 template <typename Lockable>
-class ScopedGuard
+class ScopedMutexGuard
 {
 public:
-    explicit ScopedGuard(Lockable& lock)
+    explicit ScopedMutexGuard(Lockable& lock)
         : lock_(lock)
     {
         lock_.Lock();
     }
 
-    ~ScopedGuard() 
+    ~ScopedMutexGuard() 
     {
         lock_.UnLock();
     }
 
 private:
-    ScopedGuard(const ScopedGuard&);
-    ScopedGuard& operator = (const ScopedGuard&);
+    ScopedMutexGuard(const ScopedMutexGuard&);
+    ScopedMutexGuard& operator = (const ScopedMutexGuard&);
 
     Lockable&  lock_;
 };
