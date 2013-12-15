@@ -3,7 +3,7 @@
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
  *  @brief  使用WSAAsyncSelect()实现的简单Echo Server
- *			为每个客户端连接创建一个线程
+ *			
  */
 
 #include "appdef.h"

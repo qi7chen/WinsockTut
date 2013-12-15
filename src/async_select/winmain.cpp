@@ -1,7 +1,10 @@
-﻿//  A simple echo server use asynchrounous select model
-//  by ichenq@gmail.com 
-//  Nov 24, 2011
-
+﻿/**
+ *  @file   winmain.cpp
+ *  @author ichenq@gmail.com
+ *  @date   Oct 19, 2011
+ *  @brief  使用WSAAsyncSelect()实现的简单Echo Server
+ *			
+ */
 
 
 #include "appdef.h"
