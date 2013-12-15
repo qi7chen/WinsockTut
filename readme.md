@@ -1,47 +1,23 @@
 #WinsockExamples
-Winsock network programming examples.
-Use 7 different I/O strategies to implement an simple echo server.
+Winsock套接字编程示例，7种不同的I/O复用策略
 
+### 构建 
+    * premake4 vs2008
 
+### 目录
+    * src
+        + socket， BSD套接字
+        + select， 使用select()来实现I/O复用
+        + async_select， 使用WSAAsyncSelect()来实现I/O复用
+        + async_event，使用WSAEventSelect()来实现I/O复用
+        + complete_routine， 完成例程和可提醒I/O
+        + overlap，使用重叠I/O来实现I/O复用
+        + iocp，多线程的I/O完成端口来实现I/O复用
 
-### build  
-[Premake4](http://industriousone.com/premake/download)script
+    * tests
+        + test_case.py，使用select()管理多个客户端连接的Python脚本
+        + test_client，单线程的I/O完成端口事件循环
 
-premake4 vs2008
-
-### src
-1. socket
-
-Basic BSD socket strategy
-
-2. select
-
-I/O multiplexing with select()
-
-3. async_select
-I/O multiplexing with WSAAsyncSelect()
-
-4. async_event
-
-I/O multiplexing with WSAEventSelect(), with a dynamic thread pool for the devil 64 limit.
-
-5. complete_routine
-
-Completion routine and alertable I/O.
-
-6. overlap
-I/O multiplexing with overlapped I/O.
-
-7. iocp
-
-Asynchronous sockets with I/O completion port
-
-
-### tests
-
-a single-thread muliti-client program with I/O completion port and ConnectEx()
-
-a simple python test client
 
 
 
