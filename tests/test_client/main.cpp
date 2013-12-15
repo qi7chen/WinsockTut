@@ -5,12 +5,8 @@
  *  @brief:  使用I/O完成端口单线程事件循环实现的多个客户端连接测试程序
  */
 
-#include <tchar.h>
 #include <stdlib.h>
 #include "clients.h"
-
-#pragma comment(lib, "ws2_32")
-
 
 
 int main(int argc, const char* argv[])
