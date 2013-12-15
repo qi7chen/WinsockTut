@@ -1,5 +1,5 @@
 ﻿/**
- *  @file   select.cpp
+ *  @file   async_select.cpp
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
  *  @brief  使用WSAEventSelect模型实现的简单Echo Server
@@ -11,11 +11,14 @@
 #include <map>
 
 
-
+// 所有的网络事件句柄
 static std::map<SOCKET, WSAEVENT>  g_event_list;
+
+// 所有的客户端套接字句柄
 static std::map<WSAEVENT, SOCKET>  g_socket_list;
 
 
+// 创建监听套接字(非阻塞)
 SOCKET create_listen_socket(const char* host, int port)
 {
     sockaddr_in addr = {};
@@ -96,6 +99,7 @@ bool on_write(SOCKET sockfd, int error)
     return true;
 }
 
+// 新连接到来，为其关联事件句柄
 bool on_accept(SOCKET sockfd)
 {
     WSAEVENT hEvent = WSACreateEvent();
@@ -148,6 +152,7 @@ int  handle_event(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
     return 1;
 }
 
+// 事件循环
 bool event_loop()
 {
     if (g_event_list.empty())
