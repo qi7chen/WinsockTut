@@ -6,44 +6,43 @@
 
 #include "appdef.h"
 #include <assert.h>
+#include <Shellapi.h>
 
 
 
-#pragma comment(lib, "ws2_32")
-
-
+#pragma comment(lib, "Shell32")
 #pragma warning(disable: 4996)
 
 
+// 创建一个隐藏窗口
+HWND IntiInstance(HINSTANCE hInstance)
+{
+    const char* szTitle = "async-select";
+    HWND hWnd = CreateWindowA("button", szTitle, WS_POPUP,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, 
+        NULL, NULL, hInstance, NULL);
 
-HWND IntiInstance(HINSTANCE hInstance);
+    CHECK(hWnd != NULL);
 
-// window procedure
-LRESULT CALLBACK MyWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    ShowWindow(hWnd, SW_HIDE);
+    return hWnd;
+}
 
-
-// initialize winsock and other environment
-static global_init      g_global_init;
-
-
-// main entry
-int _tmain(int argc, TCHAR* argv[])
+int main(int argc, const char* argv[])
 {
     if (argc != 3)
     {
-        _tprintf(_T("Usage: $program $host $port"));
+        fprintf(stderr, ("Usage: $program $host $port"));
         return 1;
     }
 
-    HINSTANCE hInstance = (HINSTANCE)GetModuleHandle(NULL);
-    HWND hWnd = IntiInstance(hInstance);
-
-    CHECK(InitializeServer(hWnd, argv[1], argv[2]));
-
-    // Main message loop:
+    WinsockInit init;
+    HWND hWnd = IntiInstance((HINSTANCE)GetModuleHandle(NULL));
+    CHECK(InitializeServer(hWnd, argv[1], atoi(argv[2])));
+    
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
-    {
+    {        
         if (msg.message == WM_SOCKET)
         {
             int event = WSAGETSELECTEVENT(msg.lParam);
@@ -60,16 +59,4 @@ int _tmain(int argc, TCHAR* argv[])
     CloseServer();
 }
 
-HWND IntiInstance(HINSTANCE hInstance)
-{
-    const TCHAR* szTitle = _T("async-select");
 
-    HWND hWnd = CreateWindow(_T("button"),szTitle, WS_POPUP,
-        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, 
-        NULL, NULL, hInstance, NULL);
-
-    CHECK(hWnd != NULL);
-
-    ShowWindow(hWnd, SW_HIDE);
-    return hWnd;
-}

@@ -1,38 +1,36 @@
-﻿//  A simple echo server use asynchrounous select model
-//  by ichenq@gmail.com 
-//  Oct 19, 2011
+﻿/**
+ *  @file   socket.cpp
+ *  @author ichenq@gmail.com
+ *  @date   Oct 19, 2011
+ *  @brief  使用WSAAsyncSelect()实现的简单Echo Server
+ *			为每个客户端连接创建一个线程
+ */
 
 #include "appdef.h"
 #include <set>
 #include <algorithm>
 
 
-static bool on_accepted(HWND hwnd, SOCKET sockfd);
-static bool on_recv(SOCKET sockfd);
-static void on_closed(SOCKET sockfd);
-
-
 static std::set<SOCKET>  g_socketList;
 
-
-bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPort)
+// 创建监听套接字并将网络事件关联到窗口消息队列
+bool InitializeServer(HWND hwnd, const char* host, int port)
 {
     sockaddr_in addr = {};
-    _tstring strAddress = strHost + _T(":") + strPort;
-    CHECK (StringToAddress(strAddress, &addr));
-
-
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(host);
+    addr.sin_port = htons((short)port);   
     SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET)
     {
-		//PrintLog(_T("socket() failed, %s"), LAST_ERROR_MSG);
+		fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
 
     int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
     if (error == SOCKET_ERROR)
     {
-		//PrintLog(_T("bind() failed, %s"), LAST_ERROR_MSG);
+		fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
@@ -40,31 +38,89 @@ bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPor
     error = listen(sockfd, SOMAXCONN);
     if (error == SOCKET_ERROR)
     {
-		//PrintLog(_T("listen() failed, %s"), LAST_ERROR_MSG);
+		fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
 
-    // set the socket to non-blocking mode automatically
+    // http://msdn.microsoft.com/en-us/library/windows/desktop/ms741540(v=vs.85).aspx
+    //
+    // The WSAAsyncSelect function automatically sets socket s to nonblocking mode, 
+    // regardless of the value of lEvent. 
     if (WSAAsyncSelect(sockfd, hwnd, WM_SOCKET, FD_ACCEPT) == SOCKET_ERROR)
     {
-		//PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
+		fprintf(stderr, ("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return false;
     }
 
+    fprintf(stdout, ("server listen at %s:%d, %s.\n"), host, port, Now().data());
     g_socketList.insert(sockfd);
+
     return true;
 }
 
-void CloseServer()
+bool on_accepted(HWND hwnd, SOCKET sockfd)
 {
-    //size_t count = g_socketList.size();
-    for_each(g_socketList.begin(), g_socketList.end(), on_closed);
-    g_socketList.clear();
-    //PrintLog(_T("server[%d] closed at %s.\n"), count, Now().data());
+    sockaddr_in addr = {};
+    int addrlen = sizeof(addr);
+    SOCKET socknew = accept(sockfd, (sockaddr*)&addr, &addrlen);
+    if (socknew == INVALID_SOCKET)
+    {
+        fprintf(stderr, ("accpet() failed, %s"), LAST_ERROR_MSG);
+        return false;
+    }
+
+    // 绑定网络事件到窗口消息
+    int error = WSAAsyncSelect(socknew, hwnd, WM_SOCKET, FD_WRITE|FD_READ|FD_CLOSE);
+    if (error == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
+        closesocket(socknew);
+        return false;
+    }
+
+    g_socketList.insert(socknew);
+    fprintf(stdout, ("socket %d accepted at %s.\n"), socknew, Now().data());
+    return true;
 }
 
+void on_closed(SOCKET sockfd)
+{
+    closesocket(sockfd);
+    g_socketList.erase(sockfd);
+    fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now().data());
+}
+
+bool on_recv(SOCKET sockfd)
+{
+    char databuf[BUFSIZ];
+    int bytes = recv(sockfd, databuf, BUFSIZ, 0);
+    if (bytes == SOCKET_ERROR || bytes == 0)
+    {
+        on_closed(sockfd);
+        return false;
+    }
+
+    bytes = send(sockfd, databuf, bytes, 0);
+    if (bytes == 0)
+    {
+        on_closed(sockfd);
+        return false;
+    }
+    return true;
+}
+
+
+
+// 关闭服务器
+void CloseServer()
+{
+    int count = g_socketList.size();
+    for_each(g_socketList.begin(), g_socketList.end(), on_closed);
+    g_socketList.clear();
+    fprintf(stdout, ("server[%d] closed at %s.\n"), count, Now().data());
+}
 
 bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
 {
@@ -105,58 +161,4 @@ bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
     }
 
     return true;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-
-bool on_accepted(HWND hwnd, SOCKET sockfd)
-{
-    sockaddr_in addr = {};
-    int addrlen = sizeof(addr);
-    SOCKET socknew = accept(sockfd, (sockaddr*)&addr, &addrlen);
-    if (socknew == INVALID_SOCKET)
-    {
-        //PrintLog(_T("accpet() failed, %s"), LAST_ERROR_MSG);
-        return false;
-    }
-
-    // set the socket to non-blocking mode automatically
-    int error = WSAAsyncSelect(socknew, hwnd, WM_SOCKET, FD_WRITE|FD_READ|FD_CLOSE);
-    if (error == SOCKET_ERROR)
-    {
-        //PrintLog(_T("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
-        closesocket(socknew);
-        return false;
-    }
-
-    g_socketList.insert(socknew);
-    //PrintLog(_T("socket %d accepted at %s.\n"), socknew, Now().data());
-    return true;
-}
-
-bool on_recv(SOCKET sockfd)
-{
-    static char databuf[BUFE_SIZE];
-    int bytes = recv(sockfd, databuf, BUFE_SIZE, 0);
-    if (bytes == SOCKET_ERROR || bytes == 0)
-    {
-        on_closed(sockfd);
-        return false;
-    }
-    
-    bytes = send(sockfd, databuf, bytes, 0);
-    if (bytes == 0)
-    {
-        on_closed(sockfd);
-        return false;
-    }
-    return true;
-}
-
-void on_closed(SOCKET sockfd)
-{
-    closesocket(sockfd);
-    g_socketList.erase(sockfd);
-    //PrintLog(_T("socket %d closed at %s.\n"), sockfd, Now().data());    
 }

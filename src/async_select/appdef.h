@@ -10,17 +10,14 @@
 
 #define WM_SOCKET           WM_USER + 0xF0
 
-#define WM_TEXT_UPDATE      WM_USER + 0xFF
 
+// 初始化监听套接字并将网络事件关联到窗口消息
+bool InitializeServer(HWND hwnd,  const char* host, int port);
 
-
-// Initialize WSAAsynSelect server
-bool InitializeServer(HWND hwnd, const _tstring& strHost, const _tstring& strPort);
-
-// Release socket resouce
+// 关闭所有连接
 void CloseServer();
 
-// Socket events handler
+// 处理套接字消息
 bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error);
 
 
