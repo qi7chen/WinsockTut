@@ -1,31 +1,70 @@
-//  A simple echo server use Winsock completion routine(single thread)
-//  by ichenq@gmail.com at Oct 19, 2011
+/**
+ *  @file   main.cpp
+ *  @author ichenq@gmail.com
+ *  @date   Oct 19, 2011
+ *  @brief  使用完成例程模型实现的简单Echo Server
+ *			
+ */
 
-
-#include "../common/utility.h"
+#include <stdio.h>
 #include "complete_routine.h"
 
-#pragma comment(lib, "ws2_32")
+
+SOCKET  create_listen_socket(const char* host, int port)
+{
+    sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(host);
+    addr.sin_port = htons((short)port);
+
+    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd == INVALID_SOCKET)
+    {
+        fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
+        return INVALID_SOCKET;
+    }
+
+    int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+    if (error == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("bind() [%s:%d]failed, %s"), host, port, LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    error = listen(sockfd, SOMAXCONN);
+    if (error == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    // 非阻塞模式
+    ULONG nonblock = 1;
+    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    fprintf(stderr, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
+    return sockfd;
+}
 
 
-SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort);
 
-// initialize winsock
-static global_init init;
-
-// alertable thread timeout
-const int TIME_OUT = 50;
-
-
-int _tmain(int argc, TCHAR* argv[])
+int main(int argc, const char* argv[])
 {
     if (argc != 3)
     {
-        _tprintf(_T("Usage: %s $host $port"), argv[0]);
+        fprintf(stderr, ("Usage: CompleteRoutine [host] [port]\n"), argv[0]);
         return 1;
     }
 
-    SOCKET sockfd = create_listen_socket(argv[1], argv[2]);
+    WinsockInit init;
+    SOCKET sockfd = create_listen_socket(argv[1], atoi(argv[2]));
     if (sockfd == INVALID_SOCKET)
     {
         return 1;
@@ -36,72 +75,29 @@ int _tmain(int argc, TCHAR* argv[])
         sockaddr_in addr = {};
         int addrlen = sizeof(addr);
         SOCKET socknew = accept(sockfd, (sockaddr*)&addr, &addrlen);
-        if (socknew == INVALID_SOCKET)
-        {
-            if (WSAGetLastError() != WSAEWOULDBLOCK)
-            {   
-                _tprintf(_T("accept() failed, %s"), LAST_ERROR_MSG);
-                break;
-            }
-        }
-        else
+        if (socknew != INVALID_SOCKET)
         {
             socket_data* data = alloc_data(socknew);
-            _tprintf(_T("socket %d accepted at %s.\n"), socknew, Now().data());
+            fprintf(stderr, ("socket %d accepted at %s.\n"), socknew, Now().data());
             if (data)
             {
                 post_recv_request(data);
             }
         }
-
-        ::SleepEx(TIME_OUT, TRUE); // make this thread alertable
+        else
+        {
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+            {   
+                fprintf(stderr, ("accept() failed, %s"), LAST_ERROR_MSG);
+                break;
+            }
+            else
+            {
+                ::SleepEx(50, TRUE); // 可提醒I/O
+            }
+        }        
     }
 
     return 0;
 }
 
-
-SOCKET  create_listen_socket(const _tstring& strHost, const _tstring& strPort)
-{
-    sockaddr_in addr = {};
-    const _tstring& strAddr = strHost + _T(":") + strPort;
-    if (!StringToAddress(strAddr, &addr))
-    {
-        return INVALID_SOCKET;
-    }
-
-    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sockfd == INVALID_SOCKET)
-    {
-        _tprintf(_T("socket() failed '%s', %s"), strAddr.data(), LAST_ERROR_MSG);
-        return INVALID_SOCKET;
-    }
-
-    int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
-    if (error == SOCKET_ERROR)
-    {
-        _tprintf(_T("bind() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    error = listen(sockfd, SOMAXCONN);
-    if (error == SOCKET_ERROR)
-    {
-        _tprintf(_T("listen() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    // set socket to non-blocking mode
-    ULONG nonblock = 1;
-    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
-    {
-        _tprintf(_T("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    _tprintf(_T("server start listen [%s] at %s.\n"), strAddr.data(), Now().data());
-    return sockfd;
-}

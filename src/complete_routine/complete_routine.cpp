@@ -1,12 +1,27 @@
-
 #include "complete_routine.h"
+#include <assert.h>
 #include <map>
 
 
-static std::map<int, socket_data*> g_sockList;
+
+// 管理所有套接字资源
+static std::map<int, socket_data*>      g_sockList;
 
 
+// 接收数据后的回调过程
+static void CALLBACK recv_complete(DWORD error, 
+                                   DWORD bytes_transferred, 
+                                   WSAOVERLAPPED* overlap, 
+                                   DWORD flags);
 
+
+// 发送数据后的回调过程
+static void CALLBACK send_complete(DWORD error, 
+                                   DWORD bytes_transferred, 
+                                   WSAOVERLAPPED* overlap, 
+                                   DWORD flags);
+
+// 申请资源
 socket_data* alloc_data(SOCKET sockfd)
 {
     socket_data* data = NULL;
@@ -16,11 +31,11 @@ socket_data* alloc_data(SOCKET sockfd)
     }
     catch (std::bad_alloc&)
     {
-        _tprintf(_T("allocate socket data failed.\n"));
+        fprintf(stderr, ("allocate socket data failed.\n"));
         return NULL;
     }
         
-    // winsock didn't use hEvent in complete routine model
+    // Winsock在完成例程模型中没有使用hEvent字段
     data->overlap_.hEvent = (WSAEVENT)data; 
     data->socket_ = sockfd;
     data->wsabuf_.buf = data->databuf_;
@@ -36,14 +51,14 @@ void free_data(socket_data* data)
 {
     if (data)
     {
-         _tprintf(_T("socket %d closed at %s.\n"), data->socket_, Now().data());
+        fprintf(stdout, ("socket %d closed at %s.\n"), data->socket_, Now().data());
         closesocket(data->socket_);
         g_sockList.erase(data->socket_);
         delete data;
     }
 }
 
-
+// 开始做I/O读
 bool post_recv_request(socket_data* data)
 {
     assert(data);
@@ -51,22 +66,17 @@ bool post_recv_request(socket_data* data)
     DWORD recv_bytes = 0;
     int error = WSARecv(data->socket_, &data->wsabuf_, 1, &recv_bytes, &flags, 
         &data->overlap_, recv_complete);
-    if (error == 0 || 
-        (error == SOCKET_ERROR && WSAGetLastError() == WSA_IO_PENDING))
+    if (error == SOCKET_ERROR && ::WSAGetLastError() != WSA_IO_PENDING)
     {
-        return true;
-    }
-    else
-    {
-        _tprintf(_T("WSARecv() failed [%d], %s"), data->socket_, LAST_ERROR_MSG);
+        fprintf(stderr, ("WSARecv() failed [%d], %s"), data->socket_, LAST_ERROR_MSG);
         free_data(data);
         return false;
     }
+    return true;
 }
 
 
-//////////////////////////////////////////////////////////////////////////
-
+// 读取完成后的回调例程
 void CALLBACK recv_complete(DWORD error, 
                             DWORD bytes_transferred, 
                             WSAOVERLAPPED* overlap, 
@@ -80,26 +90,20 @@ void CALLBACK recv_complete(DWORD error,
         return ;
     }
 
-    // send data back
+    // 将内容发回
     memset(&data->overlap_, 0, sizeof(data->overlap_));
     data->overlap_.hEvent = (WSAEVENT)data;
     data->wsabuf_.len = bytes_transferred;
     DWORD bytes_send = 0;
     error = WSASend(data->socket_, &data->wsabuf_, 1, &bytes_send, flags, 
                 &data->overlap_, send_complete);
-    if (error == 0 || 
-        (error == SOCKET_ERROR && WSAGetLastError() == WSA_IO_PENDING))
-    {
-        // succeed
-        return ;
-    }
-    else 
+    if (error == SOCKET_ERROR && ::WSAGetLastError() != WSA_IO_PENDING)
     {
         free_data(data);
     }
 }
 
-
+// 发送完成后的回调例程
 void CALLBACK send_complete(DWORD error, 
                             DWORD bytes_transferred, 
                             WSAOVERLAPPED* overlap,
@@ -113,7 +117,7 @@ void CALLBACK send_complete(DWORD error,
         return ;
     }
 
-    // post another recv
+    // 再次发起读请求
     data->wsabuf_.len = sizeof(data->databuf_);
     post_recv_request(data);
 }
