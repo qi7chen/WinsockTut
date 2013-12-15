@@ -19,7 +19,7 @@
 #include <WS2tcpip.h>
 #include <MSWSock.h>
 #include <string>
-
+#include <stdexcept>
 
 // 默认缓冲区大小
 enum { kDefaultBufferSize = 8192 };
@@ -52,7 +52,7 @@ struct PER_HANDLE_DATA
 
 #define CHECK(expr)   if (!(expr)) { \
     MessageBoxA(NULL, #expr, LAST_ERROR_MSG, MB_OK);  \
-    exit(1); }
+    throw std::runtime_error(LAST_ERROR_MSG); }
    
 
 
