@@ -1,11 +1,11 @@
-//  I/O Completion Port worker thread
-//  by ichenq@gmail.com at Oct 19, 2011
-
+/**
+ *  @file   worker.h
+ *  @author ichenq@gmail.com
+ *  @date   Oct 19, 2011
+ *  @brief  I/O完成端口工作者线程
+ * 
+ */
 #pragma once
-
-
-// timeout milliseconds
-enum {MAX_TIMEOUT = 50};
 
 
 // workder thread entry
