@@ -10,7 +10,10 @@ struct socket_manager
     std::map<WSAEVENT, PER_HANDLE_DATA*>  socket_list;
 };
 
-static socket_manager     g_socket_mgr;
+namespace {
+
+    socket_manager     g_socket_mgr;
+}
 
 
 // 根据事件对象查找套接字数据
@@ -110,7 +113,6 @@ bool on_accept(SOCKET sockfd)
 }
 
 
-// 处理读取完成
 void on_read(PER_HANDLE_DATA* handle)
 {
     DWORD dwReadBytes = handle->overlap_.InternalHigh;
@@ -129,12 +131,12 @@ void on_read(PER_HANDLE_DATA* handle)
         on_close(handle);
         return ;
     }
-    // 发起I/O读取请求
+    
     post_recv_request(handle);
 }
 
 
-// 事件循环
+// start event loop
 bool event_loop()
 {        
     if (g_socket_mgr.event_list.empty())
@@ -153,6 +155,7 @@ bool event_loop()
     }
     else if (index == WSA_WAIT_TIMEOUT)
     {
+        // timed out
     }
     else if (index >= WSA_WAIT_EVENT_0 && index < count)
     {
@@ -180,4 +183,3 @@ bool event_loop()
     }
     return true;
 }
-

@@ -2,17 +2,17 @@
  *  @file   socket.cpp
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  使用 BSD socket API实现的简单Echo Server
- *			为每个客户端连接创建一个线程
+ *  @brief  a simple echo server implemented by BSD socket,
+ *			one thread per connection
  */
 
 
 #include "../common/utility.h"
 #include <stdio.h>
+#include <WS2tcpip.h>
 
 
-
-// 处理单个连接
+// thread for each connection
 unsigned CALLBACK handle_client(void* param)
 {
     SOCKET sockfd = (SOCKET)param;
@@ -25,12 +25,12 @@ unsigned CALLBACK handle_client(void* param)
             fprintf(stderr, ("socket %d recv() failed, %s"), sockfd, LAST_ERROR_MSG);
             break;
         }
-        else if (bytes_read == 0) // 连接已经关闭
+        else if (bytes_read == 0) // closed
         {
             break;
         }
 
-        // 将收到的消息发送回客户端
+        // send back
         int bytes_send = send(sockfd, databuf, bytes_read, 0);
         if (bytes_send == SOCKET_ERROR)
         {
@@ -46,7 +46,7 @@ unsigned CALLBACK handle_client(void* param)
 }
 
 
-// 创建接收套接字
+// create acceptor
 SOCKET  create_listen_socket(const char* host, const char* port)
 {    
     addrinfo* aiList = NULL;
@@ -96,9 +96,7 @@ SOCKET  create_listen_socket(const char* host, const char* port)
     return sockfd;
 }
 
-
-
-
+// main entry
 int main(int argc, const char* argv[])
 {
     if (argc != 3)
@@ -127,8 +125,7 @@ int main(int argc, const char* argv[])
         }
 
         fprintf(stdout, ("socket %d accepted at %s.\n"), sock_accept, Now().data());
-
-        // one thread per connection
+        
         StartThread(handle_client, sock_accept);   
     }
 

@@ -2,11 +2,11 @@
 #include "worker.h"
 #include <assert.h>
 #include <process.h>
+#include <MSWSock.h>
 
 
 namespace {
 
-// 
 struct accept_info
 {
     SOCKET socket_accept_;
@@ -15,13 +15,10 @@ struct accept_info
 
 static const DWORD ADDR_LEN = sizeof(sockaddr_in) + 16;
 
-// 函数地址
-static LPFN_ACCEPTEX    fnAcceptEx;
+static LPFN_ACCEPTEX                fnAcceptEx;
 static LPFN_GETACCEPTEXSOCKADDRS    fnGetAcceptExSockaddrs;
-static LPFN_DISCONNECTEX    fnDisconnectEx;
+static LPFN_DISCONNECTEX            fnDisconnectEx;
 
-
-// 获取异步函数地址
 bool init_extend_function_poiner(SOCKET socket)
 {
     DWORD bytes;
@@ -90,7 +87,7 @@ iocp_server::~iocp_server()
 
 bool iocp_server::start(const char* host, int port)
 {
-    // 创建I/O完成端口句柄
+    // I/O completion port handle
     completion_port_ = CreateCompletionPort(0);
     if (completion_port_ == INVALID_HANDLE_VALUE)
     {
@@ -98,26 +95,26 @@ bool iocp_server::start(const char* host, int port)
         return false;
     }
 
-    // 创建worker线程
+    // Create worker routine
     if (!create_workers(0))
     {
         return false;
     }
     fprintf(stdout, ("created %u worker thread(s).\n"), workers_.size());
 
-    // 创建监听套接字并绑定到完成端口
+    // Create acceptor
     if (!create_listen_socket(host, port))
     {
         return false;
     }
 
-    // 获取异步函数地址
+    // Retrieve function pointer
     if (!init_extend_function_poiner(listen_socket_))
     {
         return false;
     }
 
-    // 投递一次accept
+    // Start accept
     if (!post_an_accept())
     {
         return false;
@@ -125,7 +122,7 @@ bool iocp_server::start(const char* host, int port)
 
     fprintf(stdout, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
 
-    // 处理命令队列 
+    // handle I/O operation
     while (event_loop())
         ;
 
@@ -133,11 +130,8 @@ bool iocp_server::start(const char* host, int port)
 }
 
 
-
-// 创建工作者线程
 bool iocp_server::create_workers(DWORD concurrency /* = 0 */)
-{    
-    // 获取CPU核心数量
+{
     if (concurrency == 0)
     {        
         SYSTEM_INFO info = {};
@@ -155,7 +149,7 @@ bool iocp_server::create_workers(DWORD concurrency /* = 0 */)
 }
 
 
-// 创建监听套接字并绑定到I/O完成端口
+// Create acceptor
 bool  iocp_server::create_listen_socket(const char* host, int port)
 {    
     sockaddr_in addr = {};
@@ -191,9 +185,7 @@ bool  iocp_server::create_listen_socket(const char* host, int port)
     return true;
 }
 
-
-
-// 投递一个异步accept
+// Start accepting
 bool iocp_server::post_an_accept()
 {
     std::map<SOCKET, PER_HANDLE_DATA*>::iterator iter = info_map_.find(listen_socket_);
@@ -204,14 +196,14 @@ bool iocp_server::post_an_accept()
 
     PER_HANDLE_DATA* listen_handle = iter->second;
 
-    // 先创建套接字
+    // Create accepted socket handle first
     PER_HANDLE_DATA* accept_handle = alloc_socket_handle();
     if (accept_handle == NULL)
     {
         return false;
     }
 
-    // 预留缓冲区
+    // Reserve data buffer
     SOCKET accept_socket = accept_handle->socket_;
     accept_info* info_ptr = (accept_info*)listen_handle->buffer_;
     info_ptr->socket_accept_ = accept_socket;
@@ -228,8 +220,6 @@ bool iocp_server::post_an_accept()
 }
 
 
-
-// 申请套接字资源
 PER_HANDLE_DATA* iocp_server::alloc_socket_handle()
 {
     if (free_list_.empty())
@@ -264,18 +254,17 @@ PER_HANDLE_DATA* iocp_server::alloc_socket_handle()
         handle_data->wsbuf_.buf = handle_data->buffer_;
         handle_data->wsbuf_.len = sizeof(handle_data->buffer_);
 
-        // 加入空闲队列
+        // put into free list
         free_list_.push_back(handle_data);
     }
 
-    // 从空闲队列获取
+    // always get from free list
     PER_HANDLE_DATA* handle_data = free_list_.front();
     free_list_.pop_front();
     info_map_[handle_data->socket_] = handle_data;
     return handle_data;
 }
 
-// 释放套接字资源
 void iocp_server::free_socket_handle(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
@@ -293,14 +282,14 @@ void iocp_server::free_socket_handle(PER_HANDLE_DATA* handle_data)
 
 //////////////////////////////////////////////////////////////////////////
 
-// 新连接到来
+
 void iocp_server::on_accepted(PER_HANDLE_DATA* listen_handle)
 {
     assert(listen_handle);
     accept_info* info_ptr = (accept_info*)listen_handle->buffer_;
     SOCKET socket_accept = info_ptr->socket_accept_;
 
-    // 解析客户端套接字信息
+    // Parse accepted socket
     sockaddr_in* remote_addr_ptr = NULL;
     sockaddr_in* local_addr_ptr = NULL;
     int remote_len = sizeof(sockaddr_in);
@@ -317,7 +306,7 @@ void iocp_server::on_accepted(PER_HANDLE_DATA* listen_handle)
 
     PER_HANDLE_DATA* accept_handle = iter->second;
 
-    // 投递I/O读请求
+    // Start read
     DWORD read_bytes = 0;
     DWORD flag = 0;
     accept_handle->opertype_ = OperRecv;
@@ -335,7 +324,7 @@ void iocp_server::on_accepted(PER_HANDLE_DATA* listen_handle)
     post_an_accept();
 }
 
-// 收到数据后再发送回去
+
 void iocp_server::on_recv(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
@@ -350,7 +339,7 @@ void iocp_server::on_recv(PER_HANDLE_DATA* handle_data)
     }
 }
 
-// 发送成功后再发起I/O读请求
+
 void  iocp_server::on_sent(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
@@ -367,7 +356,7 @@ void  iocp_server::on_sent(PER_HANDLE_DATA* handle_data)
     }
 }
 
-// 主动断开连接
+
 void iocp_server::on_disconnect(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
@@ -379,7 +368,7 @@ void iocp_server::on_disconnect(PER_HANDLE_DATA* handle_data)
     }
 }
 
-// 处理连接关闭
+
 void  iocp_server::on_closed(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);

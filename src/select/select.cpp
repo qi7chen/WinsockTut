@@ -2,23 +2,24 @@
  *  @file   select.cpp
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  使用select模型实现的简单Echo Server
- *			
+ *  @brief  a simple echo server implemented by select()
+ *				
  */
 
 #include "../common/utility.h"
+#include <WS2tcpip.h>
 #include <assert.h>
+#include <stdio.h>
 #include <set>
-
-
 
 #pragma warning(disable:4127)
 
-// 所有的客户端套接字
-std::set<SOCKET>    g_total_sockets;
+// total connections
+namespace {
+    std::set<SOCKET>    g_total_sockets;
+}
 
-
-// 处理接收数据
+ 
 bool on_recv(SOCKET sockfd)
 {
     char buf[kDefaultBufferSize];
@@ -43,10 +44,10 @@ bool on_recv(SOCKET sockfd)
     return true;
 }
 
-// 处理客户端连入
+
 bool on_accept(SOCKET sockfd)
 {
-    // 达到上限
+    // evil 64 limit
     if (g_total_sockets.size() == FD_SETSIZE - 1)
     {
         fprintf(stderr, ("got the 64 limit.\n"));
@@ -62,7 +63,7 @@ bool on_accept(SOCKET sockfd)
         return false;
     }
 
-    // 设置为非阻塞模式
+    // set to non-blocking mode
     ULONG nonblock = 1;
     if (ioctlsocket(socknew, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
@@ -77,14 +78,14 @@ bool on_accept(SOCKET sockfd)
     return true;
 }
 
-// 处理客户端连接关闭
+
 void on_close(SOCKET sockfd)
 {
     fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now().data());
     closesocket(sockfd);
 }
 
-// 创建监听套接字
+// create acceptor
 SOCKET  create_listen_socket(const char* host, const char* port)
 {
     addrinfo* aiList = NULL;
@@ -125,7 +126,8 @@ SOCKET  create_listen_socket(const char* host, const char* port)
             closesocket(sockfd);
             continue;
         }
-        // 需要将套接字设置为非阻塞模式
+
+        // set to non-blocking mode
         ULONG nonblock = 1;
         if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
         {
@@ -142,21 +144,19 @@ SOCKET  create_listen_socket(const char* host, const char* port)
 }
 
 
-bool select_loop(SOCKET sockfd)
+bool select_loop(SOCKET acceptor)
 {
     fd_set readset = {}; 
 
-    // 添加监听套接字
-    FD_SET(sockfd, &readset);
-
-    // 添加客户端套接字 
+    FD_SET(acceptor, &readset);
+    
     for (std::set<SOCKET>::const_iterator iter = g_total_sockets.begin();
         iter != g_total_sockets.end(); ++iter)
     {
         FD_SET(*iter, &readset);
     }
 
-    // 50毫秒的超时
+    // 50 ms timeout
     timeval timeout = {0, 500*1000};
     int nready = select(0, &readset, NULL, NULL, &timeout);
     if (nready == SOCKET_ERROR)
@@ -164,12 +164,12 @@ bool select_loop(SOCKET sockfd)
         fprintf(stderr, ("select() failed, %s"), LAST_ERROR_MSG);
         return false;
     }
-    if (nready == 0) // 超时处理
+    if (nready == 0) // timed out
     {            
         return true;
     }
 
-    // 检查接收数据
+    // check connection for read/write
     std::set<SOCKET>::iterator iter = g_total_sockets.begin();
     while (iter != g_total_sockets.end())
     {
@@ -178,7 +178,7 @@ bool select_loop(SOCKET sockfd)
         {
             if (!on_recv(fd))
             {
-                on_close(fd); // 失败后关闭连接
+                on_close(fd); 
                 iter = g_total_sockets.erase(iter);
                 continue;
             }
@@ -186,15 +186,16 @@ bool select_loop(SOCKET sockfd)
         ++iter;
     }
 
-    // 是否有新连接
-    if (FD_ISSET(sockfd, &readset))
+    // have new connection?
+    if (FD_ISSET(acceptor, &readset))
     {
-        on_accept(sockfd);
+        on_accept(acceptor);
     }
 
     return true;
 }
 
+// main entry
 int main(int argc, const char* argv[])
 {
     if (argc != 3)
@@ -211,8 +212,7 @@ int main(int argc, const char* argv[])
     }
     
     while (select_loop(sockfd))
-    {        
-    }
+        ;
 
     closesocket(sockfd); // close the listen socket
     return 0;

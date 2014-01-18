@@ -1,8 +1,8 @@
 ﻿/**
- *  @file   socket.cpp
+ *  @file   async_select.cpp
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  使用WSAAsyncSelect()实现的简单Echo Server
+ *  @brief  a simple echo server implemented by WSAAsyncSelect()
  *			
  */
 
@@ -10,10 +10,11 @@
 #include <set>
 #include <algorithm>
 
+namespace {
+    std::set<SOCKET>  g_socketList;
+}
 
-static std::set<SOCKET>  g_socketList;
 
-// 创建监听套接字并将网络事件关联到窗口消息队列
 bool InitializeServer(HWND hwnd, const char* host, int port)
 {
     sockaddr_in addr = {};
@@ -71,7 +72,6 @@ bool on_accepted(HWND hwnd, SOCKET sockfd)
         return false;
     }
 
-    // 绑定网络事件到窗口消息
     int error = WSAAsyncSelect(socknew, hwnd, WM_SOCKET, FD_WRITE|FD_READ|FD_CLOSE);
     if (error == SOCKET_ERROR)
     {
@@ -112,8 +112,6 @@ bool on_recv(SOCKET sockfd)
 }
 
 
-
-// 关闭服务器
 void CloseServer()
 {
     int count = g_socketList.size();

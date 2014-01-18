@@ -6,7 +6,7 @@ import select
 import time
 import pdb
 
-# select循环
+# select loop
 def event_loop(read_list):
     while read_list:
         rs, ws, es = select.select(read_list, [], [], 3)
@@ -19,7 +19,7 @@ def event_loop(read_list):
             s.send(data)
             time.sleep(0.5)
 
-# 创建一定数量的客户端连接
+# create clients 
 def create_client(endpoint, count):
     msg = 'the quick fox jumps over a lazy dog' * 32
     clients = []    

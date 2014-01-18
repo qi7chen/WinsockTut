@@ -1,19 +1,9 @@
-/**
- *  @file   main.cpp
- *  @author ichenq@gmail.com
- *  @date   Oct 19, 2011
- *  @brief  使用重叠I/O模型实现的简单Echo Server
- *			
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "overlap.h"
 
 
-
-
-// 创建监听套接字
+// Create acceptor
 SOCKET create_listen_socket(const char* host, int port)
 {
     sockaddr_in addr = {};
@@ -44,7 +34,7 @@ SOCKET create_listen_socket(const char* host, int port)
         return INVALID_SOCKET;
     }
 
-    // 将套接字设置为非阻塞模式
+    // set to non-blocking mode
     ULONG nonblock = 1;
     if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
@@ -58,7 +48,7 @@ SOCKET create_listen_socket(const char* host, int port)
 }
 
 
-
+// main entry
 int main(int argc, const char* argv[])
 {
     if (argc != 3)
@@ -97,5 +87,4 @@ int main(int argc, const char* argv[])
             break;
         }
     }
-
 }

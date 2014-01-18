@@ -1,15 +1,8 @@
-/**
- *  @file   main.cpp
- *  @author ichenq@gmail.com
- *  @date   Oct 19, 2011
- *  @brief  使用完成例程模型实现的简单Echo Server
- *			
- */
-
 #include <stdio.h>
 #include "complete_routine.h"
 
 
+// Create acceptor
 SOCKET  create_listen_socket(const char* host, int port)
 {
     sockaddr_in addr = {};
@@ -40,7 +33,7 @@ SOCKET  create_listen_socket(const char* host, int port)
         return INVALID_SOCKET;
     }
 
-    // 非阻塞模式
+    // set to non-blocking mode
     ULONG nonblock = 1;
     if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
@@ -54,7 +47,7 @@ SOCKET  create_listen_socket(const char* host, int port)
 }
 
 
-
+// main entry
 int main(int argc, const char* argv[])
 {
     if (argc != 3)
@@ -93,7 +86,7 @@ int main(int argc, const char* argv[])
             }
             else
             {
-                ::SleepEx(50, TRUE); // 可提醒I/O
+                ::SleepEx(50, TRUE); // make thread alertable
             }
         }        
     }

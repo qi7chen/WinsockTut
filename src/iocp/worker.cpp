@@ -14,21 +14,18 @@ static bool worker_loop(iocp_server* server)
         (ULONG_PTR*)&handle_data, &overlap, 500);
     if (status == FALSE)
     {
+        DWORD last_error = ::GetLastError();
         if (overlap != NULL)
         {
             handle_data->opertype_ = OperDisconnect;
         }
-        else 
+        if (last_error != WAIT_TIMEOUT)
         {
-            if (GetLastError() == WAIT_TIMEOUT)
-            {
-                return true;
-            }
-            else
-            {
-                fprintf(stderr, ("GetQueuedCompletionStatus() failed, %s.\n"), LAST_ERROR_MSG);
-                return false;
-            }
+            fprintf(stderr, ("GetQueuedCompletionStatus() failed, %s.\n"), LAST_ERROR_MSG);
+        }
+        if (last_error == ERROR_INVALID_HANDLE)
+        {
+            return false;
         }
     }
 
@@ -47,7 +44,7 @@ unsigned CALLBACK NativeThreadFunc(void* param)
     assert(param);
     iocp_server* server = (iocp_server*)param;
     while (worker_loop(server))
-    {
-    }
+        ;
+
     return 0;
 }

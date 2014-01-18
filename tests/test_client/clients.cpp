@@ -1,14 +1,18 @@
 #include "clients.h"
 #include <assert.h>
+#include <MSWSock.h >
 
 
 using std::string;
 
+namespace {
+
+    LPFN_CONNECTEX      fnConnectEx;
+}
 
 
 clients::clients()
-    : comletport_handle_(INVALID_HANDLE_VALUE),
-      fnConnectEx(NULL)
+    : comletport_handle_(INVALID_HANDLE_VALUE)
 {
 }
 
@@ -76,7 +80,7 @@ bool clients::start(const char* host, short port, int count)
     return true;
 }
 
-// 连接成功后发送一条消息
+// Send a message after connected
 void  clients::on_connected(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
@@ -95,10 +99,10 @@ void  clients::on_connected(PER_HANDLE_DATA* handle_data)
     }
 }
 
-// 收到Server返回后再次发送
+// Send message back after recieved
 void  clients::on_recv(PER_HANDLE_DATA* handle_data)
 {
-    // 暂停1秒
+    // Pause 1 sec
     ::Sleep(1000);
 
     assert(handle_data);
@@ -118,7 +122,6 @@ void  clients::on_recv(PER_HANDLE_DATA* handle_data)
     }
 }
 
-// 发送成功后发起读取请求
 void  clients::after_sent(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);    
@@ -134,7 +137,6 @@ void  clients::after_sent(PER_HANDLE_DATA* handle_data)
     }
 }
 
-// 关闭套接字，释放资源
 void  clients::on_close(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
@@ -143,7 +145,6 @@ void  clients::on_close(PER_HANDLE_DATA* handle_data)
     free_handle_data(handle_data);
 }
 
-// 创建一个客户端连接
 bool clients::create_one_client(const sockaddr_in& remote_addr)
 {
     SOCKET sock_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -167,7 +168,7 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
         }
     }
 
-    // ConnectEx()需要本地套接字先bind()
+    // ConnectEx() need bind() first
     sockaddr_in localaddr = {};
     localaddr.sin_family = AF_INET;
     int error = bind(sock_fd, (sockaddr*)&localaddr, sizeof(localaddr));
@@ -206,8 +207,6 @@ bool clients::create_one_client(const sockaddr_in& remote_addr)
     return true;
 }
 
-
-// 申请客户端连接所需的资源
 PER_HANDLE_DATA* clients::alloc_handle_data(SOCKET sock_fd)
 {
     if (info_map_.count(sock_fd))

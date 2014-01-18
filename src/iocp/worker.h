@@ -2,9 +2,10 @@
  *  @file   worker.h
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  I/O完成端口工作者线程
+ *  @brief  worker routine for I/O completion routine
  * 
  */
+
 #pragma once
 
 

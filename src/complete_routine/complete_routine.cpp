@@ -4,24 +4,22 @@
 
 
 
-// 管理所有套接字资源
-static std::map<int, socket_data*>      g_sockList;
+namespace {
+
+    std::map<int, socket_data*>      g_sockList;
+}
 
 
-// 接收数据后的回调过程
+// callback routines
 static void CALLBACK recv_complete(DWORD error, 
                                    DWORD bytes_transferred, 
                                    WSAOVERLAPPED* overlap, 
                                    DWORD flags);
-
-
-// 发送数据后的回调过程
 static void CALLBACK send_complete(DWORD error, 
                                    DWORD bytes_transferred, 
                                    WSAOVERLAPPED* overlap, 
                                    DWORD flags);
 
-// 申请资源
 socket_data* alloc_data(SOCKET sockfd)
 {
     socket_data* data = NULL;
@@ -35,7 +33,7 @@ socket_data* alloc_data(SOCKET sockfd)
         return NULL;
     }
         
-    // Winsock在完成例程模型中没有使用hEvent字段
+    // Winsock didn't use 'hEvent` in complete routine
     data->overlap_.hEvent = (WSAEVENT)data; 
     data->socket_ = sockfd;
     data->wsabuf_.buf = data->databuf_;
@@ -58,7 +56,7 @@ void free_data(socket_data* data)
     }
 }
 
-// 开始做I/O读
+// start read
 bool post_recv_request(socket_data* data)
 {
     assert(data);
@@ -76,7 +74,7 @@ bool post_recv_request(socket_data* data)
 }
 
 
-// 读取完成后的回调例程
+
 void CALLBACK recv_complete(DWORD error, 
                             DWORD bytes_transferred, 
                             WSAOVERLAPPED* overlap, 
@@ -90,7 +88,7 @@ void CALLBACK recv_complete(DWORD error,
         return ;
     }
 
-    // 将内容发回
+    // send back
     memset(&data->overlap_, 0, sizeof(data->overlap_));
     data->overlap_.hEvent = (WSAEVENT)data;
     data->wsabuf_.len = bytes_transferred;
@@ -103,7 +101,7 @@ void CALLBACK recv_complete(DWORD error,
     }
 }
 
-// 发送完成后的回调例程
+
 void CALLBACK send_complete(DWORD error, 
                             DWORD bytes_transferred, 
                             WSAOVERLAPPED* overlap,
@@ -117,7 +115,6 @@ void CALLBACK send_complete(DWORD error,
         return ;
     }
 
-    // 再次发起读请求
     data->wsabuf_.len = sizeof(data->databuf_);
     post_recv_request(data);
 }

@@ -2,8 +2,8 @@
  *  @file   async_select.cpp
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  使用WSAEventSelect模型实现的简单Echo Server
- *			事件对象数量受64限制
+ *  @brief  a simple echo server implemented by WSAEventSelect()
+ *			
  */
 
 #include "../common/utility.h"
@@ -11,12 +11,14 @@
 #include <map>
 
 
-// 所有的网络事件句柄
-static std::map<SOCKET, WSAEVENT>  g_event_list;
+namespace {
 
-// 所有的客户端套接字句柄
-static std::map<WSAEVENT, SOCKET>  g_socket_list;
+    // event handle for each socket
+    std::map<SOCKET, WSAEVENT>  g_event_list;
 
+    // event handle as key
+    std::map<WSAEVENT, SOCKET>  g_socket_list;
+}
 
 int make_event_array(WSAEVENT* array, int max_count)
 {
@@ -29,7 +31,7 @@ int make_event_array(WSAEVENT* array, int max_count)
     return count;
 }
 
-// 创建监听套接字(非阻塞)
+// Create acceptor
 SOCKET create_listen_socket(const char* host, int port)
 {
     sockaddr_in addr = {};
@@ -58,7 +60,7 @@ SOCKET create_listen_socket(const char* host, int port)
         return INVALID_SOCKET;
     }
 
-    // 将套接字设置为非阻塞模式
+    // set to non-blocking
     ULONG nonblock = 1;
     if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
@@ -74,7 +76,7 @@ SOCKET create_listen_socket(const char* host, int port)
 bool on_close(SOCKET sockfd, int error)
 {
     WSAEVENT hEvent = g_event_list[sockfd];
-    WSAEventSelect(sockfd, NULL, 0); // 取消事件关联
+    WSAEventSelect(sockfd, NULL, 0); 
     WSACloseEvent(hEvent);
     closesocket(sockfd);
 
@@ -95,7 +97,7 @@ bool on_recv(SOCKET sockfd, int error)
         return on_close(sockfd, 0);
     }
 
-    // 发送回执
+    // send back
     bytes = send(sockfd, databuf, bytes, 0);
     if (bytes == 0)
     {
@@ -110,7 +112,7 @@ bool on_write(SOCKET sockfd, int error)
     return true;
 }
 
-// 新连接到来，为其关联事件句柄
+// New connection arrival
 bool on_accept(SOCKET sockfd)
 {
     WSAEVENT hEvent = WSACreateEvent();
@@ -120,7 +122,7 @@ bool on_accept(SOCKET sockfd)
         return false;
     }
 
-    // 关联事件句柄到套接字
+    // Associate event handle
     if (WSAEventSelect(sockfd, hEvent, FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR)
     {
         WSACloseEvent(hEvent);
@@ -163,7 +165,7 @@ int  handle_event(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
     return 1;
 }
 
-// 事件循环
+
 bool event_loop()
 {
     if (g_event_list.empty())
@@ -174,8 +176,7 @@ bool event_loop()
 
     WSAEVENT eventlist[WSA_MAXIMUM_WAIT_EVENTS] = {}; 
     int count = make_event_array(eventlist, WSA_MAXIMUM_WAIT_EVENTS);
-
-    // 等待网络事件
+    
     size_t nready = WSAWaitForMultipleEvents(count, eventlist, FALSE, 100, FALSE);            
     if (nready == WSA_WAIT_FAILED)
     {
@@ -206,7 +207,6 @@ bool event_loop()
         }
         SOCKET sockfd = iter->second;
 
-        // 枚举网络事件
         WSANETWORKEVENTS event_struct = {};
         if (WSAEnumNetworkEvents(sockfd, hEvent, &event_struct) == SOCKET_ERROR)
         {
@@ -215,13 +215,12 @@ bool event_loop()
             return true;
         }
 
-        // 处理网络事件
         handle_event(sockfd, &event_struct);
     }
     return true;
 }
 
-
+// main entry
 int main(int argc, const char* argv[])
 {
     if (argc != 3)

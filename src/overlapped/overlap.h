@@ -1,8 +1,8 @@
 ﻿/**
- *  @file   overlap.cpp
+ *  @file   overlap.h
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  使用重叠I/O模型实现的简单Echo Server
+ *  @brief  a simple echo server implemented by overlapped I/O
  *			
  */
 
@@ -10,8 +10,9 @@
 
 #include "../common/utility.h"
 
-// 处理连接上的客户端套接字
+
+// New connection arrival
 bool    on_accept(SOCKET sockfd);
 
-// 事件循环
+// Start event loop
 bool    event_loop();

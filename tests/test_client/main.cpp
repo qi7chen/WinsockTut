@@ -1,11 +1,4 @@
-﻿/**
- *  @file   main.cpp
- *  @author: ichenq@gmail.com
- *  @date:   Oct 19, 2011
- *  @brief:  使用I/O完成端口单线程事件循环实现的多个客户端连接测试程序
- */
-
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include "clients.h"
 
 
