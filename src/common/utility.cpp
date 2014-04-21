@@ -1,13 +1,10 @@
 ﻿#include "utility.h"
 #include <time.h>
-#include <process.h>
 
-#pragma comment(lib, "ws2_32")
-#pragma comment(lib, "mswsock")
 
 using std::string;
 
-//////////////////////////////////////////////////////////////////////////
+
 string  Now()
 {    
     struct tm st = {};
@@ -26,21 +23,17 @@ string GetErrorMessage(DWORD dwErrorCode)
     return string(description, count);
 }
 
-DWORD StartThread(unsigned (CALLBACK* routine) (void*), int var)
+bool PrintLog(const char* fmt, ...)
 {
-    return _beginthreadex(NULL, 0, routine, (void*)var, 0, NULL);
+    char buffer[BUFSIZ];
+    va_list ap;
+    va_start(ap, fmt);
+    int count = vsprintf_s(buffer, fmt, ap);
+    va_end(ap);
+    if (count > 0)
+    {
+        count = printf("%s: %s", Now().data(), buffer);
+        return count > 0;
+    }
+    return true;
 }
-
-WinsockInit::WinsockInit()
-{
-    // http://msdn.microsoft.com/en-us/library/windows/desktop/ms742213(v=vs.85).aspx
-    WSADATA data = {};
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
-}
-
-WinsockInit::~WinsockInit()
-{
-    WSACleanup();
-}
-
-

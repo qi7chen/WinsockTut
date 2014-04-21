@@ -1,26 +1,23 @@
-﻿/**
- *  @file   select.cpp
- *  @author ichenq@gmail.com
- *  @date   Oct 19, 2011
- *  @brief  a simple echo server implemented by select()
- *				
- */
-
-#include "../common/utility.h"
+﻿#include "select.h"
 #include <WS2tcpip.h>
-#include <assert.h>
 #include <stdio.h>
 #include <set>
+#include "../common/utility.h"
+
+
 
 #pragma warning(disable:4127)
 
 // total connections
 namespace {
-    std::set<SOCKET>    g_total_sockets;
+
+// total client connections
+static std::set<SOCKET>    g_total_sockets;
+
 }
 
  
-bool on_recv(SOCKET sockfd)
+static bool on_recv(SOCKET sockfd)
 {
     char buf[kDefaultBufferSize];
     int bytes = recv(sockfd, buf, kDefaultBufferSize, 0);
@@ -45,9 +42,9 @@ bool on_recv(SOCKET sockfd)
 }
 
 
-bool on_accept(SOCKET sockfd)
+static bool on_accept(SOCKET sockfd)
 {
-    // evil 64 limit
+    // devil 64 limit
     if (g_total_sockets.size() == FD_SETSIZE - 1)
     {
         fprintf(stderr, ("got the 64 limit.\n"));
@@ -79,7 +76,7 @@ bool on_accept(SOCKET sockfd)
 }
 
 
-void on_close(SOCKET sockfd)
+static void on_close(SOCKET sockfd)
 {
     fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now().data());
     closesocket(sockfd);
@@ -90,7 +87,7 @@ SOCKET  create_listen_socket(const char* host, const char* port)
 {
     addrinfo* aiList = NULL;
     addrinfo hints = {};
-    hints.ai_family = AF_INET;          // TCP v4
+    hints.ai_family = AF_INET;  // TCP v4
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
@@ -147,7 +144,6 @@ SOCKET  create_listen_socket(const char* host, const char* port)
 bool select_loop(SOCKET acceptor)
 {
     fd_set readset = {}; 
-
     FD_SET(acceptor, &readset);
     
     for (std::set<SOCKET>::const_iterator iter = g_total_sockets.begin();
@@ -193,28 +189,5 @@ bool select_loop(SOCKET acceptor)
     }
 
     return true;
-}
-
-// main entry
-int main(int argc, const char* argv[])
-{
-    if (argc != 3)
-    {
-        fprintf(stderr, ("Usage: select [host] [port]\n"));
-        return 1;
-    }
-
-    WinsockInit init;
-    SOCKET sockfd = create_listen_socket(argv[1], argv[2]);
-    if (sockfd == INVALID_SOCKET)
-    {
-        return 1;
-    }
-    
-    while (select_loop(sockfd))
-        ;
-
-    closesocket(sockfd); // close the listen socket
-    return 0;
 }
 

@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "iocp.h"
+#include "../common/utility.h"
+
+#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "mswsock")
 
 
 int main(int argc, const char* argv[])
@@ -12,7 +16,7 @@ int main(int argc, const char* argv[])
     }
 
     WinsockInit init;
-    iocp_server server;
+    IOCPServer server;
     server.start(argv[1], atoi(argv[2]));
 
     return 0;

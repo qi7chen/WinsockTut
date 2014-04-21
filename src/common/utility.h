@@ -24,7 +24,8 @@ enum OperType
     OperRecv,
     OperDisconnect,
 };
- 
+
+// per-handle data
 struct PER_HANDLE_DATA 
 {
     WSAOVERLAPPED   overlap_;
@@ -39,11 +40,11 @@ struct PER_HANDLE_DATA
 #define LAST_ERROR_MSG      GetErrorMessage(::GetLastError()).c_str()
 
 
-#define CHECK(expr)   if (!(expr)) { \
-    MessageBoxA(NULL, #expr, LAST_ERROR_MSG, MB_OK);  \
+#define CHECK(expr)   if (!(expr)) {                    \
+    MessageBoxA(NULL, #expr, LAST_ERROR_MSG, MB_OK);    \
     throw std::runtime_error(LAST_ERROR_MSG); }
    
-
+// Current date
 std::string      Now();
 
 // Description of specified error id
@@ -64,78 +65,25 @@ inline bool AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PTR co
     return (handle == hCompletionPort);
 }
 
-// Start a thread
-DWORD StartThread(unsigned (CALLBACK* routine) (void*), int var);
+bool PrintLog(const char* fmt, ...);
 
 
 // Winsock startup and clean
 struct WinsockInit
 {
 public:
-    WinsockInit();
-    ~WinsockInit();
+    WinsockInit()
+    {
+        WSADATA data = {};
+        CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    }
+
+    ~WinsockInit()
+    {
+        WSACleanup();
+    }
 
 private:
     WinsockInit(const WinsockInit&);
     WinsockInit& operator = (const WinsockInit&);
-};
-
-
-
-// Mutex with critial section
-class Mutex
-{
-public:
-    Mutex() 
-    {
-        ::InitializeCriticalSection(&cs_);
-    }
-    ~Mutex()
-    {
-        ::DeleteCriticalSection(&cs_);
-    }
-
-    bool TryLock() 
-    {
-        return (::TryEnterCriticalSection(&cs_) == TRUE);
-    }
-
-    void Lock() 
-    {
-        ::EnterCriticalSection(&cs_);
-    }
-
-    void UnLock() 
-    {
-        ::LeaveCriticalSection(&cs_);
-    }
-
-private:
-    Mutex(const Mutex&);
-    Mutex& operator = (const Mutex&);
-
-    CRITICAL_SECTION    cs_;
-};
-
-// RAII
-template <typename Lockable>
-class ScopedMutexGuard
-{
-public:
-    explicit ScopedMutexGuard(Lockable& lock)
-        : lock_(lock)
-    {
-        lock_.Lock();
-    }
-
-    ~ScopedMutexGuard() 
-    {
-        lock_.UnLock();
-    }
-
-private:
-    ScopedMutexGuard(const ScopedMutexGuard&);
-    ScopedMutexGuard& operator = (const ScopedMutexGuard&);
-
-    Lockable&  lock_;
 };

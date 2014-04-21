@@ -5,7 +5,7 @@
 #include "../common/utility.h"
 
 
-static bool worker_loop(iocp_server* server)
+static bool worker_loop(IOCPServer* server)
 {
     DWORD bytes_transferred = 0;
     WSAOVERLAPPED* overlap = NULL;
@@ -42,7 +42,7 @@ static bool worker_loop(iocp_server* server)
 unsigned CALLBACK NativeThreadFunc(void* param)
 {
     assert(param);
-    iocp_server* server = (iocp_server*)param;
+    IOCPServer* server = (IOCPServer*)param;
     while (worker_loop(server))
         ;
 

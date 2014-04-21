@@ -11,6 +11,8 @@
 #include <algorithm>
 
 namespace {
+
+    // total client connections
     std::set<SOCKET>  g_socketList;
 }
 

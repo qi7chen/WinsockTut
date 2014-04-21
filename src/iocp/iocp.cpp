@@ -61,13 +61,13 @@ bool init_extend_function_poiner(SOCKET socket)
 
 //////////////////////////////////////////////////////////////////////////
 
-iocp_server::iocp_server()
+IOCPServer::IOCPServer()
     : completion_port_(INVALID_HANDLE_VALUE),
       listen_socket_(INVALID_SOCKET)
 {
 }
 
-iocp_server::~iocp_server()
+IOCPServer::~IOCPServer()
 {
     for (std::map<SOCKET, PER_HANDLE_DATA*>::iterator iter = info_map_.begin(); 
         iter != info_map_.end(); ++iter)
@@ -85,7 +85,7 @@ iocp_server::~iocp_server()
 }
 
 
-bool iocp_server::start(const char* host, int port)
+bool IOCPServer::start(const char* host, int port)
 {
     // I/O completion port handle
     completion_port_ = CreateCompletionPort(0);
@@ -130,7 +130,7 @@ bool iocp_server::start(const char* host, int port)
 }
 
 
-bool iocp_server::create_workers(DWORD concurrency /* = 0 */)
+bool IOCPServer::create_workers(DWORD concurrency /* = 0 */)
 {
     if (concurrency == 0)
     {        
@@ -150,7 +150,7 @@ bool iocp_server::create_workers(DWORD concurrency /* = 0 */)
 
 
 // Create acceptor
-bool  iocp_server::create_listen_socket(const char* host, int port)
+bool  IOCPServer::create_listen_socket(const char* host, int port)
 {    
     sockaddr_in addr = {};
     addr.sin_family = AF_INET;
@@ -186,7 +186,7 @@ bool  iocp_server::create_listen_socket(const char* host, int port)
 }
 
 // Start accepting
-bool iocp_server::post_an_accept()
+bool IOCPServer::post_an_accept()
 {
     std::map<SOCKET, PER_HANDLE_DATA*>::iterator iter = info_map_.find(listen_socket_);
     if (iter == info_map_.end())
@@ -220,7 +220,7 @@ bool iocp_server::post_an_accept()
 }
 
 
-PER_HANDLE_DATA* iocp_server::alloc_socket_handle()
+PER_HANDLE_DATA* IOCPServer::alloc_socket_handle()
 {
     if (free_list_.empty())
     {
@@ -265,7 +265,7 @@ PER_HANDLE_DATA* iocp_server::alloc_socket_handle()
     return handle_data;
 }
 
-void iocp_server::free_socket_handle(PER_HANDLE_DATA* handle_data)
+void IOCPServer::free_socket_handle(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
     if (std::find(free_list_.begin(), free_list_.end(), handle_data) != free_list_.end())
@@ -283,7 +283,7 @@ void iocp_server::free_socket_handle(PER_HANDLE_DATA* handle_data)
 //////////////////////////////////////////////////////////////////////////
 
 
-void iocp_server::on_accepted(PER_HANDLE_DATA* listen_handle)
+void IOCPServer::on_accepted(PER_HANDLE_DATA* listen_handle)
 {
     assert(listen_handle);
     accept_info* info_ptr = (accept_info*)listen_handle->buffer_;
@@ -325,7 +325,7 @@ void iocp_server::on_accepted(PER_HANDLE_DATA* listen_handle)
 }
 
 
-void iocp_server::on_recv(PER_HANDLE_DATA* handle_data)
+void IOCPServer::on_recv(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
     DWORD bytes_transferred = handle_data->overlap_.InternalHigh;
@@ -340,7 +340,7 @@ void iocp_server::on_recv(PER_HANDLE_DATA* handle_data)
 }
 
 
-void  iocp_server::on_sent(PER_HANDLE_DATA* handle_data)
+void  IOCPServer::on_sent(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
     DWORD bytes_read = 0;
@@ -357,7 +357,7 @@ void  iocp_server::on_sent(PER_HANDLE_DATA* handle_data)
 }
 
 
-void iocp_server::on_disconnect(PER_HANDLE_DATA* handle_data)
+void IOCPServer::on_disconnect(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
     handle_data->opertype_ = OperClose;
@@ -369,7 +369,7 @@ void iocp_server::on_disconnect(PER_HANDLE_DATA* handle_data)
 }
 
 
-void  iocp_server::on_closed(PER_HANDLE_DATA* handle_data)
+void  IOCPServer::on_closed(PER_HANDLE_DATA* handle_data)
 {
     assert(handle_data);
     fprintf(stdout, ("socket %d closed at %s.\n"), handle_data->socket_, Now().data());
@@ -377,7 +377,7 @@ void  iocp_server::on_closed(PER_HANDLE_DATA* handle_data)
 }
 
 
-bool iocp_server::event_loop()
+bool IOCPServer::event_loop()
 {
     PER_HANDLE_DATA* handle_data = pop_command();
     if(handle_data == NULL)
@@ -415,23 +415,25 @@ bool iocp_server::event_loop()
     return true;
 }
 
-void  iocp_server::push_command(PER_HANDLE_DATA* handle_data)
+void  IOCPServer::push_command(PER_HANDLE_DATA* handle_data)
 {
     if (handle_data)
     {
-        ScopedMutexGuard<Mutex> guard(mutex_);
+        mutex_.Enter();
         command_queue_.push(handle_data);
+        mutex_.Leave();
     }
 }
 
-PER_HANDLE_DATA*  iocp_server::pop_command()
+PER_HANDLE_DATA*  IOCPServer::pop_command()
 {
     PER_HANDLE_DATA* handle_data = NULL;
-    ScopedMutexGuard<Mutex> guard(mutex_);
+    mutex_.Enter();
     if (!command_queue_.empty())
     {
         handle_data = command_queue_.front();
         command_queue_.pop();
     }
+    mutex_.Leave();
     return handle_data;
 }

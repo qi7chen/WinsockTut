@@ -1,51 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "overlap.h"
+#include "../common/utility.h"
 
 
-// Create acceptor
-SOCKET create_listen_socket(const char* host, int port)
-{
-    sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(host);
-    addr.sin_port = htons((short)port);
-
-    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sockfd == INVALID_SOCKET)
-    {
-        fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
-        return 0;
-    }
-
-    int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
-    if (error == SOCKET_ERROR)
-    {
-        fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    error = listen(sockfd, SOMAXCONN);
-    if (error == SOCKET_ERROR)
-    {
-        fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    // set to non-blocking mode
-    ULONG nonblock = 1;
-    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
-    {
-        fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    fprintf(stdout, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
-    return sockfd;
-}
+#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "mswsock")
 
 
 // main entry

@@ -8,11 +8,14 @@
 
 #pragma once
 
-#include "../common/utility.h"
+#include <WinSock2.h>
 
 
-// New connection arrival
+// new connection arrival
 bool    on_accept(SOCKET sockfd);
 
-// Start event loop
+// start event loop
 bool    event_loop();
+
+// create acceptor
+SOCKET create_listen_socket(const char* host, int port);

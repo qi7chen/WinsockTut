@@ -12,15 +12,16 @@
 #include <list>
 #include <queue>
 #include <memory>
+#include <atlsync.h>
 #include "../common/utility.h"
 
 
 
-class iocp_server
+class IOCPServer
 {
 public:
-    iocp_server();
-    ~iocp_server();
+    IOCPServer();
+    ~IOCPServer();
 
     // start server
     bool    start(const char* host, int port);
@@ -31,8 +32,8 @@ public:
     void    push_command(PER_HANDLE_DATA* handle_data);    
 
 private:
-    iocp_server(const iocp_server&);
-    iocp_server& operator = (const iocp_server&);
+    IOCPServer(const IOCPServer&);
+    IOCPServer& operator = (const IOCPServer&);
 
     // event handling
     void    on_accepted(PER_HANDLE_DATA* handle_data);
@@ -65,7 +66,7 @@ private:
            
     std::vector<unsigned>   workers_;
     
-    Mutex   mutex_;
+    ATL::CCriticalSection   mutex_;
     std::queue<PER_HANDLE_DATA*>    command_queue_;   // I/O operation queue
     
     std::list<PER_HANDLE_DATA*>         free_list_;

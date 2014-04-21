@@ -1,25 +1,33 @@
 ﻿#include "overlap.h"
 #include <assert.h>
 #include <map>
+#include "../common/utility.h"
 
+
+typedef std::map<SOCKET, WSAEVENT>              SocketEventList;
+typedef std::map<WSAEVENT, PER_HANDLE_DATA*>    SocketDataList;
 
 
 struct socket_manager
 {
-    std::map<SOCKET, WSAEVENT>  event_list;
-    std::map<WSAEVENT, PER_HANDLE_DATA*>  socket_list;
+    // <socket, event> key-value list
+    SocketEventList  event_list;
+
+    // <event, socket-data> key-value list
+    SocketDataList  socket_list;
 };
 
 namespace {
 
-    socket_manager     g_socket_mgr;
+// totoal socket connection data
+static socket_manager     g_socket_mgr;
 }
 
 
-// 根据事件对象查找套接字数据
-PER_HANDLE_DATA* find_handle_data(WSAEVENT hEvent)
+// find socket data by its event handle
+static PER_HANDLE_DATA* find_handle_data(WSAEVENT hEvent)
 {
-    std::map<WSAEVENT, PER_HANDLE_DATA*>::const_iterator iter = g_socket_mgr.socket_list.find(hEvent);
+    SocketDataList::const_iterator iter = g_socket_mgr.socket_list.find(hEvent);
     if (iter == g_socket_mgr.socket_list.end())
     {
         return NULL;
@@ -27,10 +35,10 @@ PER_HANDLE_DATA* find_handle_data(WSAEVENT hEvent)
     return iter->second;
 }
 
-int make_event_array(WSAEVENT* array, int max_count)
+static int make_event_array(WSAEVENT* array, int max_count)
 {
     int count = 0;
-    for (std::map<SOCKET, WSAEVENT>::const_iterator iter = g_socket_mgr.event_list.begin();
+    for (SocketEventList::const_iterator iter = g_socket_mgr.event_list.begin();
         iter != g_socket_mgr.event_list.end() && max_count-- > 0; ++iter)
     {
         array[count++] = iter->second;
@@ -38,7 +46,8 @@ int make_event_array(WSAEVENT* array, int max_count)
     return count;
 }
 
-PER_HANDLE_DATA* alloc_data(SOCKET sockfd)
+// allocate data for a socket connection
+static PER_HANDLE_DATA* alloc_data(SOCKET sockfd)
 {
     WSAEVENT hEvent = WSACreateEvent();
     if (hEvent == WSA_INVALID_EVENT)
@@ -56,7 +65,8 @@ PER_HANDLE_DATA* alloc_data(SOCKET sockfd)
     return data;
 }
 
-void free_data(PER_HANDLE_DATA* data)
+// free allocated data
+static void free_data(PER_HANDLE_DATA* data)
 {
     assert(data);
     WSACloseEvent(data->overlap_.hEvent);
@@ -64,8 +74,7 @@ void free_data(PER_HANDLE_DATA* data)
     delete data;
 }
 
-
-void on_close(PER_HANDLE_DATA* handle)
+static void on_close(PER_HANDLE_DATA* handle)
 {
     assert(handle);
     fprintf(stdout, ("socket %d closed at %s.\n"), handle->socket_, Now().data());    
@@ -76,7 +85,7 @@ void on_close(PER_HANDLE_DATA* handle)
     free_data(handle);    
 }
 
-void post_recv_request(PER_HANDLE_DATA* handle)
+static void post_recv_request(PER_HANDLE_DATA* handle)
 {
     assert(handle);
     DWORD dwFlag = 0;
@@ -113,7 +122,7 @@ bool on_accept(SOCKET sockfd)
 }
 
 
-void on_read(PER_HANDLE_DATA* handle)
+static void on_read(PER_HANDLE_DATA* handle)
 {
     DWORD dwReadBytes = handle->overlap_.InternalHigh;
     if (dwReadBytes == 0)
@@ -182,4 +191,49 @@ bool event_loop()
         }
     }
     return true;
+}
+
+
+// create acceptor
+SOCKET create_listen_socket(const char* host, int port)
+{
+    sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(host);
+    addr.sin_port = htons((short)port);
+
+    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd == INVALID_SOCKET)
+    {
+        fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
+        return 0;
+    }
+
+    int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+    if (error == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    error = listen(sockfd, SOMAXCONN);
+    if (error == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    // set to non-blocking mode
+    ULONG nonblock = 1;
+    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    fprintf(stdout, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
+    return sockfd;
 }

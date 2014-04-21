@@ -6,9 +6,9 @@
  *			
  */
 
-#include "../common/utility.h"
 #include <stdio.h>
 #include <map>
+#include "../common/utility.h"
 
 
 namespace {
@@ -20,7 +20,7 @@ namespace {
     std::map<WSAEVENT, SOCKET>  g_socket_list;
 }
 
-int make_event_array(WSAEVENT* array, int max_count)
+static int make_event_array(WSAEVENT* array, int max_count)
 {
     int count = 0;
     for (std::map<SOCKET, WSAEVENT>::const_iterator iter = g_event_list.begin();
@@ -31,49 +31,7 @@ int make_event_array(WSAEVENT* array, int max_count)
     return count;
 }
 
-// Create acceptor
-SOCKET create_listen_socket(const char* host, int port)
-{
-    sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(host);
-    addr.sin_port = htons((short)port);
-
-    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sockfd == INVALID_SOCKET)
-    {
-        fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
-        return INVALID_SOCKET;
-    }
-
-    if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
-    {
-        fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    if (listen(sockfd, SOMAXCONN) == SOCKET_ERROR)
-    {
-        fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-
-    // set to non-blocking
-    ULONG nonblock = 1;
-    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
-    {
-        fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
-        return INVALID_SOCKET;
-    }
-    fprintf(stdout, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
-
-    return sockfd;
-}
-
-bool on_close(SOCKET sockfd, int error)
+static bool on_close(SOCKET sockfd, int error)
 {
     WSAEVENT hEvent = g_event_list[sockfd];
     WSAEventSelect(sockfd, NULL, 0); 
@@ -88,7 +46,7 @@ bool on_close(SOCKET sockfd, int error)
 }
 
 
-bool on_recv(SOCKET sockfd, int error)
+static bool on_recv(SOCKET sockfd, int error)
 {
     char databuf[kDefaultBufferSize];
     int bytes = recv(sockfd, databuf, kDefaultBufferSize, 0);
@@ -107,7 +65,7 @@ bool on_recv(SOCKET sockfd, int error)
     return true;
 }
 
-bool on_write(SOCKET sockfd, int error)
+static bool on_write(SOCKET sockfd, int error)
 {    
     return true;
 }
@@ -146,7 +104,7 @@ bool on_accept(SOCKET sockfd)
 }
 
 
-int  handle_event(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
+static int  handle_event(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
 {
     const int* errorlist = events_struct->iErrorCode;
     int events = events_struct->lNetworkEvents;
@@ -165,7 +123,7 @@ int  handle_event(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
     return 1;
 }
 
-
+// single thread
 bool event_loop()
 {
     if (g_event_list.empty())
@@ -220,46 +178,45 @@ bool event_loop()
     return true;
 }
 
-// main entry
-int main(int argc, const char* argv[])
-{
-    if (argc != 3)
-    {
-        fprintf(stderr, ("Usage: AsyncEvent [host] [port]\n"));
-        return 1;
-    }
 
-    WinsockInit init;
-    SOCKET sockfd = create_listen_socket(argv[1], atoi(argv[2]));
+// Create acceptor
+SOCKET create_listen_socket(const char* host, int port)
+{
+    sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(host);
+    addr.sin_port = htons((short)port);
+
+    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET)
     {
-        return 1;
+        fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
+        return INVALID_SOCKET;
     }
 
-    for (;;)
+    if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
     {
-        SOCKET socknew = accept(sockfd, NULL, NULL);
-        if (socknew != INVALID_SOCKET)
-        {
-            if (!on_accept(socknew))
-            {
-                closesocket(socknew);
-            }
-        }
-        else
-        {
-            if (GetLastError() == WSAEWOULDBLOCK)
-            {
-                if (event_loop())
-                {
-                    continue;
-                }
-            }
-            fprintf(stderr, ("accept() failed, %s"), LAST_ERROR_MSG);
-            break;
-        }
+        fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
     }
 
-    return 0;
-}
+    if (listen(sockfd, SOMAXCONN) == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
 
+    // set to non-blocking
+    ULONG nonblock = 1;
+    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+    fprintf(stdout, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
+
+    return sockfd;
+}

@@ -6,7 +6,8 @@
 
 namespace {
 
-    std::map<int, socket_data*>      g_sockList;
+// total client connections
+static std::map<int, socket_data*>      g_sockList;
 }
 
 
@@ -15,23 +16,16 @@ static void CALLBACK recv_complete(DWORD error,
                                    DWORD bytes_transferred, 
                                    WSAOVERLAPPED* overlap, 
                                    DWORD flags);
+
 static void CALLBACK send_complete(DWORD error, 
                                    DWORD bytes_transferred, 
                                    WSAOVERLAPPED* overlap, 
                                    DWORD flags);
 
+// allocate data for socket connection
 socket_data* alloc_data(SOCKET sockfd)
 {
-    socket_data* data = NULL;
-    try
-    {
-        data = new socket_data();
-    }
-    catch (std::bad_alloc&)
-    {
-        fprintf(stderr, ("allocate socket data failed.\n"));
-        return NULL;
-    }
+    socket_data* data = new socket_data();
         
     // Winsock didn't use 'hEvent` in complete routine
     data->overlap_.hEvent = (WSAEVENT)data; 
@@ -117,4 +111,49 @@ void CALLBACK send_complete(DWORD error,
 
     data->wsabuf_.len = sizeof(data->databuf_);
     post_recv_request(data);
+}
+
+
+// create acceptor
+SOCKET  create_listen_socket(const char* host, int port)
+{
+    sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(host);
+    addr.sin_port = htons((short)port);
+
+    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd == INVALID_SOCKET)
+    {
+        fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
+        return INVALID_SOCKET;
+    }
+
+    int error = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+    if (error == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("bind() [%s:%d]failed, %s"), host, port, LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    error = listen(sockfd, SOMAXCONN);
+    if (error == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    // set to non-blocking mode
+    ULONG nonblock = 1;
+    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+    {
+        fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
+        closesocket(sockfd);
+        return INVALID_SOCKET;
+    }
+
+    fprintf(stderr, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
+    return sockfd;
 }

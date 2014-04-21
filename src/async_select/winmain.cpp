@@ -1,23 +1,20 @@
 ﻿#include "appdef.h"
 #include <assert.h>
-#include <Shellapi.h>
 
 
+#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "mswsock")
 
-#pragma comment(lib, "Shell32")
 #pragma warning(disable: 4996)
 
 
 // Create a hiden window
 HWND IntiInstance(HINSTANCE hInstance)
 {
-    const char* szTitle = "async-select";
-    HWND hWnd = CreateWindowA("button", szTitle, WS_POPUP,
-        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, 
-        NULL, NULL, hInstance, NULL);
-
+    const char* szTitle = "AsyncSelect";
+    HWND hWnd = CreateWindowA("button", szTitle, WS_POPUP, CW_USEDEFAULT, 0,
+                        CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
     CHECK(hWnd != NULL);
-
     ShowWindow(hWnd, SW_HIDE);
     return hWnd;
 }
