@@ -13,7 +13,7 @@
 #include <queue>
 #include <memory>
 #include <atlsync.h>
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 

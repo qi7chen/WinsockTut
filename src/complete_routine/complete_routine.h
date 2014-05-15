@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 struct socket_data

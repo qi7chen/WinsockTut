@@ -1,6 +1,6 @@
 ﻿#include <stdio.h>
 #include <map>
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 namespace {

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "iocp.h"
-#include "../common/utility.h"
+#include "common/utility.h"
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "mswsock")

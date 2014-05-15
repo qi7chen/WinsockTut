@@ -2,7 +2,7 @@
 #include "worker.h"
 #include "iocp.h"
 #include <assert.h>
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 static bool worker_loop(IOCPServer* server)

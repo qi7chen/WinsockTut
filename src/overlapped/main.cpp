@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "overlap.h"
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 #pragma comment(lib, "ws2_32")

@@ -1,7 +1,7 @@
 ﻿#include "overlap.h"
 #include <assert.h>
 #include <map>
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 typedef std::map<SOCKET, WSAEVENT>              SocketEventList;

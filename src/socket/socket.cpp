@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <WS2tcpip.h>
 #include <process.h>
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 #pragma comment(lib, "ws2_32")

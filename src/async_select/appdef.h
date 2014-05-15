@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../common/utility.h"
+#include "common/utility.h"
 
 
 #define WM_SOCKET           WM_USER + 0xF0
