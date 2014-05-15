@@ -22,15 +22,17 @@ HWND IntiInstance(HINSTANCE hInstance)
 // main entry
 int main(int argc, const char* argv[])
 {
-    if (argc != 3)
+    const char* host = DEFAULT_HOST;
+    const char* port = DEFAULT_PORT;
+    if (argc > 2)
     {
-        fprintf(stderr, ("Usage: AsynSelect [host] [port]"));
-        return 1;
+        host = argv[1];
+        port = argv[2];
     }
 
     WinsockInit init;
     HWND hWnd = IntiInstance((HINSTANCE)GetModuleHandle(NULL));
-    CHECK(InitializeServer(hWnd, argv[1], atoi(argv[2])));
+    CHECK(InitializeServer(hWnd, host, atoi(port)));
     
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))

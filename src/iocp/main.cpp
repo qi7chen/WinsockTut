@@ -9,15 +9,17 @@
 
 int main(int argc, const char* argv[])
 {
-    if (argc != 3)
+    const char* host = DEFAULT_HOST;
+    const char* port = DEFAULT_PORT;
+    if (argc > 2)
     {
-        fprintf(stderr, ("IOCP [host] [port]\n"));
-        return 1;
+        host = argv[1];
+        port = argv[2];
     }
 
     WinsockInit init;
     IOCPServer server;
-    server.start(argv[1], atoi(argv[2]));
+    server.start(host, atoi(port));
 
     return 0;
 }

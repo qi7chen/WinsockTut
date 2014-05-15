@@ -68,6 +68,9 @@ inline bool AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PTR co
 bool PrintLog(const char* fmt, ...);
 
 
+#define DEFAULT_HOST    "127.0.0.1"
+#define DEFAULT_PORT    "32450"
+
 // Winsock startup and clean
 struct WinsockInit
 {

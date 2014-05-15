@@ -10,14 +10,16 @@
 // main entry
 int main(int argc, const char* argv[])
 {
-    if (argc != 3)
+    const char* host = DEFAULT_HOST;
+    const char* port = DEFAULT_PORT;
+    if (argc > 2)
     {
-        fprintf(stderr, "Usage: socket [host] [port].\n");
-        return 1;
+        host = argv[1];
+        port = argv[2];
     }
 
     WinsockInit init;
-    SOCKET socketListen = create_listen_socket(argv[1], argv[2]);
+    SOCKET socketListen = create_listen_socket(host, port);
     if (socketListen == INVALID_SOCKET)
     {
         return 1;
