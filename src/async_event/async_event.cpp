@@ -1,12 +1,4 @@
-﻿/**
- *  @file   async_select.cpp
- *  @author ichenq@gmail.com
- *  @date   Oct 19, 2011
- *  @brief  a simple echo server implemented by WSAEventSelect()
- *			
- */
-
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <map>
 #include "../common/utility.h"
 
@@ -128,7 +120,7 @@ bool event_loop()
 {
     if (g_event_list.empty())
     {
-        ::Sleep(100);
+        ::Sleep(10);
         return true;
     }
 
