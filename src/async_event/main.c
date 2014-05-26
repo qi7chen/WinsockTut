@@ -10,32 +10,39 @@
 // main entry
 int main(int argc, const char* argv[])
 {
+    WSADATA data;
+    SOCKET acceptor;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
+
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
 
-    WinsockInit init;
-    SOCKET socketListen = create_listen_socket(host, atoi(port));
-    if (socketListen == INVALID_SOCKET)
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    async_event_init();
+    acceptor = create_acceptor(host, atoi(port));
+    if (acceptor == INVALID_SOCKET)
     {
         return 1;
     }
 
     for (;;)
     {
-        SOCKET socknew = accept(socketListen, NULL, NULL);
-        if (socknew != SOCKET_ERROR)
+        SOCKET sockfd = accept(acceptor, NULL, NULL);
+        if (sockfd != SOCKET_ERROR)
         {
-            on_accept(socknew);
+            if (!on_accept(sockfd))
+                break;
         }
         else
         {
-            event_loop();
+            if (!event_loop())
+                break;
         }
     }
+    async_event_release();
 }
 

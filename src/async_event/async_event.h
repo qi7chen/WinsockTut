@@ -8,9 +8,15 @@
 
 #include <WinSock2.h>
 
+/* init and release internal data */
+int     async_event_init();
+void    async_event_release();
 
-SOCKET  create_listen_socket(const char* host, int port);
+/* create accept listen socket */
+SOCKET  create_acceptor(const char* host, int port);
 
-bool    on_accept(SOCKET sockfd);
+/* handle client socket connected */
+int     on_accept(SOCKET sockfd);
 
-bool    event_loop();
+/* select event loop */
+int     event_loop();

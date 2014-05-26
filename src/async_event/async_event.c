@@ -1,44 +1,32 @@
 ﻿#include <stdio.h>
-#include <map>
 #include "common/utility.h"
+#include "common/avl.h"
+
+/* total events */
+static avl_tree_t*  g_events_map;
+
+/* total socket descriptors */
+static avl_tree_t*  g_connections_map;
 
 
-namespace {
-
-    // event handle for each socket
-    std::map<SOCKET, WSAEVENT>  g_event_list;
-
-    // event handle as key
-    std::map<WSAEVENT, SOCKET>  g_socket_list;
-}
-
-static int make_event_array(WSAEVENT* array, int max_count)
+static int on_close(SOCKET sockfd, int error)
 {
-    int count = 0;
-    for (std::map<SOCKET, WSAEVENT>::const_iterator iter = g_event_list.begin();
-        iter != g_event_list.end() && max_count-- > 0; ++iter)
+    WSAEVENT hEvent = (WSAEVENT)avl_find(g_connections_map, (avl_key_t)sockfd);
+    if (hEvent == NULL)
     {
-        array[count++] = iter->second;
+        return 0;
     }
-    return count;
-}
-
-static bool on_close(SOCKET sockfd, int error)
-{
-    WSAEVENT hEvent = g_event_list[sockfd];
     WSAEventSelect(sockfd, NULL, 0); 
     WSACloseEvent(hEvent);
     closesocket(sockfd);
-
-    g_event_list.erase(sockfd);
-    g_socket_list.erase(hEvent);
-
-    fprintf(stderr, ("socket %d closed at %s.\n"), sockfd, Now().data());
-    return true;
+    avl_delete(g_connections_map, (avl_key_t)sockfd);
+    avl_delete(g_events_map, (avl_key_t)hEvent);
+    fprintf(stderr, ("socket %d closed at %s.\n"), sockfd, Now());
+    return 1;
 }
 
 
-static bool on_recv(SOCKET sockfd, int error)
+static int on_recv(SOCKET sockfd, int error)
 {
     char databuf[kDefaultBufferSize];
     int bytes = recv(sockfd, databuf, kDefaultBufferSize, 0);
@@ -46,53 +34,49 @@ static bool on_recv(SOCKET sockfd, int error)
     {
         return on_close(sockfd, 0);
     }
-
     // send back
     bytes = send(sockfd, databuf, bytes, 0);
     if (bytes == 0)
     {
         return on_close(sockfd, 0);
     }
-
-    return true;
+    return 1;
 }
 
-static bool on_write(SOCKET sockfd, int error)
+static int on_write(SOCKET sockfd, int error)
 {    
-    return true;
+    return 1;
 }
 
-// New connection arrival
-bool on_accept(SOCKET sockfd)
+// on new connection arrival
+int on_accept(SOCKET sockfd)
 {
     WSAEVENT hEvent = WSACreateEvent();
     if (hEvent == WSA_INVALID_EVENT)
     {
         fprintf(stderr, ("WSACreateEvent() failed, %s"), LAST_ERROR_MSG);
-        return false;
+        return 0;
     }
-
-    // Associate event handle
+    // associate event handle
     if (WSAEventSelect(sockfd, hEvent, FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR)
     {
         WSACloseEvent(hEvent);
         fprintf(stderr, ("WSAEventSelect() failed, %s"), LAST_ERROR_MSG);
-        return false;
+        return 0;
     }
-
-    if (g_event_list.size() == WSA_MAXIMUM_WAIT_EVENTS)
+    if (avl_size(g_events_map) == WSA_MAXIMUM_WAIT_EVENTS)
     {
         WSAEventSelect(sockfd, hEvent, 0);
         WSACloseEvent(hEvent);
-        fprintf(stderr, "Got 64 limit.\n");
-        return false;
+        fprintf(stderr, "MAXIMUM_WAIT_EVENTS(%d) limit.\n", WSA_MAXIMUM_WAIT_EVENTS);
+        return 1;
     }
     
-    g_event_list[sockfd] = hEvent;
-    g_socket_list[hEvent] = sockfd;
+    avl_insert(g_events_map, (avl_key_t)hEvent, (void*)sockfd);
+    avl_insert(g_connections_map, (avl_key_t)sockfd, hEvent);
 
-    fprintf(stdout, ("socket %d connected at %s.\n"), sockfd, Now().data());
-    return true;
+    fprintf(stdout, ("socket %d connected at %s.\n"), sockfd, Now());
+    return 1;
 }
 
 
@@ -116,22 +100,23 @@ static int  handle_event(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
 }
 
 // single thread
-bool event_loop()
+int event_loop()
 {
-    if (g_event_list.empty())
-    {
-        ::Sleep(10);
-        return true;
-    }
+    int nready;
+    WSAEVENT eventlist[WSA_MAXIMUM_WAIT_EVENTS];
+    int count = avl_size(g_events_map);
 
-    WSAEVENT eventlist[WSA_MAXIMUM_WAIT_EVENTS] = {}; 
-    int count = make_event_array(eventlist, WSA_MAXIMUM_WAIT_EVENTS);
-    
-    size_t nready = WSAWaitForMultipleEvents(count, eventlist, FALSE, 100, FALSE);            
+    if (count == 0)
+    {
+        Sleep(10);
+        return 1;
+    }
+    count = avl_serialize(g_events_map, (avl_key_t)eventlist, WSA_MAXIMUM_WAIT_EVENTS);        
+    nready = WSAWaitForMultipleEvents(count, eventlist, FALSE, 100, FALSE);            
     if (nready == WSA_WAIT_FAILED)
     {
         fprintf(stderr, ("WSAWaitForMultipleEvents() failed, %s"), LAST_ERROR_MSG);
-        return false;
+        return 0;
     }
     else if (nready == WSA_WAIT_TIMEOUT)
     {
@@ -141,74 +126,89 @@ bool event_loop()
     }
     else
     {
-        size_t index = WSA_WAIT_EVENT_0 + nready;
+        WSAEVENT hEvent;
+        SOCKET sockfd;
+        WSANETWORKEVENTS event_struct;
+        size_t index;
+        
+        index = WSA_WAIT_EVENT_0 + nready;
         if (index >= WSA_MAXIMUM_WAIT_EVENTS)
         {
             fprintf(stderr, "invalid event index: %d.\n", index);
-            return true;
+            return 1;
         }
 
-        WSAEVENT hEvent = eventlist[index];            
-        std::map<WSAEVENT, SOCKET>::const_iterator iter = g_socket_list.find(hEvent);
-        if (iter == g_socket_list.end())
+        hEvent = eventlist[index];
+        sockfd = (SOCKET)avl_find(g_events_map, (avl_key_t)hEvent);
+        if (sockfd == 0)
         {
             fprintf(stderr, "invalid event object %p.\n", &hEvent);
-            return true;
+            return 1;
         }
-        SOCKET sockfd = iter->second;
-
-        WSANETWORKEVENTS event_struct = {};
         if (WSAEnumNetworkEvents(sockfd, hEvent, &event_struct) == SOCKET_ERROR)
         {
             fprintf(stderr, ("WSAEnumNetworkEvents() failed, %s"), LAST_ERROR_MSG);
             on_close(sockfd, 0);
-            return true;
+            return 1;
         }
 
         handle_event(sockfd, &event_struct);
     }
-    return true;
+    return 1;
 }
 
 
 // Create acceptor
-SOCKET create_listen_socket(const char* host, int port)
+SOCKET create_acceptor(const char* host, int port)
 {
-    sockaddr_in addr = {};
+    int error;
+    ULONG nonblock = 1;
+    SOCKET acceptor;
+    struct sockaddr_in addr;
+
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(host);
     addr.sin_port = htons((short)port);
-
-    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sockfd == INVALID_SOCKET)
+    acceptor = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (acceptor == INVALID_SOCKET)
     {
         fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
         return INVALID_SOCKET;
     }
-
-    if (bind(sockfd, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
+    error = bind(acceptor, (struct sockaddr*)&addr, sizeof(addr));
+    if (error == SOCKET_ERROR)
     {
         fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
+        closesocket(acceptor);
         return INVALID_SOCKET;
     }
-
-    if (listen(sockfd, SOMAXCONN) == SOCKET_ERROR)
+    if (listen(acceptor, SOMAXCONN) == SOCKET_ERROR)
     {
         fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
+        closesocket(acceptor);
         return INVALID_SOCKET;
     }
-
-    // set to non-blocking
-    ULONG nonblock = 1;
-    if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+    // set to non-blocking mode
+    if (ioctlsocket(acceptor, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
         fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
-        closesocket(sockfd);
+        closesocket(acceptor);
         return INVALID_SOCKET;
     }
-    fprintf(stdout, ("server start listen [%s:%d] at %s.\n"), host, port, Now().data());
+    fprintf(stdout, ("server start listen [%s:%d] at %s.\n"), host, port, Now());
+    return acceptor;
+}
 
-    return sockfd;
+int async_event_init()
+{
+    g_events_map = avl_create_tree();
+    g_connections_map = avl_create_tree();
+    CHECK(g_events_map && g_connections_map);
+    return 1;
+}
+
+void async_event_release()
+{
+    avl_destroy_tree(g_events_map);
+    avl_destroy_tree(g_connections_map);
 }
