@@ -8,36 +8,11 @@
 
 #pragma once
 
-#include "common/utility.h"
+#include <WinSock2.h>
 
 
-struct socket_data
-{
-    // socket handle
-    SOCKET          socket_;
+/* create listen socket for accept */
+SOCKET  create_acceptor(const char* host, int port);
 
-    // winsock buffer object
-    WSABUF          wsabuf_;
-
-    // data buffer
-    char            databuf_[kDefaultBufferSize];
-
-    // overlapped structure
-    WSAOVERLAPPED   overlap_;
-};
-
-
-
-// Allocate associated data for each socket
-socket_data* alloc_data(SOCKET sockfd);
-
-
-// Free associated socket data
-void    free_data(socket_data* data);
-
-
-// Post an asynchounous recv request
-bool    post_recv_request(socket_data* data);
-
-
-SOCKET  create_listen_socket(const char* host, int port);
+/* run alertable event */
+int     event_loop(SOCKET acceptor);
