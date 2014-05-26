@@ -1,11 +1,10 @@
 ﻿#include "appdef.h"
 #include <assert.h>
+#include "common/utility.h"
 
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "mswsock")
-
-#pragma warning(disable: 4996)
 
 
 // Create a hiden window
@@ -22,19 +21,22 @@ HWND IntiInstance(HINSTANCE hInstance)
 // main entry
 int main(int argc, const char* argv[])
 {
+    WSADATA data;
+    HWND hWnd;
+    MSG msg;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
+
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
 
-    WinsockInit init;
-    HWND hWnd = IntiInstance((HINSTANCE)GetModuleHandle(NULL));
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    hWnd = IntiInstance((HINSTANCE)GetModuleHandle(NULL));
     CHECK(InitializeServer(hWnd, host, atoi(port)));
     
-    MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {        
         if (msg.message == WM_SOCKET)
@@ -52,6 +54,7 @@ int main(int argc, const char* argv[])
     }
 
     CloseServer();
+    WSACleanup();
 }
 
 

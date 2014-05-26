@@ -7,19 +7,19 @@
 
 #pragma once
 
-#include "common/utility.h"
+#include <WinSock2.h>
 
 
 #define WM_SOCKET           WM_USER + 0xF0
 
 
 // Create acceptor and associate to window message queue
-bool InitializeServer(HWND hwnd,  const char* host, int port);
+int     InitializeServer(HWND hwnd,  const char* host, int port);
 
 // Close all connection
-void CloseServer();
+void    CloseServer();
 
 // I/O operation handling
-bool HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error);
+int     HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error);
 
 
