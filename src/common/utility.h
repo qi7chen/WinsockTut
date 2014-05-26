@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <stdlib.h>
 #include <Windows.h>
 #include <WinSock2.h>
 
