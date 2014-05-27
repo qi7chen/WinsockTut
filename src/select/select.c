@@ -7,14 +7,11 @@
 
 #pragma warning(disable:4127)
 
-// total connections
-static avl_tree_t*  g_total_connections;
 
-// file descriptor set
-static fd_set       g_readset;
+static avl_tree_t*  g_total_connections;    /* totocal client connections */
+static fd_set       g_readset;  /* total socket file descriptor */
 
 
- 
 static int on_recv(SOCKET sockfd)
 {
     char buf[kDefaultBufferSize];
@@ -47,10 +44,10 @@ static int on_accept(SOCKET acceptor)
     struct sockaddr_in addr;
     int addrlen = sizeof(addr);
 
-    // the evil 64 limit
+    /* the evil 64 limit */
     if (avl_size(g_total_connections) == FD_SETSIZE - 1)
     {
-        fprintf(stderr, ("reach FD_SETSIZE(%d).\n"), FD_SETSIZE);
+        fprintf(stderr, ("reach fd_set size limit(%d).\n"), FD_SETSIZE);
         return 0;
     }
     sockfd = accept(acceptor, (struct sockaddr*)&addr, &addrlen);
@@ -59,33 +56,33 @@ static int on_accept(SOCKET acceptor)
         fprintf(stderr, ("accept() failed, %s"), LAST_ERROR_MSG);
         return 0;
     }
-    // set to non-blocking mode
+    /* set to non-blocking mode */
     if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
         fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
         return 0;
     }
+    avl_insert(g_total_connections, (avl_key_t)sockfd, NULL);
     fprintf(stdout, ("socket %d accepted at %s.\n"), sockfd, Now());
-    avl_insert(g_total_connections, sockfd);
     return 1;
 }
 
 static void on_close(SOCKET sockfd)
 {
-    fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
     closesocket(sockfd);
-    avl_delete(g_total_connections, sockfd);
+    avl_delete(g_total_connections, (avl_key_t)sockfd);
+    fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
 }
 
 static void on_socket_event(SOCKET acceptor)
-{    
+{
     int i;
     int array[FD_SETSIZE];
     int size = avl_size(g_total_connections);
-    avl_serialize(g_total_connections, array, size);
+    avl_serialize(g_total_connections, (avl_key_t*)array, size);
 
-    // check connection for read/write
+    /* check connection for read/write */
     for (i = 0; i < size; ++i)
     {
         SOCKET sockfd = array[i];
@@ -96,9 +93,9 @@ static void on_socket_event(SOCKET acceptor)
                 on_close(sockfd);
             }
         }
-    }    
+    }
 
-    // have new connection?
+    /* have new connection? */
     if (FD_ISSET(acceptor, &g_readset))
     {
         on_accept(acceptor);
@@ -109,32 +106,32 @@ int select_loop(SOCKET acceptor)
 {
     int nready;
     int count = 0;
-    struct timeval timeout = {0, 500*1000}; /* 50 ms timeout */         
+    struct timeval timeout = {0, 500*1000}; /* 50 ms timeout */
 
     FD_ZERO(&g_readset);
-    count = avl_serialize(g_total_connections, g_readset.fd_array, FD_SETSIZE);
+    count = avl_serialize(g_total_connections, (avl_key_t*)g_readset.fd_array, FD_SETSIZE);
     g_readset.fd_count = count;
-    FD_SET(acceptor, &g_readset);   
-    
+    FD_SET(acceptor, &g_readset);
+
     nready = select(0, &g_readset, NULL, NULL, &timeout);
     if (nready == SOCKET_ERROR)
     {
         fprintf(stderr, ("select() failed, %s"), LAST_ERROR_MSG);
         return 0;
     }
-    if (nready == 0) // timed out
-    {            
+    if (nready == 0) /* timed out */
+    {
         return 1;
     }
 
-    // check connection for read/write
+    /* check connection for read/write */
     on_socket_event(acceptor);
 
     return 1;
 }
 
 
-// create acceptor
+/* create acceptor socket */
 SOCKET  create_acceptor(const char* host, const char* port)
 {
     int error;
@@ -166,7 +163,7 @@ SOCKET  create_acceptor(const char* host, const char* port)
         error = bind(sockfd, pinfo->ai_addr, pinfo->ai_addrlen);
         if (error == SOCKET_ERROR)
         {
-            fprintf(stderr, "bind() failed, addr: %s, len: %d, %s", 
+            fprintf(stderr, "bind() failed, addr: %s, len: %d, %s",
                 pinfo->ai_addr, pinfo->ai_addrlen, LAST_ERROR_MSG);
             closesocket(sockfd);
             sockfd = INVALID_SOCKET;
@@ -180,7 +177,7 @@ SOCKET  create_acceptor(const char* host, const char* port)
             sockfd = INVALID_SOCKET;
             continue;
         }
-        // set to non-blocking mode        
+        /* set to non-blocking mode */
         if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
         {
             fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
@@ -197,11 +194,15 @@ SOCKET  create_acceptor(const char* host, const char* port)
 
 int select_init()
 {
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
     g_total_connections = avl_create_tree();
-    return g_total_connections != NULL;
+    CHECK(g_total_connections != NULL);
+    return 1;
 }
 
 void select_release()
 {
     avl_destroy_tree(g_total_connections);
+    WSACleanup();
 }
