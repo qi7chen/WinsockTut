@@ -7,22 +7,18 @@
 #pragma comment(lib, "mswsock")
 
 
-
-// main entry
 int main(int argc, const char* argv[])
 {
-    WSADATA data;
     SOCKET acceptor;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
-
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
 
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    comp_routine_init();
     acceptor = create_acceptor(host, atoi(port));
     if (acceptor == INVALID_SOCKET)
     {
@@ -32,7 +28,7 @@ int main(int argc, const char* argv[])
     while (event_loop(acceptor))
         ;
 
-    WSACleanup();
+    comp_routine_release();
     return 0;
 }
 

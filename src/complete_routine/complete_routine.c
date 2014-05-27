@@ -8,7 +8,6 @@
 
 typedef struct socket_data
 {
-    // socket handle
     SOCKET  socket_;    /* os handle */
     WSABUF  wsabuf_;    /* winsock buffer */
     char    databuf_[kDefaultBufferSize]; /* recv buffer */
@@ -16,18 +15,18 @@ typedef struct socket_data
 }socket_data_t;
 
 
-/* total socket connections */
-static avl_tree_t*  g_connections_map;
+static avl_tree_t*  g_connections_map;  /* total socket connections */
+
 
 /* callback routines */
-static void CALLBACK recv_complete(DWORD error, 
-                                   DWORD bytes_transferred, 
-                                   WSAOVERLAPPED* overlap, 
+static void CALLBACK recv_complete(DWORD error,
+                                   DWORD bytes_transferred,
+                                   WSAOVERLAPPED* overlap,
                                    DWORD flags);
 
-static void CALLBACK send_complete(DWORD error, 
-                                   DWORD bytes_transferred, 
-                                   WSAOVERLAPPED* overlap, 
+static void CALLBACK send_complete(DWORD error,
+                                   DWORD bytes_transferred,
+                                   WSAOVERLAPPED* overlap,
                                    DWORD flags);
 
 
@@ -35,14 +34,14 @@ static void CALLBACK send_complete(DWORD error,
 static socket_data_t* alloc_data(SOCKET sockfd)
 {
     socket_data_t* data = malloc(sizeof(socket_data_t));
-        
-    // winsock didn't use 'hEvent` in complete routine I/O model
-    data->overlap_.hEvent = (WSAEVENT)data; 
+
+    /* winsock didn't use 'hEvent` in complete routine I/O model */
+    data->overlap_.hEvent = (WSAEVENT)data;
     data->socket_ = sockfd;
     data->wsabuf_.buf = data->databuf_;
     data->wsabuf_.len = sizeof(data->databuf_);
 
-    avl_insert(g_connections_map, (avl_key_t)sockfd, NULL);
+    avl_insert(g_connections_map, (avl_key_t)sockfd, data);
     return data;
 }
 
@@ -51,20 +50,20 @@ static void free_data(socket_data_t* data)
 {
     if (data)
     {
-        SOCKET sockfd = data->socket_;        
+        SOCKET sockfd = data->socket_;
         closesocket(sockfd);
         avl_delete(g_connections_map, (avl_key_t)sockfd);
-        fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
         free(data);
+        fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
     }
 }
 
 /* post an asynchounous recv request */
 static int post_recv_request(socket_data_t* data)
-{    
+{
     DWORD flags = 0;
     DWORD recv_bytes = 0;
-    int error = WSARecv(data->socket_, &data->wsabuf_, 1, &recv_bytes, &flags, 
+    int error = WSARecv(data->socket_, &data->wsabuf_, 1, &recv_bytes, &flags,
         &data->overlap_, recv_complete);
     if (error == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
     {
@@ -77,9 +76,9 @@ static int post_recv_request(socket_data_t* data)
 
 
 
-void CALLBACK recv_complete(DWORD error, 
-                            DWORD bytes_transferred, 
-                            WSAOVERLAPPED* overlap, 
+void CALLBACK recv_complete(DWORD error,
+                            DWORD bytes_transferred,
+                            WSAOVERLAPPED* overlap,
                             DWORD flags)
 {
     DWORD bytes_send = 0;
@@ -93,8 +92,8 @@ void CALLBACK recv_complete(DWORD error,
     /* send back */
     memset(&data->overlap_, 0, sizeof(data->overlap_));
     data->overlap_.hEvent = (WSAEVENT)data;
-    data->wsabuf_.len = bytes_transferred;    
-    error = WSASend(data->socket_, &data->wsabuf_, 1, &bytes_send, flags, 
+    data->wsabuf_.len = bytes_transferred;
+    error = WSASend(data->socket_, &data->wsabuf_, 1, &bytes_send, flags,
                 &data->overlap_, send_complete);
     if (error == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
     {
@@ -103,8 +102,8 @@ void CALLBACK recv_complete(DWORD error,
 }
 
 
-void CALLBACK send_complete(DWORD error, 
-                            DWORD bytes_transferred, 
+void CALLBACK send_complete(DWORD error,
+                            DWORD bytes_transferred,
                             WSAOVERLAPPED* overlap,
                             DWORD flags)
 {
@@ -181,14 +180,42 @@ int event_loop(SOCKET acceptor)
     else
     {
         if (WSAGetLastError() != WSAEWOULDBLOCK)
-        {   
+        {
             fprintf(stderr, ("accept() failed, %s"), LAST_ERROR_MSG);
             return 0;
         }
         else
         {
-            SleepEx(50, TRUE); // make thread alertable
+            SleepEx(50, TRUE); /* make current thread alertable */
         }
     }
     return 1;
+}
+
+int comp_routine_init()
+{
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    g_connections_map = avl_create_tree();
+    return 1;
+}
+
+void comp_routine_release()
+{
+    int i;
+    int count = avl_size(g_connections_map);
+    SOCKET* array = (SOCKET*)malloc(count * sizeof(int));
+    avl_serialize(g_connections_map, (avl_key_t*)array, count);
+    for (i = 0; i < count; ++i)
+    {
+        socket_data_t* data = (socket_data_t*)avl_find(g_connections_map, array[i]);
+        if (data)
+        {
+            free_data(data);
+            avl_delete(g_connections_map, array[i]);
+        }
+    }
+    free(array);
+    avl_destroy_tree(g_connections_map);
+    WSACleanup();
 }
