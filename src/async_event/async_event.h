@@ -3,7 +3,7 @@
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
  *  @brief  a simple echo server implemented by WSAEventSelect()
- *			
+ *
  */
 
 #include <WinSock2.h>
@@ -14,9 +14,6 @@ void    async_event_release();
 
 /* create accept listen socket */
 SOCKET  create_acceptor(const char* host, int port);
-
-/* handle client socket connected */
-int     on_accept(SOCKET sockfd);
 
 /* select event loop */
 int     event_loop();
