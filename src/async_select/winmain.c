@@ -7,7 +7,7 @@
 #pragma comment(lib, "mswsock")
 
 
-// Create a hiden window
+/* Create a hiden window */
 HWND IntiInstance(HINSTANCE hInstance)
 {
     const char* szTitle = "AsyncSelect";
@@ -18,33 +18,30 @@ HWND IntiInstance(HINSTANCE hInstance)
     return hWnd;
 }
 
-// main entry
+
 int main(int argc, const char* argv[])
 {
-    WSADATA data;
     HWND hWnd;
     MSG msg;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
-
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
 
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
     hWnd = IntiInstance((HINSTANCE)GetModuleHandle(NULL));
     CHECK(InitializeServer(hWnd, host, atoi(port)));
-    
+
     while (GetMessage(&msg, NULL, 0, 0))
-    {        
+    {
         if (msg.message == WM_SOCKET)
         {
             SOCKET fd = msg.wParam;
             int event = WSAGETSELECTEVENT(msg.lParam);
             int error = WSAGETSELECTERROR(msg.lParam);
-            HandleNetEvents(hWnd, fd, event, error);  
+            HandleNetEvents(hWnd, fd, event, error);
         }
         else
         {
@@ -54,7 +51,5 @@ int main(int argc, const char* argv[])
     }
 
     CloseServer();
-    WSACleanup();
+    return 0;
 }
-
-

@@ -3,7 +3,7 @@
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
  *  @brief  a simple echo server implemented by WSAAsyncSelect()
- *			
+ *
  */
 
 #include <stdio.h>
@@ -11,8 +11,8 @@
 #include "common/avl.h"
 #include "common/utility.h"
 
-// total connections
-static avl_tree_t*  g_total_connections;
+
+static avl_tree_t*  g_total_connections; /* total client connections */
 
 
 static int on_accepted(HWND hwnd, SOCKET acceptor)
@@ -35,7 +35,7 @@ static int on_accepted(HWND hwnd, SOCKET acceptor)
         return 0;
     }
 
-    avl_insert(g_total_connections, sockfd);
+    avl_insert(g_total_connections, sockfd, NULL);
     fprintf(stdout, ("socket %d accepted at %s.\n"), sockfd, Now());
     return 1;
 }
@@ -66,20 +66,21 @@ static int on_recv(SOCKET sockfd)
     return 1;
 }
 
-
-
 int InitializeServer(HWND hwnd, const char* host, int port)
 {
     int error;
+    WSADATA data;
     SOCKET acceptor;
     struct sockaddr_in addr;
+
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
     g_total_connections = avl_create_tree();
     CHECK(g_total_connections != NULL);
 
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(host);
-    addr.sin_port = htons((short)port);   
+    addr.sin_port = htons((short)port);
     acceptor = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (acceptor == INVALID_SOCKET)
     {
@@ -103,10 +104,11 @@ int InitializeServer(HWND hwnd, const char* host, int port)
         return 0;
     }
 
-    // http://msdn.microsoft.com/en-us/library/windows/desktop/ms741540(v=vs.85).aspx
-    //
-    // The WSAAsyncSelect function automatically sets socket s to nonblocking mode, 
-    // regardless of the value of lEvent. 
+    /* http://msdn.microsoft.com/en-us/library/windows/desktop/ms741540(v=vs.85).aspx
+     *
+     * The WSAAsyncSelect function automatically sets socket s to nonblocking mode,
+     * regardless of the value of lEvent.
+     */
     if (WSAAsyncSelect(acceptor, hwnd, WM_SOCKET, FD_ACCEPT) == SOCKET_ERROR)
     {
         fprintf(stderr, ("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
@@ -114,8 +116,8 @@ int InitializeServer(HWND hwnd, const char* host, int port)
         return 0;
     }
 
-    avl_insert(g_total_connections, acceptor);
-    fprintf(stdout, ("server listen at %s:%d, %s.\n"), host, port, Now());    
+    avl_insert(g_total_connections, acceptor, NULL);
+    fprintf(stdout, ("server listen at %s:%d, %s.\n"), host, port, Now());
 
     return 1;
 }
@@ -131,6 +133,7 @@ void CloseServer()
         on_closed(array[i]);
     }
     free(array);
+    WSACleanup();
     fprintf(stdout, ("server[%d] closed at %s.\n"), count, Now());
 }
 
@@ -150,7 +153,7 @@ int HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
         on_recv(sockfd);
         break;
     case FD_WRITE:
-        // do nothing
+        /* do nothing */
         break;
     case FD_CLOSE:
         on_closed(sockfd);
