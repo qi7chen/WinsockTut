@@ -1,5 +1,5 @@
 #WinsockExamples
-Winsock programming examples with 7 different I/O strategy
+Winsock programming examples with 7 different I/O strategies
 
 ### Build
     * download [premake4](http://industriousone.com/premake/download)
@@ -16,7 +16,7 @@ Winsock programming examples with 7 different I/O strategy
         + iocp, I/O multiplexing with Completion Port
 
     * tests
-        + test_case.py, client connections multiplexed by select()
+        + test_tcp_client.py, max 512 client connections to test server performance
         + test_client, client connections multiplexed by I/O Completion Port 
 
 
