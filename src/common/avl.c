@@ -238,10 +238,7 @@ static avl_node_t* avl_remove_node(avl_node_t* root, avl_key_t key)
         if ((root->left == NULL) || (root->right == NULL)) {
             avl_node_t* node = (root->left ? root->left : root->right);
             if (node != NULL) { /* one child case */
-                root->key = node->key;
-                root->height = node->height;
-                root->left = node->left;
-                root->right = node->right;
+                *root = *node;
             }
             else { /* no child case */
                 node = root;
