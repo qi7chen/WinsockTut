@@ -5,10 +5,11 @@
 /* tree node */
 struct avl_node 
 {
-    int     datum;          /* node data */
-    int     height;         /* node height */
-    struct avl_node* left;  /* left child */
-    struct avl_node* right; /* right child */
+    avl_key_t   key;            /* node data */
+    void*       data;           /* associate data */
+    int         height;         /* node height */
+    struct avl_node* left;      /* left child */
+    struct avl_node* right;     /* right child */
 };
 
 /* AVL tree */
@@ -23,12 +24,13 @@ struct avl_tree
 
 
 /* allocate a new node */
-static avl_node_t*  avl_new_node(int key)
+static avl_node_t*  avl_new_node(avl_key_t key, void* data)
 {
     avl_node_t* node = (avl_node_t*)malloc(sizeof(avl_node_t));
     if (node)
     {
-        node->datum = key;
+        node->key = key;
+        node->data = data;
         node->height = 0;   // leaf node default
         node->left = NULL;
         node->right = NULL;
@@ -63,13 +65,13 @@ static avl_node_t* avl_node_max(avl_node_t* node)
 }
 
 /* find if contains `key` */
-static avl_node_t* avl_node_find(avl_node_t* root, int key)
+static avl_node_t* avl_node_find(avl_node_t* root, avl_key_t key)
 {
     if (root == NULL)
         return NULL;
-    if (key < root->datum)
+    if (key < root->key)
         return avl_node_find(root->left, key);
-    else if (key > root->datum)
+    else if (key > root->key)
         return avl_node_find(root->right, key);
     else
         return root;
@@ -158,7 +160,7 @@ static avl_node_t* avl_node_rl_rot(avl_node_t* A)
 }
 
 /* re-balance the tree after insertion(deletion) */
-static avl_node_t* avl_balance_node(avl_node_t* node, int key)
+static avl_node_t* avl_balance_node(avl_node_t* node, avl_key_t key)
 {
     int factor = 0;
     if (node == NULL)
@@ -166,18 +168,18 @@ static avl_node_t* avl_balance_node(avl_node_t* node, int key)
 
     factor = HEIGHT(node->left) - HEIGHT(node->right);
     if (factor > 1) {
-        if (key < node->left->datum) {      // left-left case
+        if (key < node->left->key) {      // left-left case
             return avl_node_ll_rot(node);
         }
-        else if (key > node->left->datum) { // left-right case
+        else if (key > node->left->key) { // left-right case
             return avl_node_lr_rot(node);
         }
     }
     else if (factor < -1) {
-        if (key > node->right->datum) {     // right-right case
+        if (key > node->right->key) {     // right-right case
             return avl_node_rr_rot(node);
         }
-        else if (key < node->right->datum) { // right-left case
+        else if (key < node->right->key) { // right-left case
             return avl_node_rl_rot(node);
         }
     }
@@ -185,18 +187,18 @@ static avl_node_t* avl_balance_node(avl_node_t* node, int key)
 }
 
 /* insert an node to tree */
-static avl_node_t* avl_insert_node(avl_node_t* root, int key)
+static avl_node_t* avl_insert_node(avl_node_t* root, avl_key_t key, void* data)
 {
     if (root == NULL) {
-        return avl_new_node(key);
+        return avl_new_node(key, data);
     }
-    if (key < root->datum)
+    if (key < root->key)
     {            
-        root->left = avl_insert_node(root->left, key);
+        root->left = avl_insert_node(root->left, key, data);
     }
-    else if (key > root->datum)
+    else if (key > root->key)
     {
-        root->right = avl_insert_node(root->right, key);
+        root->right = avl_insert_node(root->right, key, data);
     }
     else
         assert(!"duplicate datum");
@@ -207,14 +209,14 @@ static avl_node_t* avl_insert_node(avl_node_t* root, int key)
 }
 
 /* delete an node from tree */
-static avl_node_t* avl_remove_node(avl_node_t* root, int key)
+static avl_node_t* avl_remove_node(avl_node_t* root, avl_key_t key)
 {
     if (root == NULL)
         return NULL;
-    if (key < root->datum) {
+    if (key < root->key) {
         root->left = avl_remove_node(root->left, key);
     }
-    else if (key > root->datum) {
+    else if (key > root->key) {
         root->right = avl_remove_node(root->right, key);
     }
     else // this is the node to be deleted
@@ -222,7 +224,7 @@ static avl_node_t* avl_remove_node(avl_node_t* root, int key)
         if ((root->left == NULL) || (root->right == NULL)) {
             avl_node_t* node = (root->left ? root->left : root->right);
             if (node != NULL) { // one child case
-                root->datum = node->datum;
+                root->key = node->key;
                 root->height = node->height;
                 root->left = node->left;
                 root->right = node->right;
@@ -235,8 +237,8 @@ static avl_node_t* avl_remove_node(avl_node_t* root, int key)
         }
         else { // node with two children
             avl_node_t* node = avl_node_min(root->right);
-            root->datum = node->datum;
-            root->right = avl_remove_node(root->right, node->datum);
+            root->key = node->key;
+            root->right = avl_remove_node(root->right, node->key);
         }
     }
 
@@ -260,12 +262,12 @@ static int avl_destroy_node(avl_node_t* root)
 }
 
 // post-order traversal
-static int avl_postorder(avl_node_t* root, int array[], int index)
+static int avl_postorder(avl_node_t* root, avl_key_t array[], int index)
 {
     if (root != NULL)
     {        
         index = avl_postorder(root->left, array, index);
-        array[index++] = root->datum;
+        array[index++] = root->key;
         index = avl_postorder(root->right, array, index);        
     }
     return index;
@@ -296,31 +298,31 @@ int avl_destroy_tree(avl_tree_t* tree)
 }
 
 /* find if contains `key` */
-int avl_find(avl_tree_t* tree, int key)
+void* avl_find(avl_tree_t* tree, avl_key_t key)
 {
     avl_node_t* node = avl_node_find(tree->root, key);
-    return (node != NULL ? 1 : 0);
+    return (node != NULL ? node->data : NULL);
 }
 
-/* find the smallest data */
-int avl_find_min(avl_tree_t* tree)
+/* find the smallest key */
+avl_key_t avl_find_min(avl_tree_t* tree)
 {
     avl_node_t* node = avl_node_min(tree->root);
-    return (node != NULL ? node->datum : 0);
+    return (node != NULL ? node->key : 0);
 }
 
-/* find the largest data */
-int avl_find_max(avl_tree_t* tree)
+/* find the largest key */
+avl_key_t avl_find_max(avl_tree_t* tree)
 {
     avl_node_t* node = avl_node_max(tree->root);
-    return (node != NULL ? node->datum : 0);
+    return (node != NULL ? node->key : 0);
 }
 
 /* insert data to tree */
-int avl_insert(avl_tree_t* tree, int key)
+int avl_insert(avl_tree_t* tree, avl_key_t key, void* data)
 {
     if (tree) {
-        tree->root = avl_insert_node(tree->root, key);
+        tree->root = avl_insert_node(tree->root, key, data);
         tree->size++;
         return 1;
     }
@@ -328,9 +330,9 @@ int avl_insert(avl_tree_t* tree, int key)
 }
 
 /* delete data from tree */
-int avl_delete(avl_tree_t* tree, int key)
+int avl_delete(avl_tree_t* tree, avl_key_t key)
 {
-    if (tree && avl_find(tree, key) == 1)
+    if (tree && avl_find(tree, key) != NULL)
     {
         tree->root = avl_remove_node(tree->root, key);
         tree->size--;
@@ -346,7 +348,7 @@ int avl_size(avl_tree_t* tree)
 }
 
 /* print nodes to array */
-int avl_serialize(avl_tree_t* tree, int array[], size_t len)
+int avl_serialize(avl_tree_t* tree, avl_key_t array[], size_t len)
 {
     assert(tree && array);
     if (tree->size > len) {
