@@ -14,21 +14,22 @@
 #define TLS     __declspec(thread)
 #define INLINE  __inline
 
-// Default I/O buffer size
+
+/* Default I/O buffer size */
 enum { kDefaultBufferSize = 8192 };
 
-// Type of I/O operation
+/* Type of I/O operation */
 enum OperType
 {
-    OperClose,
-    OperConnect,
-    OperAccept,
-    OperSend,
-    OperRecv,
-    OperDisconnect,
+    OperClose,          /* socket is closed, default state */
+    OperConnect,        /* connecting to another peer */
+    OperAccept,         /* accept new client connection */
+    OperSend,           /* sending data */
+    OperRecv,           /* receive data */
+    OperDisconnect,     /* disconnect an socket */
 };
 
-// per-handle data
+/* Per-handle data */
 typedef struct _PER_HANDLE_DATA 
 {
     WSAOVERLAPPED   overlap_;
@@ -42,24 +43,27 @@ typedef struct _PER_HANDLE_DATA
 // Current date
 const char*     Now();
 
-// Description of specified error id
+/* Description of specified error id */
 const char*     GetErrorMessage(DWORD dwError);
 
+/* Get number of processors */
+size_t GetProcessorNum();
 
-// Create I/O completion port handle
+
+/* Create I/O completion port handle */
 INLINE HANDLE   CreateCompletionPort(DWORD dwConcurrency)
 {
     return CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, dwConcurrency);
 }
 
-// Associate device handle to I/O completion port
+/* Associate device handle to I/O completion port */
 INLINE int AssociateDevice(HANDLE hCompletionPort, HANDLE hDevice, ULONG_PTR completionkey)
 {    
     HANDLE handle = CreateIoCompletionPort(hDevice, hCompletionPort, completionkey, 0);
     return (handle == hCompletionPort);
 }
 
-// Error description of current thread
+/* Error description of current thread */
 #define LAST_ERROR_MSG      GetErrorMessage(GetLastError())
 
 
