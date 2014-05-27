@@ -29,9 +29,9 @@ solution 'WinsockExamples'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'src/socket/*.h',
-            'src/socket/*.cpp',
+            'src/socket/*.c',
         }
         includedirs
         {
@@ -51,9 +51,9 @@ solution 'WinsockExamples'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'src/select/*.h',
-            'src/select/*.cpp',
+            'src/select/*.c',
         }
         includedirs
         {
@@ -73,9 +73,9 @@ solution 'WinsockExamples'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'src/async_select/*.h',
-            'src/async_select/*.cpp',
+            'src/async_select/*.c',
         }
         includedirs
         {
@@ -95,9 +95,9 @@ solution 'WinsockExamples'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'src/async_event/*.h',
-            'src/async_event/*.cpp',
+            'src/async_event/*.c',
         }
         includedirs
         {
@@ -117,9 +117,9 @@ solution 'WinsockExamples'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'src/complete_routine/*.h',
-            'src/complete_routine/*.cpp',
+            'src/complete_routine/*.c',
         }
         includedirs
         {
@@ -139,9 +139,9 @@ solution 'WinsockExamples'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'src/overlapped/*.h',
-            'src/overlapped/*.cpp',
+            'src/overlapped/*.c',
         } 
         includedirs
         {
@@ -161,9 +161,9 @@ solution 'WinsockExamples'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'src/iocp/*.h',
-            'src/iocp/*.cpp',
+            'src/iocp/*.c',
         }
         includedirs
         {
@@ -197,9 +197,9 @@ solution 'TestClient'
         files 
         {
             'src/common/*.h',
-            'src/common/*.cpp',
+            'src/common/*.c',
             'tests/test_client/*.h',
-            'tests/test_client/*.cpp',
+            'tests/test_client/*.c',
         }
         
         includedirs 
