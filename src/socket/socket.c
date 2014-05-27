@@ -5,7 +5,7 @@
 #include "common/utility.h"
 
 
-// thread for each connection
+/* thread for each connection */
 static unsigned CALLBACK handle_client(void* param)
 {
     SOCKET sockfd = (SOCKET)param;
@@ -18,12 +18,11 @@ static unsigned CALLBACK handle_client(void* param)
             fprintf(stderr, "socket %d recv() failed, %s", sockfd, LAST_ERROR_MSG);
             break;
         }
-        else if (bytes == 0) // closed
+        else if (bytes == 0) /* closed */
         {
             break;
         }
-
-        // send back
+        /* send back */
         bytes = send(sockfd, databuf, bytes, 0);
         if (bytes == SOCKET_ERROR)
         {
@@ -31,10 +30,8 @@ static unsigned CALLBACK handle_client(void* param)
             break;
         }    
     }
-
     closesocket(sockfd);
     fprintf(stdout, "socket %d closed at %s.\n", sockfd, Now());
-
     return 0;
 }
 
@@ -44,7 +41,7 @@ int on_accept(SOCKET sockfd)
     return _beginthreadex(NULL, 0, handle_client, (void*)sockfd, 0, NULL);
 }
 
-// create acceptor
+/* create acceptor socket */
 SOCKET  create_acceptor(const char* host, const char* port)
 {
     int error;
@@ -64,7 +61,6 @@ SOCKET  create_acceptor(const char* host, const char* port)
         fprintf(stderr, "getaddrinfo() failed, %s:%s, %s.\n", host, port, gai_strerror(error));
         return INVALID_SOCKET;
     }
-        
     for (pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
     {
         sockfd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
@@ -92,9 +88,7 @@ SOCKET  create_acceptor(const char* host, const char* port)
         }        
         break;
     }
-
     freeaddrinfo(aiList);
     fprintf(stdout, "server listen at %s:%s\n", host, port);
-
     return sockfd;
 }

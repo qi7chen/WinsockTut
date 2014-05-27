@@ -13,6 +13,7 @@ int main(int argc, const char* argv[])
     SOCKET acceptor;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
+
     if (argc > 2)
     {
         host = argv[1];
@@ -38,7 +39,7 @@ int main(int argc, const char* argv[])
             break;
         }
 
-        on_accept(sockfd);       
+        on_accept(sockfd);
     }
 
     WSACleanup();
