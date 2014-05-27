@@ -75,7 +75,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
 
     CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
-    g_total_connections = avl_create_tree();
+     g_total_connections = avl_create_tree();
     CHECK(g_total_connections != NULL);
 
     addr.sin_family = AF_INET;
@@ -126,8 +126,8 @@ void CloseServer()
 {
     int i;
     int count = avl_size(g_total_connections);
-    int* array = (int*)malloc(count * sizeof(int));
-    avl_serialize(g_total_connections, array, count);
+    SOCKET* array = (SOCKET*)malloc(count * sizeof(int));
+    avl_serialize(g_total_connections, (avl_key_t*)array, count);
     for (i = 0; i < count; ++i)
     {
         on_closed(array[i]);

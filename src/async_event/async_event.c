@@ -145,7 +145,7 @@ int asyn_select_loop()
         {
             fprintf(stderr, ("WSAEnumNetworkEvents() failed, %s"), LAST_ERROR_MSG);
             on_close(sockfd, 0);
-            return 1;
+            return 0;
         }
         handle_event(sockfd, &event_struct);
     }

@@ -11,11 +11,12 @@
 #include <WinSock2.h>
 
 
-// new connection arrival
-bool    on_accept(SOCKET sockfd);
+/* create a listen socket for accept */
+SOCKET  create_acceptor(const char* host, int port);
 
-// start event loop
-bool    event_loop();
+/* start event loop */
+int     event_loop(SOCKET acceptor);
 
-// create acceptor
-SOCKET create_listen_socket(const char* host, int port);
+/* initialize and release internal data structure */
+int     overlap_init();
+void    overlap_release();
