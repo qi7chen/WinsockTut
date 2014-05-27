@@ -21,14 +21,14 @@ struct avl_tree
 
 #define MAX(a, b)       (a > b ? a : b)
 #define HEIGHT(n)       (n != NULL ? n->height : -1)
-
+#define ROT_LEFT        -1
+#define ROT_RIGHT       1
 
 /* allocate a new node */
 static avl_node_t*  avl_new_node(avl_key_t key, void* data)
 {
     avl_node_t* node = (avl_node_t*)malloc(sizeof(avl_node_t));
-    if (node)
-    {
+    if (node) {
         node->key = key;
         node->data = data;
         node->height = 0;   // leaf node default
@@ -44,6 +44,14 @@ static void avl_free_node(avl_node_t* node)
     if (node) {
         free(node);
     }
+}
+
+static int avl_get_balance(avl_node_t* node)
+{
+    if (node == NULL)
+        return 0;
+    else 
+        return HEIGHT(node->left) - HEIGHT(node->right);
 }
 
 static avl_node_t*  avl_node_min(avl_node_t* node)
@@ -138,6 +146,7 @@ static avl_node_t* avl_node_rr_rot(avl_node_t* A)
  */
 static avl_node_t* avl_node_lr_rot(avl_node_t* A)
 {
+    assert(A && A->left);
     A->left = avl_node_rr_rot(A->left);;    
     return avl_node_ll_rot(A);
 }
@@ -155,32 +164,35 @@ static avl_node_t* avl_node_lr_rot(avl_node_t* A)
  */
 static avl_node_t* avl_node_rl_rot(avl_node_t* A)
 {
+    assert(A && A->right);
     A->right = avl_node_ll_rot(A->right);
     return avl_node_rr_rot(A);
 }
 
 /* re-balance the tree after insertion(deletion) */
-static avl_node_t* avl_balance_node(avl_node_t* node, avl_key_t key)
+static avl_node_t* avl_balance_node(avl_node_t* node, int factor, int rotate)
 {
-    int factor = 0;
     if (node == NULL)
         return NULL;
-
-    factor = HEIGHT(node->left) - HEIGHT(node->right);
-    if (factor > 1) {
-        if (key < node->left->key) {      // left-left case
+    
+    if (factor > 1) { /* left subtree */
+        switch(rotate) {
+        case ROT_LEFT: /* left-left case */
             return avl_node_ll_rot(node);
-        }
-        else if (key > node->left->key) { // left-right case
+        case ROT_RIGHT: /* left-right case */
             return avl_node_lr_rot(node);
+        default:
+            assert(!"invalid rorotate direction");
         }
     }
-    else if (factor < -1) {
-        if (key > node->right->key) {     // right-right case
-            return avl_node_rr_rot(node);
-        }
-        else if (key < node->right->key) { // right-left case
+    else if (factor < -1) { /* right subtree */
+        switch(rotate) {
+        case ROT_LEFT: /* right-left case */
             return avl_node_rl_rot(node);
+        case ROT_RIGHT: /* right-right case */
+            return avl_node_rr_rot(node);
+        default:
+            assert(!"invalid rorotate direction");
         }
     }
     return node;
@@ -189,28 +201,31 @@ static avl_node_t* avl_balance_node(avl_node_t* node, avl_key_t key)
 /* insert an node to tree */
 static avl_node_t* avl_insert_node(avl_node_t* root, avl_key_t key, void* data)
 {
+    int rotate = 0;
     if (root == NULL) {
         return avl_new_node(key, data);
     }
-    if (key < root->key)
-    {            
+    if (key < root->key) {
+        rotate = ROT_LEFT;
         root->left = avl_insert_node(root->left, key, data);
     }
-    else if (key > root->key)
-    {
+    else if (key > root->key) {
+        rotate = ROT_RIGHT;
         root->right = avl_insert_node(root->right, key, data);
     }
     else
         assert(!"duplicate datum");
 
-    // update height
+    /* update height */
     root->height = MAX(HEIGHT(root->left), HEIGHT(root->right)) + 1;
-    return avl_balance_node(root, key);
+    return avl_balance_node(root, avl_get_balance(root), rotate);
 }
 
 /* delete an node from tree */
 static avl_node_t* avl_remove_node(avl_node_t* root, avl_key_t key)
 {
+    int factor = 0;
+    int rotate = 0;
     if (root == NULL)
         return NULL;
     if (key < root->key) {
@@ -219,23 +234,22 @@ static avl_node_t* avl_remove_node(avl_node_t* root, avl_key_t key)
     else if (key > root->key) {
         root->right = avl_remove_node(root->right, key);
     }
-    else // this is the node to be deleted
-    {
+    else  { /* this is the node to be deleted */
         if ((root->left == NULL) || (root->right == NULL)) {
             avl_node_t* node = (root->left ? root->left : root->right);
-            if (node != NULL) { // one child case
+            if (node != NULL) { /* one child case */
                 root->key = node->key;
                 root->height = node->height;
                 root->left = node->left;
                 root->right = node->right;
             }
-            else { // no child case
+            else { /* no child case */
                 node = root;
                 root = NULL;
             }
             avl_free_node(node);
         }
-        else { // node with two children
+        else { /* node with two children */
             avl_node_t* node = avl_node_min(root->right);
             root->key = node->key;
             root->right = avl_remove_node(root->right, node->key);
@@ -245,7 +259,16 @@ static avl_node_t* avl_remove_node(avl_node_t* root, avl_key_t key)
     if (root == NULL)
         return NULL;
     root->height = MAX(HEIGHT(root->left), HEIGHT(root->right)) + 1;
-    return avl_balance_node(root, key);
+    factor = avl_get_balance(root);
+    if (factor > 1) {
+        int left_balance = avl_get_balance(root->left);
+        rotate = (left_balance >= 0 ? ROT_LEFT : ROT_RIGHT);
+    } 
+    else if (factor < -1) {
+        int right_balance = avl_get_balance(root->right);
+        rotate = (right_balance <= 0 ? ROT_RIGHT : ROT_LEFT);
+    }
+    return avl_balance_node(root, factor, rotate);
 }
 
 /* destroy all nodes */
@@ -261,11 +284,10 @@ static int avl_destroy_node(avl_node_t* root)
     }
 }
 
-// post-order traversal
+/* post-order traversal */
 static int avl_postorder(avl_node_t* root, avl_key_t array[], int index)
 {
-    if (root != NULL)
-    {        
+    if (root != NULL) { 
         index = avl_postorder(root->left, array, index);
         array[index++] = root->key;
         index = avl_postorder(root->right, array, index);        
@@ -277,8 +299,7 @@ static int avl_postorder(avl_node_t* root, avl_key_t array[], int index)
 avl_tree_t* avl_create_tree()
 {
     avl_tree_t* tree = (avl_tree_t*)malloc(sizeof(avl_tree_t));
-    if (tree)
-    {
+    if (tree) {
         tree->root = NULL;
         tree->size = 0;
     }
@@ -289,8 +310,7 @@ avl_tree_t* avl_create_tree()
 int avl_destroy_tree(avl_tree_t* tree)
 {
     int r = 0;
-    if (tree && tree->root)
-    {
+    if (tree && tree->root) {
         r = avl_destroy_node(tree->root);
         free(tree);
     }
@@ -332,8 +352,7 @@ int avl_insert(avl_tree_t* tree, avl_key_t key, void* data)
 /* delete data from tree */
 int avl_delete(avl_tree_t* tree, avl_key_t key)
 {
-    if (tree && avl_find(tree, key) != NULL)
-    {
+    if (tree && avl_node_find(tree->root, key)) {
         tree->root = avl_remove_node(tree->root, key);
         tree->size--;
         return 1;

@@ -16,7 +16,7 @@ struct avl_tree;
 typedef struct avl_node avl_node_t;
 typedef struct avl_tree avl_tree_t;
 
-typedef void*   avl_key_t;
+typedef int32_t   avl_key_t;
 
 /************************************************************************/
 /* AVL tree interface                                                   */
