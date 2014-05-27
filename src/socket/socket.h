@@ -3,7 +3,7 @@
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
  *  @brief  a simple echo server implemented by basic BSD socket API
- *			one thread per connection
+ *          one thread per connection
  */
 
 #pragma once

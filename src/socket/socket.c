@@ -28,7 +28,7 @@ static unsigned CALLBACK handle_client(void* param)
         {
             fprintf(stderr, "socket %d send() failed, %s", sockfd, LAST_ERROR_MSG);
             break;
-        }    
+        }
     }
     closesocket(sockfd);
     fprintf(stdout, "socket %d closed at %s.\n", sockfd, Now());
@@ -72,7 +72,7 @@ SOCKET  create_acceptor(const char* host, const char* port)
         error = bind(sockfd, pinfo->ai_addr, pinfo->ai_addrlen);
         if (error == SOCKET_ERROR)
         {
-            fprintf(stderr, "bind() failed, addr: %s, len: %d, %s", 
+            fprintf(stderr, "bind() failed, addr: %s, len: %d, %s",
                 pinfo->ai_addr, pinfo->ai_addrlen, LAST_ERROR_MSG);
             closesocket(sockfd);
             sockfd = INVALID_SOCKET;
@@ -85,7 +85,7 @@ SOCKET  create_acceptor(const char* host, const char* port)
             closesocket(sockfd);
             sockfd = INVALID_SOCKET;
             continue;
-        }        
+        }
         break;
     }
     freeaddrinfo(aiList);

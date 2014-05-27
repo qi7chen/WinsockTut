@@ -19,7 +19,7 @@ int main(int argc, const char* argv[])
         host = argv[1];
         port = argv[2];
     }
-    
+
     CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
     acceptor = create_acceptor(host, port);
