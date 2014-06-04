@@ -32,11 +32,11 @@ enum OperType
 /* Per-handle data */
 typedef struct _PER_HANDLE_DATA 
 {
-    WSAOVERLAPPED   overlap_;
-    SOCKET          socket_;
-    WSABUF          wsbuf_;
-    char            buffer_[kDefaultBufferSize];
-    enum OperType   opertype_;
+    WSAOVERLAPPED   overlap;
+    SOCKET          socket;
+    WSABUF          wsbuf;
+    char            buffer[kDefaultBufferSize];
+    enum OperType   opertype;
 }PER_HANDLE_DATA;
 
 

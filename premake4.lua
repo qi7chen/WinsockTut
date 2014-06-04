@@ -3,19 +3,19 @@
 --
 
 solution 'WinsockExamples'
-    configurations {'Debug', 'Release'}    
+    configurations {'Debug', 'Release'}
     language 'C++'
     flags {'ExtraWarnings'}
     targetdir 'bin'
-    
+
     configuration 'Debug'
         defines { 'DEBUG' }
         flags { 'Symbols' }
-        
+
     configuration 'Release'
         defines { 'NDEBUG' }
         flags { 'Symbols', 'Optimize' }
-        
+
     project 'Socket'
         location 'build'
         kind 'ConsoleApp'
@@ -26,10 +26,10 @@ solution 'WinsockExamples'
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
         }
-        files 
+        files
         {
-            'src/common/*.h',
-            'src/common/*.c',
+            'src/common/utility.h',
+            'src/common/utility.c',
             'src/socket/*.h',
             'src/socket/*.c',
         }
@@ -37,7 +37,7 @@ solution 'WinsockExamples'
         {
             'src',
         }
-        
+
     project 'Select'
         location 'build'
         kind 'ConsoleApp'
@@ -47,8 +47,8 @@ solution 'WinsockExamples'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
-        }        
-        files 
+        }
+        files
         {
             'src/common/*.h',
             'src/common/*.c',
@@ -69,8 +69,8 @@ solution 'WinsockExamples'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
-        }        
-        files 
+        }
+        files
         {
             'src/common/*.h',
             'src/common/*.c',
@@ -80,7 +80,7 @@ solution 'WinsockExamples'
         includedirs
         {
             'src',
-        }        
+        }
 
     project 'AsyncEvent'
         location 'build'
@@ -91,8 +91,8 @@ solution 'WinsockExamples'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
-        }        
-        files 
+        }
+        files
         {
             'src/common/*.h',
             'src/common/*.c',
@@ -102,7 +102,7 @@ solution 'WinsockExamples'
         includedirs
         {
             'src',
-        }        
+        }
 
     project 'CompleteRoutine'
         location 'build'
@@ -113,8 +113,8 @@ solution 'WinsockExamples'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
-        }        
-        files 
+        }
+        files
         {
             'src/common/*.h',
             'src/common/*.c',
@@ -124,7 +124,7 @@ solution 'WinsockExamples'
         includedirs
         {
             'src',
-        }        
+        }
 
     project 'Overlapped'
         location 'build'
@@ -135,19 +135,19 @@ solution 'WinsockExamples'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
-        }        
-        files 
+        }
+        files
         {
             'src/common/*.h',
             'src/common/*.c',
             'src/overlapped/*.h',
             'src/overlapped/*.c',
-        } 
+        }
         includedirs
         {
             'src',
-        }        
-        
+        }
+
     project 'IOCP'
         location 'build'
         kind 'ConsoleApp'
@@ -157,8 +157,8 @@ solution 'WinsockExamples'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
-        }        
-        files 
+        }
+        files
         {
             'src/common/*.h',
             'src/common/*.c',
@@ -169,21 +169,21 @@ solution 'WinsockExamples'
         {
             'src',
         }
-        
+
 solution 'TestClient'
-    configurations {'Debug', 'Release'}    
+    configurations {'Debug', 'Release'}
     language 'C++'
     flags {'ExtraWarnings'}
     targetdir 'bin'
-    
+
     configuration 'Debug'
         defines { 'DEBUG' }
         flags { 'Symbols' }
-        
+
     configuration 'Release'
         defines { 'NDEBUG' }
-        flags { 'Symbols', 'Optimize' }    
-    
+        flags { 'Symbols', 'Optimize' }
+
     project 'TestClient'
         location 'build'
         kind 'ConsoleApp'
@@ -193,18 +193,17 @@ solution 'TestClient'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
-        }        
-        files 
+        }
+        files
         {
             'src/common/*.h',
             'src/common/*.c',
             'tests/test_client/*.h',
             'tests/test_client/*.c',
         }
-        
-        includedirs 
+
+        includedirs
         {
             'src',
         }
-        
-        
+
