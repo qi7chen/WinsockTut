@@ -33,11 +33,11 @@ static PER_HANDLE_DATA* alloc_data(SOCKET sockfd)
     }
 
     data = (PER_HANDLE_DATA*)malloc(sizeof(PER_HANDLE_DATA));
-    data->socket_ = sockfd;
-    data->opertype_ = OperClose;
-    data->wsbuf_.buf = data->buffer_;
-    data->wsbuf_.len = sizeof(data->buffer_);
-    data->overlap_.hEvent = hEvent;
+    data->socket = sockfd;
+    data->opertype = OperClose;
+    data->wsbuf.buf = data->buffer;
+    data->wsbuf.len = sizeof(data->buffer);
+    data->overlap.hEvent = hEvent;
     return data;
 }
 
@@ -45,20 +45,20 @@ static PER_HANDLE_DATA* alloc_data(SOCKET sockfd)
 static void free_data(PER_HANDLE_DATA* data)
 {
     assert(data);
-    WSACloseEvent(data->overlap_.hEvent);
-    closesocket(data->socket_);
+    WSACloseEvent(data->overlap.hEvent);
+    closesocket(data->socket);
     free(data);
 }
 
 static void on_close(PER_HANDLE_DATA* handle)
-{   
-    SOCKET sockfd = handle->socket_;
-    WSAEVENT hEvent = handle->overlap_.hEvent;
+{
+    SOCKET sockfd = handle->socket;
+    WSAEVENT hEvent = handle->overlap.hEvent;
 
     avl_delete(g_event_map, (avl_key_t)hEvent);
     avl_delete(g_connections_map, (avl_key_t)sockfd);
-    free_data(handle); 
-    fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now()); 
+    free_data(handle);
+    fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
 }
 
 static void post_recv_request(PER_HANDLE_DATA* handle)
@@ -67,9 +67,9 @@ static void post_recv_request(PER_HANDLE_DATA* handle)
     DWORD dwFlag = 0;
     DWORD dwReadBytes = 0;
     assert(handle);
-    handle->wsbuf_.len = sizeof(handle->buffer_);
-    error = WSARecv(handle->socket_, &handle->wsbuf_, 1, &dwReadBytes, 
-        &dwFlag, &handle->overlap_, NULL);
+    handle->wsbuf.len = sizeof(handle->buffer);
+    error = WSARecv(handle->socket, &handle->wsbuf, 1, &dwReadBytes,
+        &dwFlag, &handle->overlap, NULL);
     if (error == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
     {
         on_close(handle);
@@ -92,7 +92,7 @@ int on_accept(SOCKET sockfd)
         return 0;
     }
 
-    hEvent = handle->overlap_.hEvent;
+    hEvent = handle->overlap.hEvent;
     avl_insert(g_event_map, (avl_key_t)hEvent, (void*)sockfd);
     avl_insert(g_connections_map, (avl_key_t)sockfd, handle);
 
@@ -105,15 +105,15 @@ int on_accept(SOCKET sockfd)
 static void on_read(PER_HANDLE_DATA* handle)
 {
     int error;
-    DWORD dwBytes = handle->overlap_.InternalHigh;
+    DWORD dwBytes = handle->overlap.InternalHigh;
     if (dwBytes == 0)
     {
         on_close(handle);
         return ;
     }
-    handle->wsbuf_.len = dwBytes;
-    error = WSASend(handle->socket_, &handle->wsbuf_, 1, &dwBytes,
-        0, &handle->overlap_, NULL);
+    handle->wsbuf.len = dwBytes;
+    error = WSASend(handle->socket, &handle->wsbuf, 1, &dwBytes,
+        0, &handle->overlap, NULL);
     if (error == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
     {
         on_close(handle);
@@ -129,10 +129,10 @@ int overlap_loop()
     DWORD dwFlag = 0;
     DWORD dwReadBytes = 0;
     PER_HANDLE_DATA* handle;
-    WSAEVENT hEvent;    
+    WSAEVENT hEvent;
     WSAEVENT eventlist[WSA_MAXIMUM_WAIT_EVENTS];
     int count;
-    
+
     if (avl_size(g_event_map) == 0)
     {
         Sleep(50);
@@ -148,7 +148,7 @@ int overlap_loop()
     }
     else if (index == WSA_WAIT_TIMEOUT)
     {
-        // timed out
+        /* timed out here */
     }
     else if (index >= WSA_WAIT_EVENT_0 && index < count)
     {
@@ -160,7 +160,7 @@ int overlap_loop()
             fprintf(stderr, "event object [%p]not found.\n", &hEvent);
             return 1;
         }
-        status = WSAGetOverlappedResult(handle->socket_, &handle->overlap_, 
+        status = WSAGetOverlappedResult(handle->socket, &handle->overlap,
             &dwReadBytes, FALSE, &dwFlag);
         if (status)
         {
@@ -232,7 +232,7 @@ SOCKET create_acceptor(const char* host, int port)
         closesocket(sockfd);
         return INVALID_SOCKET;
     }
-    // set to non-blocking mode    
+    /* set to non-blocking mode */
     if (ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
         fprintf(stderr, ("ioctlsocket() failed, %s"), LAST_ERROR_MSG);
@@ -245,6 +245,8 @@ SOCKET create_acceptor(const char* host, int port)
 
 int overlap_init()
 {
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
     g_connections_map = avl_create_tree();
     g_event_map = avl_create_tree();
     CHECK(g_event_map && g_connections_map);
@@ -255,4 +257,5 @@ void overlap_release()
 {
     avl_destroy_tree(g_connections_map);
     avl_destroy_tree(g_event_map);
+    WSACleanup();
 }
