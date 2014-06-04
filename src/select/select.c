@@ -111,7 +111,10 @@ int select_loop(SOCKET acceptor)
     FD_ZERO(&g_readset);
     count = avl_serialize(g_total_connections, (avl_key_t*)g_readset.fd_array, FD_SETSIZE);
     g_readset.fd_count = count;
-    FD_SET(acceptor, &g_readset);
+    if (count < FD_SETSIZE-1) // max monitor number
+    {
+        FD_SET(acceptor, &g_readset);
+    }
 
     nready = select(0, &g_readset, NULL, NULL, &timeout);
     if (nready == SOCKET_ERROR)
