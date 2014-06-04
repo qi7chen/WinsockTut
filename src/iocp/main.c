@@ -1,7 +1,6 @@
-#include <stdlib.h>
 #include <stdio.h>
 #include "iocp.h"
-#include "common/utility.h"
+
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "mswsock")
@@ -17,9 +16,12 @@ int main(int argc, const char* argv[])
         port = argv[2];
     }
 
-    WinsockInit init;
-    IOCPServer server;
-    server.start(host, atoi(port));
+    if (server_init(host, atoi(port)))
+    {
+        while (server_run())
+            ;
+    }
+    server_destroy();
 
     return 0;
 }
