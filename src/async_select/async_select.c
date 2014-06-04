@@ -75,7 +75,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
 
     CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
-     g_total_connections = avl_create_tree();
+    g_total_connections = avl_create_tree();
     CHECK(g_total_connections != NULL);
 
     addr.sin_family = AF_INET;

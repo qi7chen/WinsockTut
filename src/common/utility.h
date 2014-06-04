@@ -40,7 +40,7 @@ typedef struct _PER_HANDLE_DATA
 }PER_HANDLE_DATA;
 
 
-// Current date
+/* Current date */
 const char*     Now();
 
 /* Description of specified error id */
