@@ -7,7 +7,6 @@
 #pragma comment(lib, "mswsock")
 
 
-// main entry
 int main(int argc, const char* argv[])
 {
     SOCKET acceptor;
