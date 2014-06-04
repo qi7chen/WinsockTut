@@ -249,6 +249,7 @@ static avl_node_t* avl_remove_node(avl_node_t* root, avl_key_t key)
         else { /* node with two children */
             avl_node_t* node = avl_node_min(root->right);
             root->key = node->key;
+            root->data = node->data;
             root->right = avl_remove_node(root->right, node->key);
         }
     }
