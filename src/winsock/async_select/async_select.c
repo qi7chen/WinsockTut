@@ -85,6 +85,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
     if (acceptor == INVALID_SOCKET)
     {
         fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
+        avl_destroy_tree(g_total_connections);
         return 0;
     }
 
@@ -93,6 +94,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
     {
         fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
         closesocket(acceptor);
+        avl_destroy_tree(g_total_connections);
         return 0;
     }
 
@@ -101,6 +103,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
     {
         fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
         closesocket(acceptor);
+        avl_destroy_tree(g_total_connections);
         return 0;
     }
 
@@ -113,6 +116,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
     {
         fprintf(stderr, ("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(acceptor);
+        avl_destroy_tree(g_total_connections);
         return 0;
     }
 
@@ -133,6 +137,7 @@ void CloseServer()
         on_closed(array[i]);
     }
     free(array);
+    avl_destroy_tree(g_total_connections);
     WSACleanup();
     fprintf(stdout, ("server[%d] closed at %s.\n"), count, Now());
 }
