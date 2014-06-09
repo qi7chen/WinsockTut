@@ -3,7 +3,7 @@
 
 import socket
 import asyncore
-import time
+import random
 import pdb
 
 
@@ -41,14 +41,16 @@ def create_clients(host, port, count, msg):
     for i in range(count):
         c = tcp_client(host, port, msg)
         clients.append(c)
-    return clients
+    return clients          
 
 
 def run_test():
     host = '127.0.0.1'
     port = 32450
-    count = 60  # max 512
+    maxcount = 512  # max 512
     msg = 'GET /index.html HTTP/1.0\r\n\r\n'
+    count = random.randint(1, maxcount)
+    print(count, 'testing client')
     clients = create_clients(host, port, count, msg)
     asyncore.loop()
 
