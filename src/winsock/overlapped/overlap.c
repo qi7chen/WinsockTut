@@ -139,7 +139,7 @@ int overlap_loop()
         return 1;
     }
 
-    count = avl_serialize(g_event_map, eventlist, WSA_MAXIMUM_WAIT_EVENTS);
+    count = avl_serialize(g_event_map, (avl_key_t*)eventlist, WSA_MAXIMUM_WAIT_EVENTS);
     index = WSAWaitForMultipleEvents(count, eventlist, FALSE, 50, FALSE);
     if (index == WSA_WAIT_FAILED)
     {
