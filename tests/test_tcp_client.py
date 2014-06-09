@@ -47,7 +47,7 @@ def create_clients(host, port, count, msg):
 def run_test():
     host = '127.0.0.1'
     port = 32450
-    count = 3  # max 512
+    count = 60  # max 512
     msg = 'GET /index.html HTTP/1.0\r\n\r\n'
     clients = create_clients(host, port, count, msg)
     asyncore.loop()
