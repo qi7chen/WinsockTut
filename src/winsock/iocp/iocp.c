@@ -8,18 +8,26 @@
 
 #define ADDR_LEN (sizeof(struct sockaddr_in) + 16)
 
+/* parse new accepted socket info */
 typedef union accept_info
 {
-    SOCKET sockfd;
-    char addrbuf[kDefaultBufferSize];
+    struct  
+    {
+        SOCKET sockfd;
+        struct sockaddr_in local_addr;
+        char reserve1[16];
+        struct sockaddr_in remote_addr;
+        char reserve2[16];
+    }info;
+    char buffer[kDefaultBufferSize];
 }accept_info;
 
-
+/* internal server data structrue */
 typedef struct iocp_server
 {
-    SOCKET      acceptor;
-    HANDLE      completion_port;
-    avl_tree_t* data_map;
+    SOCKET      acceptor;           /* acceptor socket handle */
+    HANDLE      completion_port;    /* completion port handle */
+    avl_tree_t* data_map;           /* total socket handles */
 }iocp_server;
 
 
@@ -106,6 +114,7 @@ static PER_HANDLE_DATA* alloc_socket_data()
         free_socket_data(handle_data);
         return NULL;
     }
+    memset(handle_data, 0, sizeof(*handle_data));
     handle_data->socket = sockfd;
     handle_data->opertype = OperClose; 
     handle_data->wsbuf.buf = handle_data->buffer;
@@ -164,26 +173,30 @@ static int post_an_accept()
     PER_HANDLE_DATA* accept_data;
 
     acceptor = echo_server.acceptor;
-    handle_data = avl_find(echo_server.data_map, acceptor);
-    if (handle_data == NULL)
-    {
-        return 0;
-    }
-    accept_data = alloc_socket_data();
+    accept_data = avl_find(echo_server.data_map, acceptor);
     if (accept_data == NULL)
     {
         return 0;
     }
-    sockfd = accept_data->socket;
-    info = (accept_info*)accept_data->buffer;
+    accept_data->opertype = OperAccept;
+    handle_data = alloc_socket_data();
+    if (handle_data == NULL)
+    {
+        return 0;
+    }
 
-    error = fnAcceptEx(acceptor, sockfd, &info->addrbuf, 0, 
-        ADDR_LEN, ADDR_LEN, NULL, &handle_data->overlap);
+    sockfd = handle_data->socket;
+    info = (accept_info*)accept_data->buffer;
+    info->info.sockfd = sockfd;
+
+    error = fnAcceptEx(acceptor, sockfd, info->buffer+sizeof(sockfd),
+         0, ADDR_LEN, ADDR_LEN, NULL, &handle_data->overlap);
     if (error == 0)
     {
         error = WSAGetLastError();
         if (error != WSA_IO_PENDING)
         {
+            fprintf(stderr, "AcceptEx() failed[%d], %s.\n", error, LAST_ERROR_MSG);
             free_socket_data(accept_data);
             return 0;
         }
@@ -237,13 +250,6 @@ static void  on_sent(PER_HANDLE_DATA* handle_data)
             on_closed(handle_data);
         }
     }
-    else
-    {
-        if (bytes == 0)
-        {
-            on_closed(handle_data);
-        }
-    }
 }
 
 static void on_recv(PER_HANDLE_DATA* handle_data)
@@ -280,18 +286,18 @@ static void on_accepted(PER_HANDLE_DATA* listen_handle)
     int error;
 
     /* parse accepted socket */
-    struct sockaddr_in* remote_addr_ptr = NULL;
-    struct sockaddr_in* local_addr_ptr = NULL;
+    struct sockaddr_in* remote_addr = NULL;
+    struct sockaddr_in* local_addr = NULL;
     int remote_len = sizeof(struct sockaddr_in);
     int local_len = sizeof(struct sockaddr_in);
 
     assert(listen_handle);
 
     info = (accept_info*)listen_handle->buffer;
-    sockfd = info->sockfd;
+    sockfd = info->info.sockfd;
     
-    fnGetAcceptExSockaddrs(info->addrbuf, 0, ADDR_LEN, ADDR_LEN, (struct sockaddr**)&local_addr_ptr,
-        &local_len, (struct sockaddr**)&remote_addr_ptr, &remote_len);
+    fnGetAcceptExSockaddrs(info->buffer+sizeof(sockfd), 0, ADDR_LEN, ADDR_LEN, 
+        (struct sockaddr**)&local_addr, &local_len, (struct sockaddr**)&remote_addr, &remote_len);
 
     handle = avl_find(echo_server.data_map, (avl_key_t)sockfd);
     if (handle == NULL)
@@ -322,11 +328,11 @@ static int event_loop(PER_HANDLE_DATA** handle)
     int error;
     DWORD bytes = 0;
     WSAOVERLAPPED* overlap = NULL;
-    PER_HANDLE_DATA* handle_data = *handle;
+    PER_HANDLE_DATA* handle_data = NULL;
     HANDLE completion_port = echo_server.completion_port;
 
     error = GetQueuedCompletionStatus(completion_port, &bytes,
-        (ULONG_PTR*)&handle_data, &overlap, INFINITE);
+        (ULONG_PTR*)&handle_data, &overlap, 500);
     if (error == 0)
     {
         error = WSAGetLastError();
@@ -347,6 +353,7 @@ static int event_loop(PER_HANDLE_DATA** handle)
     {
         handle_data->opertype = OperDisconnect;
     }
+    *handle = handle_data;
     return 1;
 }
 
@@ -356,6 +363,10 @@ int server_run()
     if (!event_loop(&handle))
     {
         return 0;
+    }
+    if (handle == NULL)
+    {
+        return 1;
     }
     switch(handle->opertype)
     {
@@ -392,23 +403,24 @@ int server_init(const char* host, short port)
     {
         return 0;
     }
+    echo_server.completion_port = CreateCompletionPort(0);
+    if (echo_server.completion_port == NULL)
+    {
+        avl_destroy_tree(echo_server.data_map);
+        return 0;
+    }
     echo_server.acceptor = create_acceptor(host, port);
     if (echo_server.acceptor == INVALID_SOCKET)
     {
         avl_destroy_tree(echo_server.data_map);
+        CloseHandle(echo_server.completion_port);
         return 0;
     }
     if (!init_extend_function_poiner(echo_server.acceptor))
     {
         avl_destroy_tree(echo_server.data_map);
         closesocket(echo_server.acceptor);
-        return 0;
-    }
-    echo_server.completion_port = CreateCompletionPort(0);
-    if (echo_server.completion_port == NULL)
-    {
-        avl_destroy_tree(echo_server.data_map);
-        closesocket(echo_server.acceptor);
+        CloseHandle(echo_server.completion_port);
         return 0;
     }
 

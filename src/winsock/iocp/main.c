@@ -16,7 +16,7 @@ int main(int argc, const char* argv[])
         port = argv[2];
     }
 
-    if (server_init(host, atoi(port)))
+    if (server_init(host, (short)atoi(port)))
     {
         while (server_run())
             ;
