@@ -28,14 +28,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/common/utility.h',
-            'src/common/utility.c',
-            'src/socket/*.h',
-            'src/socket/*.c',
+            'src/winsock/common/utility.h',
+            'src/winsock/common/utility.c',
+            'src/winsock/socket/*.h',
+            'src/winsock/socket/*.c',
         }
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
     project 'Select'
@@ -50,14 +50,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/common/*.h',
-            'src/common/*.c',
-            'src/select/*.h',
-            'src/select/*.c',
+            'src/winsock/common/*.h',
+            'src/winsock/common/*.c',
+            'src/winsock/select/*.h',
+            'src/winsock/select/*.c',
         }
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
     project 'AsyncSelect'
@@ -72,14 +72,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/common/*.h',
-            'src/common/*.c',
-            'src/async_select/*.h',
-            'src/async_select/*.c',
+            'src/winsock/common/*.h',
+            'src/winsock/common/*.c',
+            'src/winsock/async_select/*.h',
+            'src/winsock/async_select/*.c',
         }
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
     project 'AsyncEvent'
@@ -94,14 +94,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/common/*.h',
-            'src/common/*.c',
-            'src/async_event/*.h',
-            'src/async_event/*.c',
+            'src/winsock/common/*.h',
+            'src/winsock/common/*.c',
+            'src/winsock/async_event/*.h',
+            'src/winsock/async_event/*.c',
         }
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
     project 'CompleteRoutine'
@@ -116,14 +116,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/common/*.h',
-            'src/common/*.c',
-            'src/complete_routine/*.h',
-            'src/complete_routine/*.c',
+            'src/winsock/common/*.h',
+            'src/winsock/common/*.c',
+            'src/winsock/complete_routine/*.h',
+            'src/winsock/complete_routine/*.c',
         }
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
     project 'Overlapped'
@@ -138,14 +138,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/common/*.h',
-            'src/common/*.c',
-            'src/overlapped/*.h',
-            'src/overlapped/*.c',
+            'src/winsock/common/*.h',
+            'src/winsock/common/*.c',
+            'src/winsock/overlapped/*.h',
+            'src/winsock/overlapped/*.c',
         }
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
     project 'IOCP'
@@ -160,14 +160,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/common/*.h',
-            'src/common/*.c',
-            'src/iocp/*.h',
-            'src/iocp/*.c',
+            'src/winsock/common/*.h',
+            'src/winsock/common/*.c',
+            'src/winsock/iocp/*.h',
+            'src/winsock/iocp/*.c',
         }
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
 solution 'TestClient'
@@ -196,14 +196,14 @@ solution 'TestClient'
         }
         files
         {
-            'src/common/*.h',
-            'src/common/*.c',
+            'src/winsock/common/*.h',
+            'src/winsock/common/*.c',
             'tests/test_client/*.h',
             'tests/test_client/*.c',
         }
 
         includedirs
         {
-            'src',
+            'src/winsock',
         }
 
