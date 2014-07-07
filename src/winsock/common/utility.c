@@ -19,10 +19,3 @@ const char* GetErrorMessage(DWORD dwErrorCode)
         0, description, MAX_PATH-1, NULL);
     return description;
 }
-
-size_t GetProcessorNum()
-{
-    SYSTEM_INFO info;
-    GetSystemInfo(&info);
-    return info.dwNumberOfProcessors;
-}

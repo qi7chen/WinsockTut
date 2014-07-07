@@ -91,7 +91,7 @@ static void on_close(PER_HANDLE_DATA* handle_data)
 }
 
 
-/* Send a message after connected */
+/* send a message after connected */
 static void  on_connected(PER_HANDLE_DATA* handle_data)
 {
     int error;
@@ -122,7 +122,7 @@ static void  on_connected(PER_HANDLE_DATA* handle_data)
     }
 }
 
-/* Send message back after recieved */
+/* send message back after recieved */
 static void  on_recv(PER_HANDLE_DATA* handle_data)
 {
     int error;

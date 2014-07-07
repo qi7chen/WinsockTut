@@ -169,7 +169,7 @@ int event_loop(SOCKET acceptor)
 }
 
 
-/* Create acceptor */
+/* create acceptor */
 SOCKET create_acceptor(const char* host, int port)
 {
     int error;

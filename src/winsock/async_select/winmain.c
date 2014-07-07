@@ -7,7 +7,7 @@
 #pragma comment(lib, "mswsock")
 
 
-/* Create a hiden window */
+/* create a hiden window */
 HWND IntiInstance(HINSTANCE hInstance)
 {
     const char* szTitle = "AsyncSelect";

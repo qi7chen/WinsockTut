@@ -13,10 +13,10 @@
 #define WM_SOCKET           WM_USER + 0xF0
 
 
-/* Create acceptor and associate to window message queue */
+/* create acceptor and associate to window message queue */
 int     InitializeServer(HWND hwnd,  const char* host, int port);
 
-/* Close all connection */
+/* close all connection */
 void    CloseServer();
 
 /* I/O operation handling */
