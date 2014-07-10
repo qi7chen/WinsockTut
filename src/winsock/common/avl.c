@@ -188,7 +188,7 @@ static avl_node_t* avl_balance_node(avl_node_t* node, int factor, int rotate)
         case ROT_RIGHT: /* left-right case */
             return avl_node_lr_rot(node);
         default:
-            assert(!"invalid rorotate direction");
+            assert(!"invalid rotate direction");
         }
     }
     else if (factor < -1)  /* right subtree */
@@ -200,7 +200,7 @@ static avl_node_t* avl_balance_node(avl_node_t* node, int factor, int rotate)
         case ROT_RIGHT: /* right-right case */
             return avl_node_rr_rot(node);
         default:
-            assert(!"invalid rorotate direction");
+            assert(!"invalid rotate direction");
         }
     }
     return node;
@@ -225,7 +225,7 @@ static avl_node_t* avl_insert_node(avl_node_t* root, avl_key_t key, void* data)
         root->right = avl_insert_node(root->right, key, data);
     }
     else
-        assert(!"duplicate datum");
+        assert(!"duplicated key insertion not supported");
 
     /* update height */
     root->height = MAX(HEIGHT(root->left), HEIGHT(root->right)) + 1;
@@ -375,6 +375,7 @@ int avl_insert(avl_tree_t* tree, avl_key_t key, void* data)
 /* delete data from tree */
 int avl_delete(avl_tree_t* tree, avl_key_t key)
 {
+    /* find before deletion, faster in missed case but slower in hit case */
     if (tree && avl_node_find(tree->root, key))
     {
         tree->root = avl_remove_node(tree->root, key);
