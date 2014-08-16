@@ -28,14 +28,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/winsock/common/utility.h',
-            'src/winsock/common/utility.c',
-            'src/winsock/socket/*.h',
-            'src/winsock/socket/*.c',
+            'src/common/utility.h',
+            'src/common/utility.c',
+            'src/socket/*.h',
+            'src/socket/*.c',
         }
         includedirs
         {
-            'src/winsock',
+            'src',
         }
 
     project 'Select'
@@ -50,14 +50,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/winsock/common/*.h',
-            'src/winsock/common/*.c',
-            'src/winsock/select/*.h',
-            'src/winsock/select/*.c',
+            'src/common/*.h',
+            'src/common/*.c',
+            'src/select/*.h',
+            'src/select/*.c',
         }
         includedirs
         {
-            'src/winsock',
+            'src',
         }
 
     project 'AsyncSelect'
@@ -72,14 +72,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/winsock/common/*.h',
-            'src/winsock/common/*.c',
-            'src/winsock/async_select/*.h',
-            'src/winsock/async_select/*.c',
+            'src/common/*.h',
+            'src/common/*.c',
+            'src/async_select/*.h',
+            'src/async_select/*.c',
         }
         includedirs
         {
-            'src/winsock',
+            'src',
         }
 
     project 'AsyncEvent'
@@ -94,14 +94,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/winsock/common/*.h',
-            'src/winsock/common/*.c',
-            'src/winsock/async_event/*.h',
-            'src/winsock/async_event/*.c',
+            'src/common/*.h',
+            'src/common/*.c',
+            'src/async_event/*.h',
+            'src/async_event/*.c',
         }
         includedirs
         {
-            'src/winsock',
+            'src',
         }
 
     project 'CompleteRoutine'
@@ -116,14 +116,14 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/winsock/common/*.h',
-            'src/winsock/common/*.c',
-            'src/winsock/complete_routine/*.h',
-            'src/winsock/complete_routine/*.c',
+            'src/common/*.h',
+            'src/common/*.c',
+            'src/complete_routine/*.h',
+            'src/complete_routine/*.c',
         }
         includedirs
         {
-            'src/winsock',
+            'src',
         }
 
     project 'Overlapped'
@@ -138,17 +138,17 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/winsock/common/*.h',
-            'src/winsock/common/*.c',
-            'src/winsock/overlapped/*.h',
-            'src/winsock/overlapped/*.c',
+            'src/common/*.h',
+            'src/common/*.c',
+            'src/overlapped/*.h',
+            'src/overlapped/*.c',
         }
         includedirs
         {
-            'src/winsock',
+            'src',
         }
 
-    project 'IOCP'
+    project 'IOCPServer'
         location 'build'
         kind 'ConsoleApp'
         uuid "588E072A-B1B8-4b36-B9BC-0E82547C7344"
@@ -160,31 +160,16 @@ solution 'WinsockExamples'
         }
         files
         {
-            'src/winsock/common/*.h',
-            'src/winsock/common/*.c',
-            'src/winsock/iocp/*.h',
-            'src/winsock/iocp/*.c',
+            'src/common/*.h',
+            'src/common/*.c',
+            'src/iocp_server/*.h',
+            'src/iocp_server/*.c',
         }
         includedirs
         {
-            'src/winsock',
+            'src',
         }
-
-solution 'TestClient'
-    configurations {'Debug', 'Release'}
-    language 'C++'
-    flags {'ExtraWarnings'}
-    targetdir 'bin'
-
-    configuration 'Debug'
-        defines { 'DEBUG' }
-        flags { 'Symbols' }
-
-    configuration 'Release'
-        defines { 'NDEBUG' }
-        flags { 'Symbols', 'Optimize' }
-
-    project 'TestClient'
+    project 'IOCPClient'
         location 'build'
         kind 'ConsoleApp'
         uuid "FC0C8C22-35CF-4ce4-9A90-F99AD63A7BEA"
@@ -196,14 +181,14 @@ solution 'TestClient'
         }
         files
         {
-            'src/winsock/common/*.h',
-            'src/winsock/common/*.c',
-            'tests/test_client/*.h',
-            'tests/test_client/*.c',
+            'src/common/*.h',
+            'src/common/*.c',
+            'src/iocp_client/*.h',
+            'src/iocp_client/*.c',
         }
 
         includedirs
         {
-            'src/winsock',
+            'src',
         }
 
