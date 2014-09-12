@@ -1,6 +1,6 @@
 # WinsockExamples
 
-Winsock programming examples with 7 different I/O strategies
+WinsockExamples shows usage of different winsock I/O models, with each implemented a simple echo server.
 
 
 ### Build    
