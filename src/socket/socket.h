@@ -2,16 +2,22 @@
  *  @file   socket.h
  *  @author ichenq@gmail.com
  *  @date   Oct 19, 2011
- *  @brief  a simple echo server implemented by basic BSD socket API
- *          one thread per connection
+ *  @brief  a simple echo server implemented by BSD socket
+ *          
  */
 
 #pragma once
 
 #include <WinSock2.h>
 
-/* create a socket for accept */
+
+/* initialize and release internal data */
+int     socket_init();
+void    socket_release();
+
+/* create a listen socket for accept */
 SOCKET  create_acceptor(const char* host, const char* port);
 
-/* create a thread for an accepted socket */
-int     on_accept(SOCKET sockfd);
+/* main loop */
+int     socket_loop(SOCKET sockfd);
+

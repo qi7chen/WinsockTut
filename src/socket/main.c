@@ -8,8 +8,7 @@
 
 
 int main(int argc, const char* argv[])
-{
-    WSADATA data;
+{    
     SOCKET acceptor;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
@@ -20,7 +19,7 @@ int main(int argc, const char* argv[])
         port = argv[2];
     }
 
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    CHECK(socket_init());
 
     acceptor = create_acceptor(host, port);
     if (acceptor == INVALID_SOCKET)
@@ -28,20 +27,10 @@ int main(int argc, const char* argv[])
         return 1;
     }
 
-    for (;;)
-    {
-        struct sockaddr_in addr;
-        int len = sizeof(addr);
-        SOCKET sockfd = accept(acceptor, (struct sockaddr*)&addr, &len);
-        if (sockfd == INVALID_SOCKET)
-        {
-            fprintf(stderr, "accept() failed, %s.\n", LAST_ERROR_MSG);
-            break;
-        }
+    while (socket_loop(acceptor))
+        ;
 
-        on_accept(sockfd);
-    }
+    socket_release();
 
-    WSACleanup();
     return 0;
 }
