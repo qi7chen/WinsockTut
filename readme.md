@@ -1,24 +1,26 @@
-#WinsockExamples
+# WinsockExamples
+
 Winsock programming examples with 7 different I/O strategies
 
-### Build
-    * download [premake4](http://industriousone.com/premake/download)
-    * premake4 vs2008
 
-### Directory
-    * src
-        + socket, BSD socket
-        + select, I/O multiplexing with select()
-        + async_select, I/O multiplexing with WSAAsyncSelect()
-        + async_event, I/O multiplexing with WSAEventSelect()
-        + complete_routine, I/O multiplexing with alertable I/O
-        + overlap, I/O multiplexing with overlapped I/O
-        + iocp, I/O multiplexing with Completion Port
+### Build    
 
-    * tests
-        + test_tcp_client.py, max 512 client connections to test server performance
-        + test_client, client connections multiplexed by I/O Completion Port 
+To build via Visual Studio simply execute:
+
+    premake vs2013
+    
+
+### Introduction
+
+I/O Model       | Description
+----------------|------------
+socket          | basic BSD socket
+select          | with select()
+async_select    | with WSAAsyncSelect()
+async_event     | with WSAAsyncSelect()
+complete_routine| with alertable I/O
+overlap         | with overlapped I/O
+iocp            | with Completion Port, both server and client usage
 
 
-
-
+`test_tcp_client.py` is a simple python script to test server performance
