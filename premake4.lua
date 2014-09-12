@@ -47,6 +47,7 @@ solution 'WinsockExamples'
             'WIN32_LEAN_AND_MEAN',
             '_WIN32_WINNT=0x0501',
             'NOMINMAX',
+            'FD_SETSIZE=1024',
         }
         files
         {
