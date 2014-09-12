@@ -1,4 +1,12 @@
-﻿#include "select.h"
+﻿/**
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
+ */
+
+#include "select.h"
 #include <stdio.h>
 #include <WS2tcpip.h>
 #include "common/utility.h"

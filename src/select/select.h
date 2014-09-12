@@ -1,14 +1,18 @@
 /**
- *  @file   select.h
- *  @author ichenq@gmail.com
- *  @date   Oct 19, 2011
- *  @brief  a simple echo server implemented by select()
- *
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
  */
 
 #pragma once
 
 #include <Winsock2.h>
+
+/*
+ * A simple echo server implemented by select()
+ */
 
 /* initialize and release internal data */
 int     select_init();

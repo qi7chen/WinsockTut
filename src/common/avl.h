@@ -1,10 +1,11 @@
 /**
- *  @file   avl.h
- *  @author ichenq@gmail.com
- *  @date   May 26, 2014
- *  @brief  implment AVL balanced tree
- *
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
  */
+
 #pragma once
 
 #include <stddef.h>

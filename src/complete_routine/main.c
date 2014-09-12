@@ -1,3 +1,11 @@
+/**
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "complete_routine.h"

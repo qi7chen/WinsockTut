@@ -1,4 +1,12 @@
-﻿#include "appdef.h"
+﻿/**
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
+ */
+
+#include "appdef.h"
 #include <assert.h>
 #include "common/utility.h"
 

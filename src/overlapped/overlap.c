@@ -1,4 +1,12 @@
-﻿#include "overlap.h"
+﻿/**
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
+ */
+
+#include "overlap.h"
 #include <assert.h>
 #include <stdio.h>
 #include "common/utility.h"

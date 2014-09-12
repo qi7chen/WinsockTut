@@ -1,13 +1,16 @@
 /**
- *  @file    clients.h
- *  @author: ichenq@gmail.com
- *  @date:   Oct 19, 2011
- *  @brief:  TCP clients implemented by I/O completion port
- *
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
  */
 
 #pragma once
 
+/*
+ * TCP clients implemented by I/O completion port
+ */
 
 /* initialize internal loop data structure */
 int  loop_init();

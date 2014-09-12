@@ -1,3 +1,11 @@
+/**
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License.
+ * See accompanying files LICENSE.
+ */
+
 #include "avl.h"
 #include <malloc.h>
 #include <assert.h>

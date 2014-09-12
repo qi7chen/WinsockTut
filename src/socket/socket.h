@@ -1,15 +1,18 @@
 /**
- *  @file   socket.h
- *  @author ichenq@gmail.com
- *  @date   Oct 19, 2011
- *  @brief  a simple echo server implemented by BSD socket
- *          
+ * Copyright (C) 2014
+ * Johnnie Chen, ichenq@gmail.com
+ *  
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
  */
 
 #pragma once
 
 #include <WinSock2.h>
 
+/*
+ * A simple echo server implemented by BSD socket
+ */
 
 /* initialize and release internal data */
 int     socket_init();
