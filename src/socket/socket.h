@@ -1,7 +1,5 @@
 /**
- * Copyright (C) 2014
- * Johnnie Chen, ichenq@gmail.com
- *  
+ * Copyright (C) 2012-2014 ichenq@gmail.com. All rights reserved.
  * Distributed under the terms and conditions of the Apache License. 
  * See accompanying files LICENSE.
  */

@@ -1,11 +1,9 @@
 /**
- *  @file   server.h
- *  @author ichenq@gmail.com
- *  @date   Oct 19, 2011
- *  @brief  a simple echo server implemented by I/O completion port
- * 
+ * Copyright (C) 2012-2014 ichenq@gmail.com. All rights reserved.
+ * Distributed under the terms and conditions of the Apache License. 
+ * See accompanying files LICENSE.
  */
-
+ 
 #pragma once
 
 #include "common/utility.h"
