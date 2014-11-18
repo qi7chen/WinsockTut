@@ -11,10 +11,6 @@
 #include "common/utility.h"
 
 
-#pragma comment(lib, "ws2_32")
-#pragma comment(lib, "mswsock")
-
-
 /* create a hiden window */
 HWND IntiInstance(HINSTANCE hInstance)
 {

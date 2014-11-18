@@ -10,8 +10,6 @@
 #include "clients.h"
 #include "common/utility.h"
 
-#pragma comment(lib, "ws2_32")
-
 
 int main(int argc, char* argv[])
 {

@@ -2,10 +2,6 @@
 #include "server.h"
 
 
-#pragma comment(lib, "ws2_32")
-#pragma comment(lib, "mswsock")
-
-
 int main(int argc, const char* argv[])
 {
     const char* host = DEFAULT_HOST;
