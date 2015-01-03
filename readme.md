@@ -1,6 +1,6 @@
-# WinsockExamples
+# WinsockTut
 
-WinsockExamples shows usage of different winsock I/O models, with each implemented a simple echo server.
+Winsock tutorial and examples with a simple echo server, showing usage of different winsock I/O strategies.
 
 
 ### Build    
