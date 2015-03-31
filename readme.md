@@ -5,6 +5,8 @@ Winsock tutorial and examples with a simple echo server, showing usage of differ
 
 ### Build    
 
+Obtain [premake4](http://industriousone.com/premake/download).
+
 To build via Visual Studio simply execute:
 
     premake vs2013
