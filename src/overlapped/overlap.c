@@ -86,7 +86,7 @@ int on_accept(SOCKET sockfd)
 {
     WSAEVENT hEvent;
     PER_HANDLE_DATA* handle;
-    int count = avl_size(g_event_map);
+    size_t count = avl_size(g_event_map);
     if (count == WSA_MAXIMUM_WAIT_EVENTS)
     {
         fprintf(stderr, "MAXIMUM_WAIT_EVENTS(%d) limit.\n", WSA_MAXIMUM_WAIT_EVENTS);
@@ -111,7 +111,7 @@ int on_accept(SOCKET sockfd)
 static void on_read(PER_HANDLE_DATA* handle)
 {
     int error;
-    DWORD dwBytes = handle->overlap.InternalHigh;
+    DWORD dwBytes = (DWORD)handle->overlap.InternalHigh;
     if (dwBytes == 0)
     {
         on_close(handle);
@@ -211,7 +211,7 @@ int event_loop(SOCKET acceptor)
 SOCKET create_acceptor(const char* host, int port)
 {
     int error;
-    int sockfd;
+    SOCKET sockfd;
     ULONG nonblock = 1;
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;

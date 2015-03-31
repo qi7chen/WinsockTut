@@ -33,7 +33,7 @@ static int on_accepted(HWND hwnd, SOCKET acceptor)
         return 0;
     }
 
-    avl_insert(g_total_connections, sockfd, NULL);
+    avl_insert(g_total_connections, (avl_key_t)sockfd, NULL);
     fprintf(stdout, ("socket %d accepted at %s.\n"), sockfd, Now());
     return 1;
 }
@@ -41,7 +41,7 @@ static int on_accepted(HWND hwnd, SOCKET acceptor)
 static void on_closed(SOCKET sockfd)
 {
     closesocket(sockfd);
-    avl_delete(g_total_connections, sockfd);
+    avl_delete(g_total_connections, (avl_key_t)sockfd);
     fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
 }
 
@@ -118,7 +118,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
         return 0;
     }
 
-    avl_insert(g_total_connections, acceptor, NULL);
+    avl_insert(g_total_connections, (avl_key_t)acceptor, NULL);
     fprintf(stdout, ("server listen at %s:%d, %s.\n"), host, port, Now());
 
     return 1;
@@ -127,7 +127,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
 void CloseServer()
 {
     int i;
-    int count = avl_size(g_total_connections);
+    size_t count = avl_size(g_total_connections);
     SOCKET* array = (SOCKET*)malloc(count * sizeof(int));
     avl_serialize(g_total_connections, (avl_key_t*)array, count);
     for (i = 0; i < count; ++i)

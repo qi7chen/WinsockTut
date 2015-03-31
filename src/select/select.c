@@ -87,7 +87,7 @@ static void on_socket_event(SOCKET acceptor)
 {
     int i;
     int array[FD_SETSIZE];
-    int size = avl_size(g_total_connections);
+    size_t size = avl_size(g_total_connections);
     avl_serialize(g_total_connections, (avl_key_t*)array, size);
 
     /* check connection for read/write */
@@ -171,7 +171,7 @@ SOCKET  create_acceptor(const char* host, const char* port)
             fprintf(stderr,"socket() failed, %s", LAST_ERROR_MSG);
             continue;
         }
-        error = bind(sockfd, pinfo->ai_addr, pinfo->ai_addrlen);
+        error = bind(sockfd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
         if (error == SOCKET_ERROR)
         {
             fprintf(stderr, "bind() failed, addr: %s, len: %d, %s",

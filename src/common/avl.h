@@ -33,7 +33,7 @@ avl_key_t   avl_find_max(avl_tree_t* tree);
 /* insertion and deletion */
 int avl_insert(avl_tree_t* tree, avl_key_t key, void* data);
 int avl_delete(avl_tree_t* tree, avl_key_t key);
-int avl_size(avl_tree_t* tree);
+size_t avl_size(avl_tree_t* tree);
 
 /* serialize data to an array */
 int avl_serialize(avl_tree_t* tree, avl_key_t array[], size_t len);

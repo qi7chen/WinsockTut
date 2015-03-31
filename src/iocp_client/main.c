@@ -13,13 +13,13 @@ int main(int argc, char* argv[])
 {
     int timeout = 500;
     const char* default_host = DEFAULT_HOST;
-    short default_port = atoi(DEFAULT_PORT);
+    short default_port = (short)atoi(DEFAULT_PORT);
     int default_count = 2000;
 
     if (argc == 4)
     {
         default_host = argv[1];
-        default_port = atoi(argv[2]);
+        default_port = (short)atoi(argv[2]);
         default_count = atoi(argv[3]);
     }
 

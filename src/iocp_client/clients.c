@@ -110,7 +110,7 @@ static void  on_connected(PER_HANDLE_DATA* handle_data)
 
     memcpy_s(handle_data->buffer, kDefaultBufferSize, msg, len);
     memset(&handle_data->overlap, 0, sizeof(handle_data->overlap));
-    handle_data->wsbuf.len = len;
+    handle_data->wsbuf.len = (ULONG)len;
     handle_data->opertype = OperSend;
 
     error = WSASend(handle_data->socket, &handle_data->wsbuf, 1, &bytes,
@@ -139,7 +139,7 @@ static void  on_recv(PER_HANDLE_DATA* handle_data)
     /* pause */
     Sleep(200);
 
-    bytes = handle_data->overlap.InternalHigh;
+    bytes = (DWORD)handle_data->overlap.InternalHigh;
     memset(&handle_data->overlap, 0, sizeof(handle_data->overlap));
     handle_data->wsbuf.len = bytes;
     handle_data->wsbuf.buf[bytes] = '\0';

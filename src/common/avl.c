@@ -392,7 +392,7 @@ int avl_delete(avl_tree_t* tree, avl_key_t key)
 }
 
 /* how many item a tree has */
-int avl_size(avl_tree_t* tree)
+size_t avl_size(avl_tree_t* tree)
 {
     return (tree ? tree->size : 0);
 }

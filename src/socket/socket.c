@@ -41,7 +41,7 @@ static unsigned CALLBACK handle_client(void* param)
     return 0;
 }
 
-static int on_accept(SOCKET sockfd)
+static intptr_t on_accept(SOCKET sockfd)
 {
     fprintf(stderr, "socket %d accepted, %s.\n", sockfd, Now());
     return _beginthreadex(NULL, 0, handle_client, (void*)sockfd, 0, NULL);
@@ -99,7 +99,7 @@ SOCKET  create_acceptor(const char* host, const char* port)
             fprintf(stderr,"socket() failed, %s", LAST_ERROR_MSG);
             continue;
         }
-        error = bind(sockfd, pinfo->ai_addr, pinfo->ai_addrlen);
+        error = bind(sockfd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
         if (error == SOCKET_ERROR)
         {
             fprintf(stderr, "bind() failed, addr: %s, len: %d, %s",

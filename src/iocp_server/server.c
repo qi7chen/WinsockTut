@@ -136,7 +136,7 @@ static PER_HANDLE_DATA* alloc_socket_data()
 static SOCKET create_acceptor(const char* host, short port)
 {
     int error;
-    int sockfd;
+    SOCKET sockfd;
     struct sockaddr_in addr;
     PER_HANDLE_DATA* handle_data;
 
@@ -179,7 +179,7 @@ static int post_an_accept()
     PER_HANDLE_DATA* accept_data;
 
     acceptor = echo_server.acceptor;
-    accept_data = avl_find(echo_server.data_map, acceptor);
+    accept_data = avl_find(echo_server.data_map, (avl_key_t)acceptor);
     if (accept_data == NULL)
     {
         return 0;
@@ -264,7 +264,7 @@ static void on_recv(PER_HANDLE_DATA* handle_data)
     DWORD bytes;
 
     assert(handle_data);
-    bytes = handle_data->overlap.InternalHigh;
+    bytes = (DWORD)handle_data->overlap.InternalHigh;
     handle_data->wsbuf.len = bytes;
     handle_data->opertype = OperSend;
     memset(&handle_data->overlap, 0, sizeof(handle_data->overlap));

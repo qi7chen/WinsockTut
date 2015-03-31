@@ -208,17 +208,17 @@ int comp_routine_init()
 
 void comp_routine_release()
 {
-    int i;
-    int count = avl_size(g_connections_map);
+    size_t i;
+    size_t count = avl_size(g_connections_map);
     SOCKET* array = (SOCKET*)malloc(count * sizeof(int));
     avl_serialize(g_connections_map, (avl_key_t*)array, count);
     for (i = 0; i < count; ++i)
     {
-        socket_data_t* data = (socket_data_t*)avl_find(g_connections_map, array[i]);
+        socket_data_t* data = (socket_data_t*)avl_find(g_connections_map, (avl_key_t)array[i]);
         if (data)
         {
             free_data(data);
-            avl_delete(g_connections_map, array[i]);
+            avl_delete(g_connections_map, (avl_key_t)array[i]);
         }
     }
     free(array);
