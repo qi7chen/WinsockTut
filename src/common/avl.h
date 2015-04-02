@@ -7,7 +7,6 @@
 #pragma once
 
 #include <stddef.h>
-#include <stdint.h>
 
 struct avl_node;
 struct avl_tree;
@@ -15,7 +14,7 @@ struct avl_tree;
 typedef struct avl_node avl_node_t;
 typedef struct avl_tree avl_tree_t;
 
-typedef int32_t   avl_key_t;
+typedef intptr_t   avl_key_t;
 
 /************************************************************************/
 /* AVL tree interface                                                   */
