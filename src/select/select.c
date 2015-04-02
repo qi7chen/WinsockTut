@@ -83,7 +83,7 @@ static void on_close(SOCKET sockfd)
 
 static void on_socket_event(SOCKET acceptor)
 {
-    int i;
+    size_t i;
     int array[FD_SETSIZE];
     size_t size = avl_size(g_total_connections);
     avl_serialize(g_total_connections, (avl_key_t*)array, size);
