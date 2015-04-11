@@ -5,34 +5,30 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include "overlap.h"
+#include <WinSock2.h>
+#include "EchoServer.h"
 #include "common/utility.h"
-
 
 int main(int argc, const char* argv[])
 {
-    SOCKET acceptor;
+    int r = 0;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
-
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
-    if(overlap_init())
+
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+
+    r = StartEchoServer(host, port);
+    if (r < 0)
     {
-        acceptor = create_acceptor(host, atoi(port));
-        if (acceptor == INVALID_SOCKET)
-        {
-            return 1;
-        }
-        while (event_loop(acceptor))
-        {
-        };
+        fprintf(stderr, "start echo server failed.\n");
     }
 
-    overlap_release();
-    return 0;
+    WSACleanup();
+    return r;
 }
