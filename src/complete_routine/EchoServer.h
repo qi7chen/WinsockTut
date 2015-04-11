@@ -11,13 +11,4 @@
 /*
  * A simple echo server implemented by alertable I/O
  */
-
-/* initialize and release internal data */
-int     comp_routine_init();
-void    comp_routine_release();
-
-/* create listen socket for accept */
-SOCKET  create_acceptor(const char* host, int port);
-
-/* run alertable event */
-int     event_loop(SOCKET acceptor);
+int StartEchoServer(const char* host, const char* port);
