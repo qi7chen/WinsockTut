@@ -6,125 +6,131 @@
 
 #include <stdio.h>
 #include "common/utility.h"
-#include "common/avl.h"
 
 
-static avl_tree_t*  g_events_map;       /* total events */
-static avl_tree_t*  g_connections_map;  /* total socket descriptors */
+static int      g_count = 0;
+static WSAEVENT g_events[WSA_MAXIMUM_WAIT_EVENTS];       /* total events */
+static SOCKET   g_connections[WSA_MAXIMUM_WAIT_EVENTS];  /* total socket descriptors */
 
-
-static int on_close(SOCKET sockfd, int error)
+static int OnClose(SOCKET sockfd, int index, int error)
 {
-    WSAEVENT hEvent = (WSAEVENT)avl_find(g_connections_map, (avl_key_t)sockfd);
-    if (hEvent == NULL)
+    int i;
+    WSAEVENT hEvent = g_events[index];
+    if (hEvent == WSA_INVALID_EVENT || hEvent == NULL)
     {
-        fprintf(stderr, ("on_close(): socket %d not found.\n"), sockfd);
-        return 0;
+        return -1;
     }
     WSAEventSelect(sockfd, NULL, 0);
     WSACloseEvent(hEvent);
     closesocket(sockfd);
-    avl_delete(g_connections_map, (avl_key_t)sockfd);
-    avl_delete(g_events_map, (avl_key_t)hEvent);
+    g_events[index] = WSA_INVALID_EVENT;
+    g_connections[index] = INVALID_SOCKET;
+    for (i = index; i < g_count-1; ++i)
+    {
+        g_events[i] = g_events[i + 1];
+        g_connections[i] = g_connections[i + 1];
+    }
+    g_count--;
     fprintf(stderr, ("socket %d closed at %s.\n"), sockfd, Now());
-    return 1;
+    return 0;
 }
 
-
-static int on_recv(SOCKET sockfd, int error)
+static int OnRecv(SOCKET sockfd, int index, int error)
 {
-    char databuf[kDefaultBufferSize];
-    int bytes = recv(sockfd, databuf, kDefaultBufferSize, 0);
-    if (bytes == SOCKET_ERROR && bytes == 0)
+    char buffer[DEFAULT_BUFFER_SIZE];
+    int bytes = recv(sockfd, buffer, DEFAULT_BUFFER_SIZE, 0);
+    if (bytes == SOCKET_ERROR)
     {
-        return on_close(sockfd, 0);
+        return OnClose(sockfd, index, 0);
     }
-    /* send back */
-    bytes = send(sockfd, databuf, bytes, 0);
     if (bytes == 0)
     {
-        return on_close(sockfd, 0);
+        return OnClose(sockfd, index, 0);
     }
-    return 1;
+    /* send back */
+    bytes = send(sockfd, buffer, bytes, 0);
+    if (bytes == 0)
+    {
+        return OnClose(sockfd, index, 0);
+    }
+    shutdown(sockfd, SD_BOTH);
+    return 0;
 }
 
-static int on_write(SOCKET sockfd, int error)
+static int OnWrite(SOCKET sockfd, int index, int error)
 {
-    return 1;
+    return 0;
 }
 
 /* on new connection arrival */
-static int on_accept(SOCKET sockfd)
+static int OnAccept(SOCKET sockfd)
 {
     WSAEVENT hEvent;
-    
-    if (avl_size(g_events_map) == WSA_MAXIMUM_WAIT_EVENTS)
+    if (g_count == WSA_MAXIMUM_WAIT_EVENTS)
     {
         fprintf(stderr, "maximum event size limit(%d).\n", WSA_MAXIMUM_WAIT_EVENTS);
-        return 1;
+        return -1;
     }
     hEvent = WSACreateEvent();
     if (hEvent == WSA_INVALID_EVENT)
     {
         fprintf(stderr, ("WSACreateEvent() failed, %s"), LAST_ERROR_MSG);
-        return 0;
+        return -2;
     }
     /* associate event handle */
     if (WSAEventSelect(sockfd, hEvent, FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR)
     {
         WSACloseEvent(hEvent);
         fprintf(stderr, ("WSAEventSelect() failed, %s"), LAST_ERROR_MSG);
-        return 0;
+        return -3;
     }
 
-    avl_insert(g_events_map, (avl_key_t)hEvent, (void*)sockfd);
-    avl_insert(g_connections_map, (avl_key_t)sockfd, hEvent);
+    g_events[g_count] = hEvent;
+    g_connections[g_count] = sockfd;
+    g_count++;
 
     fprintf(stdout, ("socket %d connected at %s.\n"), sockfd, Now());
-    return 1;
+    return 0;
 }
 
 
-static int  handle_event(SOCKET sockfd, const WSANETWORKEVENTS* events_struct)
+static int HandleEvents(SOCKET sockfd, int index, const WSANETWORKEVENTS* events_struct)
 {
     const int* errorlist = events_struct->iErrorCode;
     int events = events_struct->lNetworkEvents;
     if (events & FD_READ)
     {
-        on_recv(sockfd, errorlist[FD_READ_BIT]);
+        OnRecv(sockfd, index, errorlist[FD_READ_BIT]);
     }
     if (events & FD_WRITE)
     {
-        on_write(sockfd, errorlist[FD_WRITE_BIT]);
+        OnWrite(sockfd, index, errorlist[FD_WRITE_BIT]);
     }
     if (events & FD_CLOSE)
     {
-        on_close(sockfd, errorlist[FD_CLOSE_BIT]);
+        OnClose(sockfd, index, errorlist[FD_CLOSE_BIT]);
     }
-    return 1;
+    return 0;
 }
 
-int asyn_select_loop()
+static int AsynSelectLoop()
 {
     size_t index;
     int nready;
-    int count;
     WSAEVENT hEvent;
     SOCKET sockfd;
     WSANETWORKEVENTS event_struct;
-    WSAEVENT eventlist[WSA_MAXIMUM_WAIT_EVENTS];
 
-    if (avl_size(g_events_map) == 0)
+    if (g_count == 0)
     {
         Sleep(10);
-        return 1;
+        return 0;
     }
-    count = avl_serialize(g_events_map, (avl_key_t*)eventlist, WSA_MAXIMUM_WAIT_EVENTS);
-    nready = WSAWaitForMultipleEvents(count, eventlist, FALSE, 100, FALSE);
+    nready = WSAWaitForMultipleEvents(g_count, g_events, FALSE, 100, FALSE);
     if (nready == WSA_WAIT_FAILED)
     {
         fprintf(stderr, ("WSAWaitForMultipleEvents() failed, %s"), LAST_ERROR_MSG);
-        return 0;
+        return -1;
     }
     else if (nready == WSA_WAIT_TIMEOUT)
     {
@@ -138,45 +144,23 @@ int asyn_select_loop()
         if (index >= WSA_MAXIMUM_WAIT_EVENTS)
         {
             fprintf(stderr, "invalid event index: %d.\n", index);
-            return 1;
+            return -2;
         }
-        hEvent = eventlist[index];
-        sockfd = (SOCKET)avl_find(g_events_map, (avl_key_t)hEvent);
-        if (sockfd == 0)
-        {
-            fprintf(stderr, "invalid event object %p.\n", &hEvent);
-            return 1;
-        }
+        sockfd = g_connections[index];
+        hEvent = g_events[index];
         if (WSAEnumNetworkEvents(sockfd, hEvent, &event_struct) == SOCKET_ERROR)
         {
             fprintf(stderr, ("WSAEnumNetworkEvents() failed, %s"), LAST_ERROR_MSG);
-            on_close(sockfd, 0);
-            return 0;
+            OnClose(sockfd, index, 0);
+            return -3;
         }
-        handle_event(sockfd, &event_struct);
+        HandleEvents(sockfd, index, &event_struct);
     }
-    return 1;
+    return 0;
 }
-
-int event_loop(SOCKET acceptor)
-{
-    SOCKET sockfd = accept(acceptor, NULL, NULL);
-    if (sockfd != SOCKET_ERROR)
-    {
-        if (!on_accept(sockfd))
-            return 0;
-    }
-    else
-    {
-        if (!asyn_select_loop())
-            return 0;
-    }
-    return 1;
-}
-
 
 /* create acceptor */
-SOCKET create_acceptor(const char* host, int port)
+static SOCKET CreateAcceptor(const char* host, int port)
 {
     int error;
     ULONG nonblock = 1;
@@ -216,19 +200,28 @@ SOCKET create_acceptor(const char* host, int port)
     return acceptor;
 }
 
-int async_event_init()
+int StartEchoServer(const char* host, const char* port)
 {
-    WSADATA data;
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
-    g_events_map = avl_create_tree();
-    g_connections_map = avl_create_tree();
-    CHECK(g_events_map && g_connections_map);
-    return 1;
-}
+    SOCKET sockfd;
+    SOCKET acceptor = CreateAcceptor(host, atoi(port));
+    if (acceptor == INVALID_SOCKET)
+    {
+        return -1;
+    }
+    for (;;)
+    {
+        SOCKET sockfd = accept(acceptor, NULL, NULL);
+        if (sockfd != SOCKET_ERROR)
+        {
+            if (OnAccept(sockfd) != 0)
+                break;
+        }
+        else
+        {
+            if (AsynSelectLoop() != 0)
+                break;
+        }
+    }
 
-void async_event_release()
-{
-    avl_destroy_tree(g_events_map);
-    avl_destroy_tree(g_connections_map);
-    WSACleanup();
+    return 0;
 }

@@ -5,14 +5,13 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include "async_event.h"
+#include "EchoServer.h"
 #include "common/utility.h"
 
 
 int main(int argc, const char* argv[])
 {
-    SOCKET acceptor;
+    int r = 0;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
     if (argc > 2)
@@ -21,18 +20,16 @@ int main(int argc, const char* argv[])
         port = argv[2];
     }
 
-    async_event_init();
-    acceptor = create_acceptor(host, atoi(port));
-    if (acceptor == INVALID_SOCKET)
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+
+    r = StartEchoServer(host, port);
+    if (r < 0)
     {
-        return 1;
+        fprintf(stderr, "start echo server failed.\n");
     }
 
-    while (event_loop(acceptor))
-    {
-    }
-
-    async_event_release();
-    return 0;
+    WSACleanup();
+    return r;
 }
 
