@@ -5,11 +5,14 @@
  */
  
 #include <stdio.h>
-#include "server.h"
+#include <WinSock2.h>
+#include "EchoServer.h"
+#include "common/utility.h"
 
 
 int main(int argc, const char* argv[])
 {
+    int r = 0;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
     if (argc > 2)
@@ -18,13 +21,16 @@ int main(int argc, const char* argv[])
         port = argv[2];
     }
 
-    if (server_init(host, (short)atoi(port)))
-    {
-        while (server_run())
-            ;
-    }
-    server_destroy();
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
-    return 0;
+    r = StartEchoServer(host, port);
+    if (r < 0)
+    {
+        fprintf(stderr, "start echo server failed.\n");
+    }
+
+    WSACleanup();
+    return r;
 }
 
