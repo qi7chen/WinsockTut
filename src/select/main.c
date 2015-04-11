@@ -4,35 +4,30 @@
  * See accompanying files LICENSE.
  */
 
-#include "select.h"
+#include <stdio.h>
+#include "EchoServer.h"
 #include "common/utility.h"
 
 int main(int argc, const char* argv[])
 {
-    SOCKET acceptor;
+    int r = 0;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
-
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
 
-    CHECK(select_init());
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
-    acceptor = create_acceptor(host, port);
-    if (acceptor == INVALID_SOCKET)
+    r = StartEchoServer(host, port);
+    if (r < 0)
     {
-        return 1;
+        fprintf(stderr, "start echo server failed.\n");
     }
 
-    while (select_loop(acceptor))
-    {
-    }
-
-    select_release();
-
-    return 0;
+    WSACleanup();
+    return r;
 }
-

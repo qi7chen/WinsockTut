@@ -4,24 +4,21 @@
  * See accompanying files LICENSE.
  */
 
-#include "select.h"
+#include "EchoServer.h"
 #include <stdio.h>
 #include <WS2tcpip.h>
 #include "common/utility.h"
-#include "common/avl.h"
 
 
 #pragma warning(disable:4127)
 
+static SOCKET   g_connections[FD_SETSIZE];  /* total socket file descriptor */
+static int      g_count = 0;
 
-static avl_tree_t*  g_total_connections;    /* totocal client connections */
-static fd_set       g_readset;  /* total socket file descriptor */
-
-
-static int on_recv(SOCKET sockfd)
+static int OnRecv(SOCKET sockfd)
 {
-    char buf[kDefaultBufferSize];
-    int bytes = recv(sockfd, buf, kDefaultBufferSize, 0);
+    char buf[DEFAULT_BUFFER_SIZE];
+    int bytes = recv(sockfd, buf, DEFAULT_BUFFER_SIZE, 0);
     if (bytes == SOCKET_ERROR)
     {
         fprintf(stderr, ("recv() failed, %s"), LAST_ERROR_MSG);
@@ -38,12 +35,11 @@ static int on_recv(SOCKET sockfd)
         fprintf(stderr, ("send() failed, %s"), LAST_ERROR_MSG);
         return 0;
     }
-
+    shutdown(sockfd, SD_BOTH);
     return 1;
 }
 
-
-static int on_accept(SOCKET acceptor)
+static int OnAccept(SOCKET acceptor)
 {
     ULONG nonblock = 1;
     SOCKET sockfd;
@@ -51,7 +47,7 @@ static int on_accept(SOCKET acceptor)
     int addrlen = sizeof(addr);
 
     /* the evil 64 limit */
-    if (avl_size(g_total_connections) == FD_SETSIZE - 1)
+    if (g_count == FD_SETSIZE - 1)
     {
         fprintf(stderr, ("reach fd_set size limit(%d).\n"), FD_SETSIZE);
         return 0;
@@ -69,79 +65,84 @@ static int on_accept(SOCKET acceptor)
         closesocket(sockfd);
         return 0;
     }
-    avl_insert(g_total_connections, (avl_key_t)sockfd, NULL);
+    g_connections[g_count++] = sockfd;
     fprintf(stdout, ("socket %d accepted at %s.\n"), sockfd, Now());
     return 1;
 }
 
-static void on_close(SOCKET sockfd)
+static void OnClose(SOCKET sockfd)
 {
+    int i;
+    for (i = 0; i < g_count; ++i)
+    {
+        if (g_connections[i] == sockfd)
+        {
+            g_connections[i] = INVALID_SOCKET;
+            break;
+        }
+    }
+    while (i < g_count - 1)
+    {
+        g_connections[i] = g_connections[i + 1];
+    }
+    g_count--;
     closesocket(sockfd);
-    avl_delete(g_total_connections, (avl_key_t)sockfd);
     fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
 }
 
-static void on_socket_event(SOCKET acceptor)
+static void OnSocketEvent(SOCKET acceptor, fd_set* readset)
 {
-    size_t i;
-    int array[FD_SETSIZE];
-    size_t size = avl_size(g_total_connections);
-    avl_serialize(g_total_connections, (avl_key_t*)array, size);
+    int i;
 
     /* check connection for read/write */
-    for (i = 0; i < size; ++i)
+    for (i = 0; i < g_count; ++i)
     {
-        SOCKET sockfd = array[i];
-        if (FD_ISSET(sockfd, &g_readset))
+        SOCKET sockfd = g_connections[i];
+        if (FD_ISSET(sockfd, readset))
         {
-            if (!on_recv(sockfd))
+            if (!OnRecv(sockfd))
             {
-                on_close(sockfd);
+                OnClose(sockfd);
             }
         }
     }
 
     /* have new connection? */
-    if (FD_ISSET(acceptor, &g_readset))
+    if (FD_ISSET(acceptor, readset))
     {
-        on_accept(acceptor);
+        OnAccept(acceptor);
     }
 }
 
-int select_loop(SOCKET acceptor)
+static int SelectLoop(SOCKET acceptor)
 {
     int nready;
-    int count = 0;
-    struct timeval timeout = {0, 500*1000}; /* 50 ms timeout */
+    fd_set readset;
+    struct timeval timeout = {0, 100*1000}; /* 10 ms timeout */
 
-    FD_ZERO(&g_readset);
-    count = avl_serialize(g_total_connections, (avl_key_t*)g_readset.fd_array, FD_SETSIZE);
-    g_readset.fd_count = count;
-    if (count < FD_SETSIZE-1) // max monitor number
-    {
-        FD_SET(acceptor, &g_readset);
-    }
+    memcpy(readset.fd_array, g_connections, g_count * sizeof(SOCKET));
+    readset.fd_count = g_count;
+    FD_SET(acceptor, &readset);
 
-    nready = select(0, &g_readset, NULL, NULL, &timeout);
+    nready = select(0, &readset, NULL, NULL, &timeout);
     if (nready == SOCKET_ERROR)
     {
         fprintf(stderr, ("select() failed, %s"), LAST_ERROR_MSG);
-        return 0;
+        return -1;
     }
     if (nready == 0) /* timed out */
     {
-        return 1;
+        return 0;
     }
 
     /* check connection for read/write */
-    on_socket_event(acceptor);
+    OnSocketEvent(acceptor, &readset);
 
-    return 1;
+    return 0;
 }
 
-
 /* create acceptor socket */
-SOCKET  create_acceptor(const char* host, const char* port)
+static SOCKET  CreateAcceptor(const char* host, const char* port)
 {
     int error;
     ULONG nonblock = 1;
@@ -201,17 +202,16 @@ SOCKET  create_acceptor(const char* host, const char* port)
     return sockfd;
 }
 
-int select_init()
+int StartEchoServer(const char* host, const char* port)
 {
-    WSADATA data;
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
-    g_total_connections = avl_create_tree();
-    CHECK(g_total_connections != NULL);
-    return 1;
-}
-
-void select_release()
-{
-    avl_destroy_tree(g_total_connections);
-    WSACleanup();
+    SOCKET acceptor = CreateAcceptor(host, port);
+    if (acceptor == INVALID_SOCKET)
+    {
+        return -1;
+    }
+    while (SelectLoop(acceptor) == 0)
+    {
+    }
+    closesocket(acceptor);
+    return 0;
 }
