@@ -25,6 +25,7 @@ int main(int argc, const char* argv[])
 {
     HWND hWnd;
     MSG msg;
+    WSADATA data;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
     if (argc > 2)
@@ -34,7 +35,8 @@ int main(int argc, const char* argv[])
     }
 
     hWnd = IntiInstance((HINSTANCE)GetModuleHandle(NULL));
-    CHECK(InitializeServer(hWnd, host, atoi(port)));
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    CHECK(InitEchoServer(hWnd, host, port) == 0);
 
     while (GetMessage(&msg, NULL, 0, 0))
     {
@@ -51,7 +53,7 @@ int main(int argc, const char* argv[])
             DispatchMessage(&msg);
         }
     }
-
+    WSACleanup();
     CloseServer();
     return 0;
 }

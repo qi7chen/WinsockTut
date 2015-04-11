@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <assert.h>
 #include "appdef.h"
 #include "common/avl.h"
 #include "common/utility.h"
@@ -13,7 +14,7 @@
 static avl_tree_t*  g_total_connections; /* total client connections */
 
 
-static int on_accepted(HWND hwnd, SOCKET acceptor)
+static int OnAccept(HWND hwnd, SOCKET acceptor)
 {
     int error;
     struct sockaddr_in addr;
@@ -22,69 +23,69 @@ static int on_accepted(HWND hwnd, SOCKET acceptor)
     if (sockfd == INVALID_SOCKET)
     {
         fprintf(stderr, ("accpet() failed, %s"), LAST_ERROR_MSG);
-        return 0;
+        return -1;
     }
-
     error = WSAAsyncSelect(sockfd, hwnd, WM_SOCKET, FD_WRITE|FD_READ|FD_CLOSE);
     if (error == SOCKET_ERROR)
     {
         fprintf(stderr, ("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(sockfd);
-        return 0;
+        return -2;
     }
-
     avl_insert(g_total_connections, (avl_key_t)sockfd, NULL);
     fprintf(stdout, ("socket %d accepted at %s.\n"), sockfd, Now());
-    return 1;
+    return 0;
 }
 
-static void on_closed(SOCKET sockfd)
+static void OnClose(SOCKET sockfd)
 {
     closesocket(sockfd);
     avl_delete(g_total_connections, (avl_key_t)sockfd);
     fprintf(stdout, ("socket %d closed at %s.\n"), sockfd, Now());
 }
 
-static int on_recv(SOCKET sockfd)
+static int OnRecv(SOCKET sockfd)
 {
-    char databuf[kDefaultBufferSize];
-    int bytes = recv(sockfd, databuf, kDefaultBufferSize, 0);
-    if (bytes == SOCKET_ERROR || bytes == 0)
+    char buffer[DEFAULT_BUFFER_SIZE];
+    int bytes = recv(sockfd, buffer, DEFAULT_BUFFER_SIZE, 0);
+    if (bytes == SOCKET_ERROR)
     {
-        on_closed(sockfd);
-        return 0;
+        OnClose(sockfd);
+        return -1;
     }
-
-    bytes = send(sockfd, databuf, bytes, 0);
     if (bytes == 0)
     {
-        on_closed(sockfd);
-        return 0;
+        OnClose(sockfd);
+        return -2;
     }
-    return 1;
+    bytes = send(sockfd, buffer, bytes, 0);
+    if (bytes == 0)
+    {
+        OnClose(sockfd);
+        return -3;
+    }
+    shutdown(sockfd, SD_BOTH);
+    return 0;
 }
 
-int InitializeServer(HWND hwnd, const char* host, int port)
+int InitEchoServer(HWND hwnd, const char* host, const char* port)
 {
-    int error;
-    WSADATA data;
+    int error;    
     SOCKET acceptor;
     struct sockaddr_in addr;
-
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
     g_total_connections = avl_create_tree();
     CHECK(g_total_connections != NULL);
 
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(host);
-    addr.sin_port = htons((short)port);
+    addr.sin_port = htons((short)atoi(port));
     acceptor = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (acceptor == INVALID_SOCKET)
     {
         fprintf(stderr, ("socket() failed, %s"), LAST_ERROR_MSG);
         avl_destroy_tree(g_total_connections);
-        return 0;
+        return -1;
     }
 
     error = bind(acceptor, (struct sockaddr*)&addr, sizeof(addr));
@@ -93,7 +94,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
         fprintf(stderr, ("bind() failed, %s"), LAST_ERROR_MSG);
         closesocket(acceptor);
         avl_destroy_tree(g_total_connections);
-        return 0;
+        return -2;
     }
 
     error = listen(acceptor, SOMAXCONN);
@@ -102,7 +103,7 @@ int InitializeServer(HWND hwnd, const char* host, int port)
         fprintf(stderr, ("listen() failed, %s"), LAST_ERROR_MSG);
         closesocket(acceptor);
         avl_destroy_tree(g_total_connections);
-        return 0;
+        return -3;
     }
 
     /* http://msdn.microsoft.com/en-us/library/windows/desktop/ms741540(v=vs.85).aspx
@@ -115,28 +116,28 @@ int InitializeServer(HWND hwnd, const char* host, int port)
         fprintf(stderr, ("WSAAsyncSelect() failed, %s"), LAST_ERROR_MSG);
         closesocket(acceptor);
         avl_destroy_tree(g_total_connections);
-        return 0;
+        return -4;
     }
 
     avl_insert(g_total_connections, (avl_key_t)acceptor, NULL);
-    fprintf(stdout, ("server listen at %s:%d, %s.\n"), host, port, Now());
+    fprintf(stdout, ("server listen at %s:%s, %s.\n"), host, port, Now());
 
-    return 1;
+    return 0;
 }
 
 void CloseServer()
 {
-    int i;
+    size_t i;
     size_t count = avl_size(g_total_connections);
     SOCKET* array = (SOCKET*)malloc(count * sizeof(int));
     avl_serialize(g_total_connections, (avl_key_t*)array, count);
     for (i = 0; i < count; ++i)
     {
-        on_closed(array[i]);
+        OnClose(array[i]);
     }
     free(array);
     avl_destroy_tree(g_total_connections);
-    WSACleanup();
+    
     fprintf(stdout, ("server[%d] closed at %s.\n"), count, Now());
 }
 
@@ -144,25 +145,27 @@ int HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error)
 {
     if (error)
     {
-        on_closed(sockfd);
+        OnClose(sockfd);
         return 0;
     }
     switch(event)
     {
     case FD_ACCEPT:
-        on_accepted(hwnd, sockfd);
-        break;
+        return OnAccept(hwnd, sockfd);
+
     case FD_READ:
-        on_recv(sockfd);
-        break;
+        return OnRecv(sockfd);
+
     case FD_WRITE:
         /* do nothing */
         break;
+
     case FD_CLOSE:
-        on_closed(sockfd);
+        OnClose(sockfd);
         break;
+
     default:
-        break;
+        assert(!"cannot reach here!");
     }
-    return 1;
+    return 0;
 }

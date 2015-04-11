@@ -16,7 +16,7 @@
 
 
 /* create acceptor and associate to window message queue */
-int     InitializeServer(HWND hwnd,  const char* host, int port);
+int     InitEchoServer(HWND hwnd,  const char* host, const char* port);
 
 /* close all connection */
 void    CloseServer();
