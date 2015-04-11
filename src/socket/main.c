@@ -5,35 +5,29 @@
  */
 
 #include <stdio.h>
-#include <process.h>
-#include "socket.h"
+#include "EchoServer.h"
 #include "common/utility.h"
 
-
 int main(int argc, const char* argv[])
-{    
-    SOCKET acceptor;
+{
+    int r = 0;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
-
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
 
-    CHECK(socket_init());
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
-    acceptor = create_acceptor(host, port);
-    if (acceptor == INVALID_SOCKET)
+    r = StartEchoServer(host, port);
+    if (r < 0)
     {
-        return 1;
+        fprintf(stderr, "start echo server failed.\n");
     }
 
-    while (socket_loop(acceptor))
-        ;
-
-    socket_release();
-
-    return 0;
+    WSACleanup();
+    return r;
 }

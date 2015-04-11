@@ -4,74 +4,51 @@
  * See accompanying files LICENSE.
  */
 
-#include "socket.h"
+#include "EchoServer.h"
 #include <stdio.h>
+#include <assert.h>
+#include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <process.h>
 #include "common/utility.h"
 
-
 /* thread for each connection */
-static unsigned CALLBACK handle_client(void* param)
+static unsigned CALLBACK CientThread(void* param)
 {
     SOCKET sockfd = (SOCKET)param;
-    char databuf[kDefaultBufferSize];
-    for (;;)
+    char databuf[DEFAULT_BUFFER_SIZE];
+    int bytes = recv(sockfd, databuf, DEFAULT_BUFFER_SIZE, 0);
+    if (bytes == SOCKET_ERROR)
     {
-        int bytes = recv(sockfd, databuf, kDefaultBufferSize, 0);
-        if (bytes == SOCKET_ERROR)
-        {
-            fprintf(stderr, "socket %d recv() failed, %s", sockfd, LAST_ERROR_MSG);
-            break;
-        }
-        else if (bytes == 0) /* closed */
-        {
-            break;
-        }
-        /* send back */
-        bytes = send(sockfd, databuf, bytes, 0);
-        if (bytes == SOCKET_ERROR)
-        {
-            fprintf(stderr, "socket %d send() failed, %s", sockfd, LAST_ERROR_MSG);
-            break;
-        }
+        fprintf(stderr, "socket %d recv() failed, %s", sockfd, LAST_ERROR_MSG);
+        goto cleanup;
     }
+    else if (bytes == 0) /* closed */
+    {
+        goto cleanup;
+    }
+    /* send back */
+    bytes = send(sockfd, databuf, bytes, 0);
+    if (bytes == SOCKET_ERROR)
+    {
+        fprintf(stderr, "socket %d send() failed, %s", sockfd, LAST_ERROR_MSG);
+        goto cleanup;
+    }
+cleanup:
     closesocket(sockfd);
     fprintf(stdout, "socket %d closed at %s.\n", sockfd, Now());
     return 0;
 }
 
-static intptr_t on_accept(SOCKET sockfd)
+static intptr_t OnAccept(SOCKET sockfd)
 {
     fprintf(stderr, "socket %d accepted, %s.\n", sockfd, Now());
-    return _beginthreadex(NULL, 0, handle_client, (void*)sockfd, 0, NULL);
+    return _beginthreadex(NULL, 0, CientThread, (void*)sockfd, 0, NULL);
 }
 
-int socket_loop(SOCKET acceptor)
-{
-    struct sockaddr_in addr;
-    int len = sizeof(addr);
-    SOCKET sockfd = accept(acceptor, (struct sockaddr*)&addr, &len);
-    if (sockfd == INVALID_SOCKET)
-    {
-        if (WSAGetLastError() != WSAEWOULDBLOCK)
-        {
-            fprintf(stderr, "accept() failed, %s.\n", LAST_ERROR_MSG);
-            return 0;
-        }
-    }
-    else
-    {
-        on_accept(sockfd);
-        return 1;
-    }
-
-    Sleep(1);
-    return 1;
-}
 
 /* create acceptor socket */
-SOCKET  create_acceptor(const char* host, const char* port)
+static SOCKET CreateAcceptor(const char* host, const char* port)
 {
     int error;
     ULONG nonblock = 1;
@@ -131,14 +108,36 @@ SOCKET  create_acceptor(const char* host, const char* port)
     return sockfd;
 }
 
-int socket_init()
-{
-    WSADATA data;
-    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
-    return 1;
-}
 
-void socket_release()
+int StartEchoServer(const char* host, const char* port)
 {
-    WSACleanup();
+    SOCKET sockfd, acceptor;
+    struct sockaddr_in addr;
+    int len = sizeof(addr);
+
+    assert(host && port);
+    acceptor = CreateAcceptor(host, port);
+    if (acceptor == INVALID_SOCKET)
+    {
+        return -1;
+    }
+
+    for (;;)
+    {
+        sockfd = accept(acceptor, (struct sockaddr*)&addr, &len);
+        if (sockfd == INVALID_SOCKET)
+        {
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+            {
+                fprintf(stderr, "accept() failed, %s.\n", LAST_ERROR_MSG);
+                break;
+            }
+        }
+        else
+        {
+            OnAccept(sockfd);
+        }
+        Sleep(1);
+    }
+    return 0;
 }
