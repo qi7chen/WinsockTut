@@ -8,9 +8,11 @@
 #include <time.h>
 #include <stdlib.h>
 
+#define THREAD_LOCAL    __declspec(thread)
+
 const char*  Now()
 {
-    static TLS char buffer[MAX_PATH];
+    static THREAD_LOCAL char buffer[MAX_PATH];
     struct tm st;
     time_t now = time(NULL);
     localtime_s(&st, &now);
@@ -20,7 +22,7 @@ const char*  Now()
 
 const char* GetErrorMessage(DWORD dwErrorCode)
 {
-    static TLS char description[MAX_PATH];
+    static THREAD_LOCAL char description[MAX_PATH];
     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErrorCode,
         0, description, MAX_PATH-1, NULL);
     return description;
