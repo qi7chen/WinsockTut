@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <WinSock2.h>
 #include "common/utility.h"
 
 
@@ -113,7 +114,7 @@ static int HandleEvents(SOCKET sockfd, int index, const WSANETWORKEVENTS* events
     return 0;
 }
 
-static int AsynSelectLoop()
+static int AsynSelectLoop(void)
 {
     size_t index;
     int nready;
