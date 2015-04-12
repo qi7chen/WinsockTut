@@ -41,8 +41,8 @@ solution 'WinsockTut'
         uuid "AB7D1C15-7A44-41a7-8864-230D8E345608"
         files
         {
-            'src/common/utility.h',
-            'src/common/utility.c',
+            'src/common/*.h',
+            'src/common/*.c',
             'src/socket/*.h',
             'src/socket/*.c',
         }
