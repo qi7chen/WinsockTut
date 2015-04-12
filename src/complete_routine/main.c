@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <WinSock2.h>
 #include "EchoServer.h"
 #include "common/utility.h"
 

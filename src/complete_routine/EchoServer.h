@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <WinSock2.h>
-
 /*
  * A simple echo server implemented by alertable I/O
  */
