@@ -19,7 +19,7 @@
 int     InitEchoServer(HWND hwnd,  const char* host, const char* port);
 
 /* close all connection */
-void    CloseServer();
+void    CloseServer(void);
 
 /* I/O operation handling */
 int     HandleNetEvents(HWND hwnd, SOCKET sockfd, int event, int error);

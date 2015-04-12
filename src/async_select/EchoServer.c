@@ -125,7 +125,7 @@ int InitEchoServer(HWND hwnd, const char* host, const char* port)
     return 0;
 }
 
-void CloseServer()
+void CloseServer(void)
 {
     size_t i;
     size_t count = avl_size(g_total_connections);
