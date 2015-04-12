@@ -4,32 +4,35 @@
  * See accompanying files LICENSE.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
-#include "clients.h"
+#include <WinSock2.h>
+#include "EchoClient.h"
 #include "common/utility.h"
 
 
 int main(int argc, char* argv[])
 {
-    int timeout = 500;
-    const char* default_host = DEFAULT_HOST;
-    short default_port = (short)atoi(DEFAULT_PORT);
-    int default_count = 2000;
-
-    if (argc == 4)
+    int r = 0;
+    const char* host = "127.0.0.1";
+    const char* port = DEFAULT_PORT;
+    int count = 2000;
+    if (argc >= 4)
     {
-        default_host = argv[1];
-        default_port = (short)atoi(argv[2]);
-        default_count = atoi(argv[3]);
+        host = argv[1];
+        port = argv[2];
+        count = atoi(argv[3]);
     }
 
-    if (loop_init())
-    {
-        create_connections(default_host, default_port, default_count);
-        while (loop_run(timeout))
-            ;
-    }
-    loop_destroy();
+    WSADATA data;
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
-    return 0;
+    r = StartEchoClient(count, host, port);
+    if (r < 0)
+    {
+        fprintf(stderr, "start echo client failed.\n");
+    }
+
+    WSACleanup();
+    return r;
 }
