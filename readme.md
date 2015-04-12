@@ -1,6 +1,6 @@
 # WinsockTut
 
-Winsock tutorial and examples with a simple echo server, showing usage of different winsock I/O strategies.
+Simple TCP echo server implement with different Winsock I/O strategies.
 
 
 ### Build    
@@ -25,4 +25,4 @@ overlap         | with overlapped I/O
 iocp            | with Completion Port, both server and client usage
 
 
-`test_tcp_client.py` is a simple python script to test server performance
+`test_echo.py` is a simple python script to test server performance
