@@ -13,7 +13,7 @@ import random
 import pdb
 
 
-class tcp_client(asyncore.dispatcher):
+class EchoClient(asyncore.dispatcher):
     def __init__(self, host, port, msg):
         asyncore.dispatcher.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -42,22 +42,22 @@ class tcp_client(asyncore.dispatcher):
         self.send_bytes += sent
         
 
-def create_clients(host, port, count, msg):
+def CreateClients(host, port, count, msg):
     clients = []    
     for i in range(count):
-        c = tcp_client(host, port, msg)
+        c = EchoClient(host, port, msg)
         clients.append(c)
     return clients          
 
 
 def run_test():
     host = '127.0.0.1'
-    port = 32450
-    maxcount = 512  # max 512
+    port = 9527
+    maxcount = 512
     msg = 'GET /index.html HTTP/1.0\r\n\r\n'
     count = random.randint(1, maxcount)
-    print(count, 'testing client')
-    clients = create_clients(host, port, count, msg)
+    print(count, 'testing echo')
+    clients = CreateClients(host, port, count, msg)
     asyncore.loop()
 
 if __name__ == '__main__':
