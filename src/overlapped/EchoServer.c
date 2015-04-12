@@ -123,7 +123,7 @@ static void OnRead(connection_t* conn, int idx)
     PostRecvRequest(conn, idx);
 }
 
-static int RunOverlapLoop()
+static int RunOverlapLoop(void)
 {
     int idx;
     BOOL status;

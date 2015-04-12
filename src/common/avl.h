@@ -21,7 +21,7 @@ typedef intptr_t   avl_key_t;
 /************************************************************************/
 
 /* create and destroy an AVL tree */
-avl_tree_t* avl_create_tree();
+avl_tree_t* avl_create_tree(void);
 int         avl_destroy_tree(avl_tree_t* tree);
 
 /* searching */

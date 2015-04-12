@@ -210,7 +210,6 @@ static void OnClosed(connection_t* conn)
 
 static void OnDisconnect(connection_t* conn)
 {
-    int error;
     assert(conn);
     OnClosed(conn);
 }
@@ -218,7 +217,6 @@ static void OnDisconnect(connection_t* conn)
 static void OnSend(connection_t* conn)
 {
     int error;
-
     assert(conn);
     conn->op = OperDisconnect;
     conn->buf.len = DEFAULT_BUFFER_SIZE;

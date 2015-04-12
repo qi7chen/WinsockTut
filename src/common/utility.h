@@ -27,7 +27,7 @@ enum OperType
 #define DEFAULT_PORT    "9527"
 
 /* current date */
-const char* Now();
+const char* Now(void);
 
 /* description of specified error id */
 const char*  GetErrorMessage(DWORD dwError);
