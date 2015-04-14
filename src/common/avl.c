@@ -56,10 +56,9 @@ static void avl_free_node(avl_node_t* node)
 
 static int avl_get_balance(avl_node_t* node)
 {
-    if (node == NULL)
-        return 0;
-    else
+    if (node != NULL)
         return HEIGHT(node->left) - HEIGHT(node->right);
+    return 0;
 }
 
 static avl_node_t*  avl_node_min(avl_node_t* node)
