@@ -94,13 +94,17 @@ static void OnConnect(connection_t* conn)
 {
     int error;
     DWORD bytes;
-    const char* msg = "GET /index.html HTTP/1.0\r\n\r\n";
-    size_t len = strlen(msg);
+
+    char buffer[100] = "xxGET /index.html HTTP/1.0\r\n\r\n";
+    size_t len = strlen(buffer) - 2;
+    short* p = (short*)buffer;
+    *p = htons(len);
+    len += 2;
 
     assert(conn);
     fprintf(stdout, ("socket %d connected at %s.\n"), conn->socket, Now());
 
-    memcpy(conn->data, msg, len);
+    memcpy(conn->data, buffer, len);
     memset(&conn->overlap, 0, sizeof(conn->overlap));
     conn->buf.len = (ULONG)len;
     conn->op = OperSend;
@@ -129,26 +133,26 @@ static void OnRecv(connection_t* conn)
     assert(conn);
 
     /* pause */
-    Sleep(200);
+    Sleep(20);
 
-    bytes = (DWORD)conn->overlap.InternalHigh;
-    memset(&conn->overlap, 0, sizeof(conn->overlap));
-    conn->buf.len = bytes;
-    conn->buf.buf[bytes] = '\0';
-    conn->op = OperSend;
+    //bytes = (DWORD)conn->overlap.InternalHigh;
+    //memset(&conn->overlap, 0, sizeof(conn->overlap));
+    //conn->buf.len = bytes;
+    //conn->buf.buf[bytes] = '\0';
+    //conn->op = OperSend;
 
-    error = WSASend(conn->socket, &conn->buf, 1, &bytes,
-        0, &conn->overlap, NULL);
-    if (error == SOCKET_ERROR)
-    {
-        error = WSAGetLastError();
-        if (error != WSA_IO_PENDING)
-        {
-            fprintf(stderr, "WSASend() failed, socket: %d, %d: %s", conn->socket,
-                error, LAST_ERROR_MSG);
-            OnClose(conn);
-        }
-    }
+    //error = WSASend(conn->socket, &conn->buf, 1, &bytes,
+    //    0, &conn->overlap, NULL);
+    //if (error == SOCKET_ERROR)
+    //{
+    //    error = WSAGetLastError();
+    //    if (error != WSA_IO_PENDING)
+    //    {
+    //        fprintf(stderr, "WSASend() failed, socket: %d, %d: %s", conn->socket,
+    //            error, LAST_ERROR_MSG);
+    //        OnClose(conn);
+    //    }
+    //}
 }
 
 static void OnSend(connection_t* conn)
