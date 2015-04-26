@@ -17,6 +17,7 @@ int main(int argc, char* argv[])
     const char* host = "127.0.0.1";
     const char* port = DEFAULT_PORT;
     int count = 2000;
+    WSADATA data;
     if (argc >= 4)
     {
         host = argv[1];
@@ -24,7 +25,6 @@ int main(int argc, char* argv[])
         count = atoi(argv[3]);
     }
 
-    WSADATA data;
     CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
     r = StartEchoClient(count, host, port);

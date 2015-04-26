@@ -15,13 +15,13 @@ int main(int argc, const char* argv[])
     int r = 0;
     const char* host = DEFAULT_HOST;
     const char* port = DEFAULT_PORT;
+    WSADATA data;
     if (argc > 2)
     {
         host = argv[1];
         port = argv[2];
     }
 
-    WSADATA data;
     CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
 
     r = StartEchoServer(host, port);
