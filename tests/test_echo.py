@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
 #
 # Copyright (C) 2012-2015 ichenq@outlook.com. All rights reserved.
 # Distributed under the terms and conditions of the Apache License. 
@@ -10,7 +9,7 @@
 import socket
 import asyncore
 import random
-import pdb
+# import pdb
 
 
 class EchoClient(asyncore.dispatcher):
@@ -22,7 +21,6 @@ class EchoClient(asyncore.dispatcher):
         self.send_bytes = 0
         self.recv_bytes = 0
         
-
     def handle_connect(self):
         print(repr(self), 'connected')
 
@@ -35,14 +33,14 @@ class EchoClient(asyncore.dispatcher):
         self.recv_bytes += len(data)
 
     def writable(self):
-        return (len(self.buffer) > 0)
+        return len(self.buffer) > 0
 
     def handle_write(self):
         sent = self.send(self.buffer)
         self.send_bytes += sent
         
 
-def CreateClients(host, port, count, msg):
+def create_clients(host, port, count, msg):
     clients = []    
     for i in range(count):
         c = EchoClient(host, port, msg)
@@ -57,11 +55,10 @@ def run_test():
     msg = 'GET /index.html HTTP/1.0\r\n\r\n'
     count = random.randint(1, maxcount)
     print(count, 'testing echo')
-    clients = CreateClients(host, port, count, msg)
+    clients = create_clients(host, port, count, msg)
     asyncore.loop()
+    clients.clear()
 
 if __name__ == '__main__':
     run_test()
-
-
-
+    
