@@ -5,11 +5,11 @@ Simple TCP echo server implement with different Winsock I/O strategies.
 
 ### Build    
 
-Obtain [premake4](http://industriousone.com/premake/download).
+Obtain [premake5](http://premake.github.io/download.html).
 
 To build via Visual Studio simply execute:
 
-    premake vs2013
+    premake5 vs2013
     
 
 ### Introduction
