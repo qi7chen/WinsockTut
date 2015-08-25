@@ -7,9 +7,8 @@ Simple TCP echo server implement with different Winsock I/O strategies.
 
 Obtain [premake5](http://premake.github.io/download.html).
 
-To build via Visual Studio simply execute:
+To build via Visual Studio simply click `msvc2013.bat` 
 
-    premake5 vs2013
     
 
 ### Introduction
@@ -25,4 +24,4 @@ overlap         | with overlapped I/O
 iocp            | with Completion Port, both server and client usage
 
 
-`test_echo.py` is a simple python script to test server performance
+`test_echo.py` is a simple testing python script
