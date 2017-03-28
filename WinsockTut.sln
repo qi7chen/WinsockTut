@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Socket", "build\Socket.vcproj", "{0EEF8BD1-FA90-B6A7-E34B-CAFBCF8C3DF8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Select", "build\Select.vcproj", "{A5CFDBD0-9171-06A7-7A2C-1AFB666D8DF7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AsyncSelect", "build\AsyncSelect.vcproj", "{E32A90B9-4FE0-08AF-D8D4-02864489FFB2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AsyncEvent", "build\AsyncEvent.vcproj", "{65F7F83A-51AF-3A88-BAB6-13E4A68DD578}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CompleteRoutine", "build\CompleteRoutine.vcproj", "{8469DEC8-F0F4-4B8D-F905-CF816510A88D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Overlapped", "build\Overlapped.vcproj", "{B78ABCA6-A342-FEF3-0C4A-D74FF82099E4}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IOCPServer", "build\IOCPServer.vcproj", "{E73186FB-D3E9-C748-3CF1-A0A428C86239}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IOCPClient", "build\IOCPClient.vcproj", "{CF1CADD6-BBD4-EE23-24DC-C77F10B38914}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0EEF8BD1-FA90-B6A7-E34B-CAFBCF8C3DF8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0EEF8BD1-FA90-B6A7-E34B-CAFBCF8C3DF8}.Debug|Win32.Build.0 = Debug|Win32
+		{0EEF8BD1-FA90-B6A7-E34B-CAFBCF8C3DF8}.Release|Win32.ActiveCfg = Release|Win32
+		{0EEF8BD1-FA90-B6A7-E34B-CAFBCF8C3DF8}.Release|Win32.Build.0 = Release|Win32
+		{A5CFDBD0-9171-06A7-7A2C-1AFB666D8DF7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A5CFDBD0-9171-06A7-7A2C-1AFB666D8DF7}.Debug|Win32.Build.0 = Debug|Win32
+		{A5CFDBD0-9171-06A7-7A2C-1AFB666D8DF7}.Release|Win32.ActiveCfg = Release|Win32
+		{A5CFDBD0-9171-06A7-7A2C-1AFB666D8DF7}.Release|Win32.Build.0 = Release|Win32
+		{E32A90B9-4FE0-08AF-D8D4-02864489FFB2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E32A90B9-4FE0-08AF-D8D4-02864489FFB2}.Debug|Win32.Build.0 = Debug|Win32
+		{E32A90B9-4FE0-08AF-D8D4-02864489FFB2}.Release|Win32.ActiveCfg = Release|Win32
+		{E32A90B9-4FE0-08AF-D8D4-02864489FFB2}.Release|Win32.Build.0 = Release|Win32
+		{65F7F83A-51AF-3A88-BAB6-13E4A68DD578}.Debug|Win32.ActiveCfg = Debug|Win32
+		{65F7F83A-51AF-3A88-BAB6-13E4A68DD578}.Debug|Win32.Build.0 = Debug|Win32
+		{65F7F83A-51AF-3A88-BAB6-13E4A68DD578}.Release|Win32.ActiveCfg = Release|Win32
+		{65F7F83A-51AF-3A88-BAB6-13E4A68DD578}.Release|Win32.Build.0 = Release|Win32
+		{8469DEC8-F0F4-4B8D-F905-CF816510A88D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8469DEC8-F0F4-4B8D-F905-CF816510A88D}.Debug|Win32.Build.0 = Debug|Win32
+		{8469DEC8-F0F4-4B8D-F905-CF816510A88D}.Release|Win32.ActiveCfg = Release|Win32
+		{8469DEC8-F0F4-4B8D-F905-CF816510A88D}.Release|Win32.Build.0 = Release|Win32
+		{B78ABCA6-A342-FEF3-0C4A-D74FF82099E4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B78ABCA6-A342-FEF3-0C4A-D74FF82099E4}.Debug|Win32.Build.0 = Debug|Win32
+		{B78ABCA6-A342-FEF3-0C4A-D74FF82099E4}.Release|Win32.ActiveCfg = Release|Win32
+		{B78ABCA6-A342-FEF3-0C4A-D74FF82099E4}.Release|Win32.Build.0 = Release|Win32
+		{E73186FB-D3E9-C748-3CF1-A0A428C86239}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E73186FB-D3E9-C748-3CF1-A0A428C86239}.Debug|Win32.Build.0 = Debug|Win32
+		{E73186FB-D3E9-C748-3CF1-A0A428C86239}.Release|Win32.ActiveCfg = Release|Win32
+		{E73186FB-D3E9-C748-3CF1-A0A428C86239}.Release|Win32.Build.0 = Release|Win32
+		{CF1CADD6-BBD4-EE23-24DC-C77F10B38914}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CF1CADD6-BBD4-EE23-24DC-C77F10B38914}.Debug|Win32.Build.0 = Debug|Win32
+		{CF1CADD6-BBD4-EE23-24DC-C77F10B38914}.Release|Win32.ActiveCfg = Release|Win32
+		{CF1CADD6-BBD4-EE23-24DC-C77F10B38914}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
