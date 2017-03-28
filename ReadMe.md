@@ -1,14 +1,6 @@
 # WinsockTut
 
 Simple TCP echo server implement with different Winsock I/O strategies.
-
-
-### Build    
-
-Obtain [premake5](http://premake.github.io/download.html).
-
-To build via Visual Studio simply click `msvc2013.bat` 
-
     
 
 ### Introduction
