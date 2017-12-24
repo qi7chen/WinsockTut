@@ -7,11 +7,11 @@
 #include <Windows.h>
 #include "Common/Define.h"
 
-class AsyncSelect : public IOPoller
+class AsyncSelectPoller : public IOPoller
 {
 public:
-    AsyncSelect();
-    ~AsyncSelect();
+    AsyncSelectPoller();
+    ~AsyncSelectPoller();
 
     int AddFd(SOCKET fd, int mask);
     void DelFd(SOCKET fd, int mask);

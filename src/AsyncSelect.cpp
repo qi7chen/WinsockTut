@@ -11,34 +11,30 @@
 // define socket message
 #define WM_SOCKET   WM_USER + 0xBF
 
-AsyncSelect::AsyncSelect()
+AsyncSelectPoller::AsyncSelectPoller()
 {
     hwnd_ = NULL;
     CreateHidenWindow();
 }
 
-AsyncSelect::~AsyncSelect()
+AsyncSelectPoller::~AsyncSelectPoller()
 {
     CloseHandle(hwnd_);
     hwnd_ = NULL;
 }
 
-bool CreateHidenWindow()
+void AsyncSelectPoller::CreateHidenWindow()
 {
     const wchar_t* szTitle = L"async-select";
     HINSTANCE hInstance = (HINSTANCE)GetModuleHandle(NULL);
     HWND hWnd = CreateWindowW(L"button", szTitle, WS_POPUP, CW_USEDEFAULT, 0,
         CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
-    if (hWnd == NULL)
-    {
-        LOG(ERROR) << StringPrintf("CreateWindowA: %s", LAST_ERROR_MSG);
-        return false;
-    }
+    CHECK(hWnd != NULL) << LAST_ERROR_MSG;
     ShowWindow(hWnd, SW_HIDE);
-    return true;
+    hwnd_ = hWnd;
 }
 
-int AsyncSelect::AddFd(SOCKET fd, int mask)
+int AsyncSelectPoller::AddFd(SOCKET fd, int mask)
 {
     long lEvent = FD_CLOSE;
     if (mask & EV_READABLE)
@@ -60,7 +56,7 @@ int AsyncSelect::AddFd(SOCKET fd, int mask)
     return r;
 }
 
-void AsyncSelect::DelFd(SOCKET fd, int mask)
+void AsyncSelectPoller::DelFd(SOCKET fd, int mask)
 {
     int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, 0);
     if (r == SOCKET_ERROR)
@@ -69,7 +65,7 @@ void AsyncSelect::DelFd(SOCKET fd, int mask)
     }
 }
 
-void HandleEvent(EventLoop* loop, SOCKET fd, int event, int ec)
+void AsyncSelectPoller::HandleEvent(EventLoop* loop, SOCKET fd, int event, int ec)
 {
     if (ec > 0)
     {
@@ -92,7 +88,7 @@ void HandleEvent(EventLoop* loop, SOCKET fd, int event, int ec)
     }
 }
 
-int AsyncSelect::Poll(EventLoop* loop, int timeout)
+int AsyncSelectPoller::Poll(EventLoop* loop, int timeout)
 {
     int count = 0;
     MSG msg;

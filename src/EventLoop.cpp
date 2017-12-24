@@ -5,7 +5,9 @@
 #include "EventLoop.h"
 #include <assert.h>
 #include "Common/Define.h"
+#include "Common/Logging.h"
 #include "Select.h"
+#include "AsyncSelect.h"
 
 EventLoop::EventLoop(IOMode type)
 {
@@ -28,8 +30,10 @@ void EventLoop::createIOPoller(IOMode type)
     case IOSelect:
         poller_ = new SelectPoller();
         break;
+    case IOAsyncSelect:
+        poller_ = new AsyncSelectPoller();
     default:
-        assert(false && "invalid multiplexer type");
+        CHECK(false) << "invalid multiplexer type: " << type;
     }
 }
 

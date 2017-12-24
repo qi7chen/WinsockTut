@@ -7,6 +7,7 @@
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
 
+
 #define THREAD_LOCAL    __declspec(thread)
 
 const char* GetErrorMessage(DWORD dwErrorCode)
