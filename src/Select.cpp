@@ -5,8 +5,10 @@
 #include "select.h"
 #include <assert.h>
 #include "Common/Logging.h"
+#include "Common/StringPrintf.h"
 #include "Common/Util.h"
 #include "EventLoop.h"
+
 
 SelectPoller::SelectPoller()
 {
@@ -19,7 +21,7 @@ SelectPoller::~SelectPoller()
 {
 }
 
-void SelectPoller::AddFd(SOCKET fd, int mask)
+int SelectPoller::AddFd(SOCKET fd, int mask)
 {
     if (mask & EV_READABLE)
     {
@@ -33,6 +35,7 @@ void SelectPoller::AddFd(SOCKET fd, int mask)
         FD_SET(fd, &writefds_);
         FD_SET(fd, &exceptfds_);
     }
+    return 0;
 }
 
 void SelectPoller::DelFd(SOCKET fd, int mask)
@@ -73,6 +76,7 @@ int SelectPoller::Poll(EventLoop* loop, int timeout)
     for (auto iter = dict.begin(); iter != dict.end(); ++iter)
     {
         int mask = 0;
+        int ec = 0;
         SOCKET fd = iter->first;
         const EventEntry* entry = &iter->second;
         if (entry->mask == EV_NONE)
@@ -88,11 +92,16 @@ int SelectPoller::Poll(EventLoop* loop, int timeout)
         if (FD_ISSET(fd, &exptset))
         {
             mask |= EV_READABLE;
-            mask |= EV_EXCEPT;
+            int len = sizeof(ec);
+            int r = getsockopt(fd, SOL_SOCKET,SO_ERROR, (char*)&ec, &len);
+            if (r == SOCKET_ERROR)
+            {
+                LOG(ERROR) << StringPrintf("getsockopt: %s", LAST_ERROR_MSG);
+            }
         }
         if (mask != 0)
         {
-            loop->AddFiredEvent(fd, mask);
+            loop->AddFiredEvent(fd, mask, ec);
             count++;
         }
     }

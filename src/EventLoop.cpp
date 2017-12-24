@@ -76,9 +76,9 @@ EventEntry* EventLoop::GetEntry(SOCKET fd)
     return NULL;
 }
 
-void EventLoop::AddFiredEvent(SOCKET fd, int mask)
+void EventLoop::AddFiredEvent(SOCKET fd, int mask, int ec)
 {
-    fired_[fd] = mask;
+    fired_[fd] = std::make_pair(mask, ec);
 }
 
 void EventLoop::Run()
@@ -109,10 +109,11 @@ void EventLoop::RunOne()
         if (iter == events_.end())
             continue;
         EventEntry* entry = &iter->second;
-        int mask = it->second;
+        int mask = it->second.first;
+        int ec = it->second.second;
         if ((mask & EV_READABLE) || (mask & EV_WRITABLE))
         {
-            entry->proc(this, fd, mask);
+            entry->proc(fd, mask, ec);
         }
     }
 }
