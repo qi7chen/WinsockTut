@@ -7,11 +7,11 @@
 #include "Common/Define.h"
 #include "Common/Dict.h"
 
-class Select : public IMultiplexer
+class SelectPoller : public IOPoller
 {
 public:
-    Select();
-    ~Select();
+    SelectPoller();
+    ~SelectPoller();
 
     void AddFd(SOCKET fd, int mask);
 

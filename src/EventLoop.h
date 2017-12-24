@@ -12,29 +12,26 @@ struct EventEntry
 {
     int         mask;
     SOCKET      fd;
-    EventProc   readProc;
-    EventProc   writeProc;
-
+    EventProc   proc;
+    
     EventEntry()
     {
         mask = 0;
-        fd = 0;
-        readProc = NULL;
-        writeProc = NULL;
+        fd = INVALID_SOCKET;
     }
 };
 
 class EventLoop
 {
 public:
-    explicit EventLoop(int type);
+    explicit EventLoop(IOMode type);
     ~EventLoop();
 
     //
-    void CreateEvent(SOCKET fd, int mask, EventProc func);
+    void AddEvent(SOCKET fd, int mask, EventProc func);
 
     //
-    void DeleteEvent(SOCKET fd, int mask);
+    void DelEvent(SOCKET fd, int mask);
 
     //
     EventEntry* GetEntry(SOCKET fd);
@@ -48,11 +45,12 @@ public:
     void RunOne();
 
 private:
-    void createMultiplexer(int type);
+    void createIOPoller(IOMode type);
 
 private:
-    int timeout_;
-    IMultiplexer* state_;
-    std::unordered_map<SOCKET, EventEntry> events_;
-    std::unordered_map<SOCKET, int> fired_;
+    int         timeout_;
+    IOPoller*   poller_;
+
+    std::unordered_map<SOCKET, EventEntry>  events_;
+    std::unordered_map<SOCKET, int>         fired_;
 };

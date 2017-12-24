@@ -7,32 +7,35 @@
 #include "Common/Define.h"
 #include "Select.h"
 
-EventLoop::EventLoop(int type)
+EventLoop::EventLoop(IOMode type)
 {
     timeout_ = 50;
-    createMultiplexer(type);
+    createIOPoller(type);
     events_.rehash(1024);
     fired_.rehash(1024);
 }
 
 EventLoop::~EventLoop()
 {
+    delete poller_;
+    poller_ = NULL;
 }
 
-void EventLoop::createMultiplexer(int type)
+void EventLoop::createIOPoller(IOMode type)
 {
     switch(type)
     {
-    case TypeSelect:
-        state_ = new Select();
+    case IOSelect:
+        poller_ = new SelectPoller();
         break;
     default:
         assert(false && "invalid multiplexer type");
     }
 }
 
-void EventLoop::CreateEvent(SOCKET fd, int mask, EventProc func)
+void EventLoop::AddEvent(SOCKET fd, int mask, EventProc func)
 {
+    assert(poller_ != NULL);
     auto iter = events_.find(fd);
     if (iter == events_.end())
     {
@@ -42,18 +45,14 @@ void EventLoop::CreateEvent(SOCKET fd, int mask, EventProc func)
         events_[fd] = entry;
     }
     EventEntry* entry = &events_[fd];
-    if (mask & EV_READABLE)
+    if ((mask & EV_READABLE) || (mask & EV_WRITABLE))
     {
-        entry->readProc = func;
+        entry->proc = func;
     }
-    if (mask & EV_WRITABLE)
-    {
-        entry->writeProc = func;
-    }
-    state_->AddFd(fd, mask);
+    poller_->AddFd(fd, mask);
 }
 
-void EventLoop::DeleteEvent(SOCKET fd, int mask)
+void EventLoop::DelEvent(SOCKET fd, int mask)
 {
     auto iter = events_.find(fd);
     if (iter != events_.end())
@@ -98,7 +97,7 @@ void EventLoop::RunOne()
     }
 
     fired_.clear();
-    int count = state_->Poll(this, 100);
+    int count = poller_->Poll(this, 100);
     if (count == 0)
     {
         return;
@@ -111,14 +110,9 @@ void EventLoop::RunOne()
             continue;
         EventEntry* entry = &iter->second;
         int mask = it->second;
-        if (mask & EV_READABLE)
+        if ((mask & EV_READABLE) || (mask & EV_WRITABLE))
         {
-            entry->readProc(fd, mask);
-        }
-        if (mask & EV_WRITABLE)
-        {
-            entry->writeProc(fd, mask);
+            entry->proc(this, fd, mask);
         }
     }
 }
-

@@ -10,20 +10,23 @@
 enum
 {
     EV_NONE = 0,
-    EV_READABLE = 1,
-    EV_WRITABLE = 2,
+    EV_READABLE = 0x1,
+    EV_WRITABLE = 0x2,
+    EV_EXCEPT = 0x10,
 };
 
-enum 
+enum IOMode
 {
-    TypeSelect = 1,
+    IOSelect = 1,
+    IOAsyncSelect = 2,
+    IOEventSelect = 3,
 };
-
-typedef std::function<void(SOCKET,int)> EventProc;
 
 class EventLoop;
 
-struct IMultiplexer
+typedef std::function<void(EventLoop*, SOCKET, int)> EventProc;
+
+struct IOPoller
 {
     virtual void AddFd(SOCKET fd, int mask) = 0;
     virtual void DelFd(SOCKET fd, int mask) = 0;

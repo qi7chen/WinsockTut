@@ -66,7 +66,7 @@ static void OutputStringToDebugger(const std::string& message)
         // see http://www.unixwiz.net/techtips/outputdebugstring.html
         wchar_t buf[MAX_OUTPUT_LEN] = {};
         size_t left = text.size() - outputed;
-        wcsncpy_s(buf, text.c_str() + outputed, min(left, MAX_OUTPUT_LEN-1));
+        wcsncpy_s(buf, text.c_str() + outputed, std::min(left, MAX_OUTPUT_LEN-1));
         OutputDebugStringW(buf);
         if (left >= MAX_OUTPUT_LEN-1)
         {

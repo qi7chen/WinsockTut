@@ -5,21 +5,21 @@
 #include "select.h"
 #include <assert.h>
 #include "Common/Logging.h"
-#include "Common/Error.h"
+#include "Common/Util.h"
 #include "EventLoop.h"
 
-Select::Select()
+SelectPoller::SelectPoller()
 {
     memset(&readfds_, 0, sizeof(fd_set));
     memset(&writefds_, 0, sizeof(fd_set));
     memset(&exceptfds_, 0, sizeof(fd_set));
 }
 
-Select::~Select()
+SelectPoller::~SelectPoller()
 {
 }
 
-void Select::AddFd(SOCKET fd, int mask)
+void SelectPoller::AddFd(SOCKET fd, int mask)
 {
     if (mask & EV_READABLE)
     {
@@ -35,7 +35,7 @@ void Select::AddFd(SOCKET fd, int mask)
     }
 }
 
-void Select::DelFd(SOCKET fd, int mask)
+void SelectPoller::DelFd(SOCKET fd, int mask)
 {
     if (mask & EV_READABLE)
     {
@@ -50,7 +50,7 @@ void Select::DelFd(SOCKET fd, int mask)
 }
 
 // timeout in milliseconds
-int Select::Poll(EventLoop* loop, int timeout)
+int SelectPoller::Poll(EventLoop* loop, int timeout)
 {
     timeval tvp = {};
 	tvp.tv_usec = timeout * 1000;
@@ -88,6 +88,7 @@ int Select::Poll(EventLoop* loop, int timeout)
         if (FD_ISSET(fd, &exptset))
         {
             mask |= EV_READABLE;
+            mask |= EV_EXCEPT;
         }
         if (mask != 0)
         {
