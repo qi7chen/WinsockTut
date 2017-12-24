@@ -8,13 +8,14 @@
 #include "Common/Logging.h"
 #include "Select.h"
 #include "AsyncSelect.h"
+#include "AsyncEvent.h"
 
 EventLoop::EventLoop(IOMode type)
 {
     timeout_ = 50;
     createIOPoller(type);
-    events_.rehash(1024);
-    fired_.rehash(1024);
+    events_.rehash(64);
+    fired_.reserve(64);
 }
 
 EventLoop::~EventLoop()
@@ -32,6 +33,10 @@ void EventLoop::createIOPoller(IOMode type)
         break;
     case IOAsyncSelect:
         poller_ = new AsyncSelectPoller();
+        break;
+    case IOEventSelect:
+        poller_ = new AsyncEventPoller();
+        break;
     default:
         CHECK(false) << "invalid multiplexer type: " << type;
     }
@@ -82,7 +87,11 @@ EventEntry* EventLoop::GetEntry(SOCKET fd)
 
 void EventLoop::AddFiredEvent(SOCKET fd, int mask, int ec)
 {
-    fired_[fd] = std::make_pair(mask, ec);
+    FiredEvent event;
+    event.fd = fd;
+    event.mask = mask;
+    event.ec = ec;
+    fired_.push_back(event);
 }
 
 void EventLoop::Run()
@@ -101,23 +110,17 @@ void EventLoop::RunOne()
     }
 
     fired_.clear();
-    int count = poller_->Poll(this, 100);
-    if (count == 0)
+    poller_->Poll(this, 100);
+    for (unsigned i = 0; i < fired_.size(); i++)
     {
-        return;
-    }
-    for (auto it = fired_.begin(); it != fired_.end(); ++it)
-    {
-        SOCKET fd = it->first;
-        auto iter = events_.find(fd);
+        const FiredEvent* event = &fired_[i];
+        auto iter = events_.find(event->fd);
         if (iter == events_.end())
             continue;
         EventEntry* entry = &iter->second;
-        int mask = it->second.first;
-        int ec = it->second.second;
-        if ((mask & EV_READABLE) || (mask & EV_WRITABLE))
+        if ((event->mask & EV_READABLE) || (event->mask & EV_WRITABLE))
         {
-            entry->proc(fd, mask, ec);
+            entry->proc(event->fd, event->mask, event->ec);
         }
     }
 }

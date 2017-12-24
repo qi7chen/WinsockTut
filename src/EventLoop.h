@@ -14,12 +14,13 @@ struct EventEntry
     int         mask;
     SOCKET      fd;
     EventProc   proc;
-    
-    EventEntry()
-    {
-        mask = 0;
-        fd = INVALID_SOCKET;
-    }
+};
+
+struct FiredEvent
+{
+    SOCKET fd;
+    int mask;
+    int ec;
 };
 
 class EventLoop
@@ -53,5 +54,5 @@ private:
     IOPoller*   poller_;
 
     std::unordered_map<SOCKET, EventEntry>  events_;
-    std::unordered_map<SOCKET, std::pair<int,int>>  fired_;
+    std::vector<FiredEvent>  fired_;
 };
