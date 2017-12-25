@@ -54,9 +54,14 @@ void EventLoop::AddEvent(SOCKET fd, int mask, EventProc func)
         events_[fd] = entry;
     }
     EventEntry* entry = &events_[fd];
-    if ((mask & EV_READABLE) || (mask & EV_WRITABLE))
+    entry->mask |= mask;
+    if (mask & EV_READABLE)
     {
-        entry->proc = func;
+        entry->readProc = func;
+    }
+    if (mask & EV_WRITABLE)
+    {
+        entry->writeProc = func;
     }
     poller_->AddFd(fd, mask);
 }
@@ -64,14 +69,24 @@ void EventLoop::AddEvent(SOCKET fd, int mask, EventProc func)
 void EventLoop::DelEvent(SOCKET fd, int mask)
 {
     auto iter = events_.find(fd);
-    if (iter != events_.end())
+    if (iter == events_.end())
     {
-        EventEntry* entry = &iter->second;
-        entry->mask = entry->mask & (~mask);
-        if (entry->mask == EV_NONE)
-        {
-            events_.erase(fd);
-        }
+        LOG(ERROR) << "event entry not found " << fd;
+        return;
+    }
+    EventEntry* entry = &iter->second;
+    entry->mask = entry->mask & (~mask);
+    if (mask & EV_READABLE)
+    {
+        entry->readProc = NULL;
+    }
+    if (mask & EV_WRITABLE)
+    {
+        entry->writeProc = NULL;
+    }
+    if (entry->mask == EV_NONE)
+    {
+        events_.erase(fd);
     }
 }
 
@@ -118,9 +133,13 @@ void EventLoop::RunOne()
         if (iter == events_.end())
             continue;
         EventEntry* entry = &iter->second;
-        if ((event->mask & EV_READABLE) || (event->mask & EV_WRITABLE))
+        if ((event->mask & EV_READABLE) && entry->readProc)
         {
-            entry->proc(event->fd, event->mask, event->ec);
+            entry->readProc(event->fd, event->mask, event->ec);
+        }
+        if ((event->mask & EV_WRITABLE) && entry->writeProc)
+        {
+            entry->writeProc(event->fd, event->mask, event->ec);
         }
     }
 }

@@ -13,7 +13,8 @@ struct EventEntry
 {
     int         mask;
     SOCKET      fd;
-    EventProc   proc;
+    EventProc   readProc;
+    EventProc   writeProc;
 };
 
 struct FiredEvent

@@ -68,7 +68,9 @@ int SelectPoller::Poll(EventLoop* loop, int timeout)
     {
         LOG(ERROR) << LAST_ERROR_MSG;
         return 0;
-    } else if (r == 0) { // timed-out
+    } 
+    else if (r == 0)  // timed-out
+    {
         return 0;
     }
     int count = 0;
@@ -80,7 +82,9 @@ int SelectPoller::Poll(EventLoop* loop, int timeout)
         SOCKET fd = iter->first;
         const EventEntry* entry = &iter->second;
         if (entry->mask == EV_NONE)
+        {
             continue;
+        }
         if ((entry->mask & EV_READABLE) && FD_ISSET(fd, &rdset))
         {
             mask |= EV_READABLE;
