@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Common/Define.h"
-#include "EventLoop.h"
+#include "Reactor/EventLoop.h"
 
 class EchoClient
 {
@@ -18,10 +18,10 @@ public:
     void Run();
 
 private:
+    void Cleanup();
     bool Connect(const char* host, const char* port);
-    void OnConnect(EventLoop* loop, SOCKET fd, int mask);
-    void OnReadable(EventLoop* loop, SOCKET fd, int mask);
-    void OnWritable(EventLoop* loop, SOCKET fd, int mask);
+    void OnReadable(SOCKET fd, int mask, int err);
+    void OnWritable(SOCKET fd, int mask, int err);
 
 private:
     SOCKET      fd_;

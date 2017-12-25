@@ -26,24 +26,62 @@ EchoClient::~EchoClient()
     loop_ = NULL;
 }
 
+void EchoClient::Cleanup()
+{
+    loop_->DelEvent(fd_, EV_READABLE | EV_WRITABLE);
+    closesocket(fd_);
+}
+
 void EchoClient::Start(const char* host, const char* port)
 {
     bool ok = Connect(host, port);
     CHECK(ok);
-    loop_->AddEvent(fd_, EV_READABLE | EV_WRITABLE, std::bind(&EchoClient::OnConnect, 
+    loop_->AddEvent(fd_, EV_WRITABLE, std::bind(&EchoClient::OnWritable, 
+        this, _1, _2, _3));
+    loop_->AddEvent(fd_, EV_READABLE, std::bind(&EchoClient::OnReadable, 
         this, _1, _2, _3));
 }
 
-void EchoClient::OnConnect(EventLoop* loop, SOCKET fd, int mask)
+
+
+void EchoClient::OnReadable(SOCKET fd, int mask, int err)
 {
+    if (err != 0)
+    {
+        LOG(ERROR) << GetErrorMessage(err);
+        Cleanup();
+        return ;
+    }
+    char buf[1024];
+    int r = recv(fd_, buf, sizeof(buf), 0);
+    if (r == SOCKET_ERROR)
+    {
+        if (WSAGetLastError() != WSAEWOULDBLOCK)
+        {
+            LOG(ERROR) << "recv: " << LAST_ERROR_MSG;
+            Cleanup();
+        }
+    }
 }
 
-void EchoClient::OnReadable(EventLoop* loop, SOCKET fd, int mask)
+void EchoClient::OnWritable(SOCKET fd, int mask, int err)
 {
-}
-
-void EchoClient::OnWritable(EventLoop* loop, SOCKET fd, int mask)
-{
+    if (err != 0)
+    {
+        LOG(ERROR) << GetErrorMessage(err);
+        Cleanup();
+        return ;
+    }
+    const char msg[] = "a quick brown fox jumps over the lazy dog";
+    int r = send(fd_, msg, sizeof(msg), 0);
+    if (r == SOCKET_ERROR)
+    {
+        if (WSAGetLastError() != WSAEWOULDBLOCK)
+        {
+            LOG(ERROR) << "send: " << LAST_ERROR_MSG;
+           Cleanup();
+        }
+    }
 }
 
 void EchoClient::Run()
@@ -82,6 +120,7 @@ bool EchoClient::Connect(const char* host, const char* port)
         {
             LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
             closesocket(fd);
+            fd = INVALID_SOCKET;
             continue;
         }
         err = connect(fd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
@@ -90,6 +129,8 @@ bool EchoClient::Connect(const char* host, const char* port)
             if (WSAGetLastError() != WSAEWOULDBLOCK)
             {
                 LOG(ERROR) << StringPrintf("connect(): %s\n", LAST_ERROR_MSG);
+                closesocket(fd);
+                fd = INVALID_SOCKET;
                 return false;
             }
         }

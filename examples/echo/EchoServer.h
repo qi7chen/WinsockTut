@@ -6,11 +6,19 @@
 
 #include <unordered_map>
 #include "Common/Define.h"
-#include "EventLoop.h"
+#include "Reactor/EventLoop.h"
 
 
 class EchoServer
 {
+public:
+    struct Connection
+    {
+        int cap;
+        int size;
+        char buf[1];
+    };
+
 public:
     explicit EchoServer(IOMode mode);
     ~EchoServer();
@@ -19,10 +27,14 @@ public:
     void Run();
 
 private:
-    void OnAccept(EventLoop* loop, SOCKET fd, int mask);
+    void Cleanup(SOCKET fd);
+    void StartRead(SOCKET fd);
+    void OnAccept(SOCKET fd, int mask, int err);
+    void OnReadable(SOCKET fd, int mask, int err);
+    void OnWritable(SOCKET fd, int mask, int err);
 
 private:
     EventLoop*  loop_;
     SOCKET      acceptor_;
-    //std::unordered_map<SOCKET>
+    std::unordered_map<SOCKET, Connection*> connections_;
 };
