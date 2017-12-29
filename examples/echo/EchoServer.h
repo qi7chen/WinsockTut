@@ -8,7 +8,6 @@
 #include "Common/Define.h"
 #include "Reactor/EventLoop.h"
 
-
 class EchoServer
 {
 public:

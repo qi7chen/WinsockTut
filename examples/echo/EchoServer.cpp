@@ -9,6 +9,11 @@
 
 using namespace std::placeholders;
 
+enum
+{
+    MAX_CONN_RECVBUF = 1024,
+};
+
 EchoServer::EchoServer(IOMode mode)
 {
     loop_ = new EventLoop(mode);
@@ -50,36 +55,74 @@ void EchoServer::OnAccept(SOCKET fd, int mask, int err)
         Cleanup(fd);
         return;
     }
-    Connection* conn = (Connection*)malloc(sizeof(Connection) + 1024);
-    conn->cap = 1024;
+    Connection* conn = (Connection*)malloc(sizeof(Connection) + MAX_CONN_RECVBUF);
+    memset(conn, 0, sizeof(Connection) + MAX_CONN_RECVBUF);
+    conn->cap = MAX_CONN_RECVBUF;
     conn->size = 0;
-    connections_[fd] = conn;
-    loop_->AddEvent(fd, EV_READABLE, std::bind(&EchoServer::OnReadable, this, _1, _2, _3));
-    loop_->AddEvent(fd, EV_WRITABLE, std::bind(&EchoServer::OnWritable, this, _1, _2, _3));
-    StartRead(fd);
+    connections_[newfd] = conn;
+    loop_->AddEvent(newfd, EV_READABLE, std::bind(&EchoServer::OnReadable, this, _1, _2, _3));
+    loop_->AddEvent(newfd, EV_WRITABLE, std::bind(&EchoServer::OnWritable, this, _1, _2, _3));
+    StartRead(newfd);
 }
 
 void EchoServer::StartRead(SOCKET fd)
 {
     Connection* conn = connections_[fd];
-    int r = recv(fd, conn->buf, conn->cap, 0);
-    if (r == SOCKET_ERROR)
+    int bytes = 0;
+    while (true)
     {
-        if (WSAGetLastError() != WSAEWOULDBLOCK)
+        int r = recv(fd, conn->buf, conn->cap, 0);
+        if (r == SOCKET_ERROR)
         {
-            LOG(ERROR) << "recv: " << LAST_ERROR_MSG;
-            Cleanup(fd);
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+            {
+                LOG(ERROR) << "recv: " << LAST_ERROR_MSG;
+                Cleanup(fd);
+            }
+            else
+            {
+                conn->size = bytes;
+            }
+            break;
         }
+        if (r == 0) // EOF
+        {
+            Cleanup(fd);
+            break;
+        }
+        bytes += r;
     }
 }
 
 void EchoServer::OnReadable(SOCKET fd, int mask, int err)
 {
-    StartRead();
+    StartRead(fd);
 }
 
 void EchoServer::OnWritable(SOCKET fd, int mask, int err)
 {
+    Connection* conn = connections_[fd];
+    if (conn == NULL)
+    {
+        return;
+    }
+    int bytes = 0;
+    while(bytes < conn->size)
+    {
+        int remain = conn->size - bytes;
+        int r = send(fd, conn->buf, remain, 0);
+        if (r == SOCKET_ERROR)
+        {
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+            {
+                LOG(ERROR) << "send: " << LAST_ERROR_MSG;
+               Cleanup(fd);
+            }
+            break;
+        }
+        bytes += r;
+    }
+    conn->size = 0;
 }
 
 void EchoServer::Run()

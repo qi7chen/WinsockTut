@@ -42,8 +42,6 @@ void EchoClient::Start(const char* host, const char* port)
         this, _1, _2, _3));
 }
 
-
-
 void EchoClient::OnReadable(SOCKET fd, int mask, int err)
 {
     if (err != 0)
@@ -52,15 +50,26 @@ void EchoClient::OnReadable(SOCKET fd, int mask, int err)
         Cleanup();
         return ;
     }
-    char buf[1024];
-    int r = recv(fd_, buf, sizeof(buf), 0);
-    if (r == SOCKET_ERROR)
+    int bytes = 0;
+    char buf[1024] = {};
+    while (true)
     {
-        if (WSAGetLastError() != WSAEWOULDBLOCK)
+        int r = recv(fd_, buf, sizeof(buf), 0);
+        if (r == SOCKET_ERROR)
         {
-            LOG(ERROR) << "recv: " << LAST_ERROR_MSG;
-            Cleanup();
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+            {
+                LOG(ERROR) << "recv: " << LAST_ERROR_MSG;
+                Cleanup();
+            }
+            break;
         }
+        if (r == 0) // EOF
+        {
+            Cleanup();
+            break;
+        }
+        bytes += r;
     }
 }
 

@@ -13,29 +13,31 @@ using namespace std;
 
 int main(int argc, const char* argv[])
 {
-    if (argc != 4)
+    if (argc != 5)
     {
-        fprintf(stderr, "Usage: %s <server/client> <host> <port>\n");
+        fprintf(stderr, "Usage: %s <server/client> <mode> <host> <port>\n");
         return 1;
     }
     
     WinsockAutoInit init;
 
     string type = argv[1];
-    const char* host = argv[2];
-    const char* port = argv[3];
-    IOMode mode = IOSelect;
+    IOMode mode = (IOMode)atoi(argv[2]);
+    const char* host = argv[3];
+    const char* port = argv[4];
 
     if (type == "server")
     {
         EchoServer server(mode);
         server.Start(host, port);
+        fprintf(stdout, "server started at %s:%s\n", host, port);
         server.Run();
     }
     else if (type == "client")
     {
         EchoClient client(mode);
         client.Start(host, port);
+        fprintf(stdout, "client started at %s:%s\n", host, port);
         client.Run();
     }
     else
