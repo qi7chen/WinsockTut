@@ -79,14 +79,12 @@ void EventLoop::DelEvent(SOCKET fd, int mask)
     if (mask & EV_READABLE)
     {
         entry->readProc = NULL;
+        poller_->DelFd(fd, EV_READABLE);
     }
     if (mask & EV_WRITABLE)
     {
         entry->writeProc = NULL;
-    }
-    if (entry->mask == EV_NONE)
-    {
-        events_.erase(fd);
+        poller_->DelFd(fd, EV_WRITABLE);
     }
 }
 
@@ -125,13 +123,15 @@ void EventLoop::RunOne()
     }
 
     fired_.clear();
-    poller_->Poll(this, 100);
+    poller_->Poll(this, timeout_);
     for (unsigned i = 0; i < fired_.size(); i++)
     {
         const FiredEvent* event = &fired_[i];
         auto iter = events_.find(event->fd);
         if (iter == events_.end())
+        {
             continue;
+        }
         EventEntry* entry = &iter->second;
         if ((event->mask & EV_READABLE) && entry->readProc)
         {
@@ -140,6 +140,10 @@ void EventLoop::RunOne()
         if ((event->mask & EV_WRITABLE) && entry->writeProc)
         {
             entry->writeProc(event->fd, event->mask, event->ec);
+        }
+        if (entry->mask == EV_NONE)
+        {
+            events_.erase(event->fd);
         }
     }
 }
