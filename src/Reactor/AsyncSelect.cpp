@@ -36,55 +36,60 @@ void AsyncSelectPoller::CreateHidenWindow()
 
 int AsyncSelectPoller::AddFd(SOCKET fd, int mask)
 {
-    long lEvent = FD_CLOSE;
-    if (mask & EV_READABLE)
+    int r = 0;
+    if (masks_[fd] == 0)
     {
+        long lEvent = 0;
         lEvent |= FD_ACCEPT;
         lEvent |= FD_READ;
-    }
-    if (mask & EV_WRITABLE)
-    {
+        lEvent |= FD_CLOSE;
         lEvent |= FD_CONNECT;
         lEvent |= FD_WRITE;
+
+        //The WSAAsyncSelect function automatically sets socket s to nonblocking mode
+        r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, lEvent);
+        if (r == SOCKET_ERROR)
+        {
+            LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
+        }
     }
-    //The WSAAsyncSelect function automatically sets socket s to nonblocking mode
-    int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, lEvent);
-    if (r == SOCKET_ERROR)
-    {
-        LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
-    }
+    masks_[fd] |= mask;
     return r;
 }
 
 void AsyncSelectPoller::DelFd(SOCKET fd, int mask)
 {
-    int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, 0);
-    if (r == SOCKET_ERROR)
+    masks_[fd] &= ~mask;
+    if (masks_[fd] == 0)
     {
-        LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
+        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, 0);
+        if (r == SOCKET_ERROR)
+        {
+            LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
+        }
     }
 }
 
-void AsyncSelectPoller::HandleEvent(EventLoop* loop, SOCKET fd, int event, int ec)
+void AsyncSelectPoller::HandleEvent(EventLoop* loop, SOCKET fd, int ev, int ec)
 {
     if (ec > 0)
     {
         loop->AddFiredEvent(fd, EV_READABLE, ec);
         return;
     }
-    switch (event)
+    if ((ev & FD_READ) || (ev & FD_ACCEPT) || (ev & FD_CLOSE))
     {
-    case FD_READ:
-    case FD_ACCEPT:
-    case FD_CLOSE:
-        loop->AddFiredEvent(fd, EV_READABLE, ec);
-        break;
-    case FD_WRITE:
-    case FD_CONNECT:
-        loop->AddFiredEvent(fd, EV_WRITABLE, ec);
-        break;
-    default:
-        break;
+        if (masks_[fd] & EV_READABLE)
+        {
+            loop->AddFiredEvent(fd, EV_READABLE, ec);
+        }
+    }
+    if ((ev & FD_WRITE) || (ev & FD_CONNECT))
+    {
+        if (masks_[fd] & EV_WRITABLE)
+        {
+            loop->AddFiredEvent(fd, EV_WRITABLE, ec);
+        }
     }
 }
 
@@ -92,14 +97,14 @@ int AsyncSelectPoller::Poll(EventLoop* loop, int timeout)
 {
     int count = 0;
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0))
+    while (PeekMessage(&msg, hwnd_, 0, 0, PM_REMOVE))
     {
         if (msg.message == WM_SOCKET)
         {
             SOCKET fd = msg.wParam;
-            int event = WSAGETSELECTEVENT(msg.lParam);
-            int error = WSAGETSELECTERROR(msg.lParam);
-            HandleEvent(loop, fd, event, error);
+            int ev = WSAGETSELECTEVENT(msg.lParam);
+            int ec = WSAGETSELECTERROR(msg.lParam);
+            HandleEvent(loop, fd, ev, ec);
             count++;
         }
         else
@@ -107,6 +112,10 @@ int AsyncSelectPoller::Poll(EventLoop* loop, int timeout)
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+    }
+    if (count == 0 && timeout > 0)
+    {
+        Sleep(timeout);
     }
     return count;
 }

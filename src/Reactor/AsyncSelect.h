@@ -6,6 +6,7 @@
 
 #include <Windows.h>
 #include "Common/Define.h"
+#include <unordered_map>
 
 class AsyncSelectPoller : public IOPoller
 {
@@ -23,4 +24,5 @@ private:
 
 private:
     HWND    hwnd_;
+    std::unordered_map<SOCKET, int> masks_;
 };
