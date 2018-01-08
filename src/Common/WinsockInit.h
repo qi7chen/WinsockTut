@@ -2,6 +2,8 @@
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
+#pragma once
+
 #include <WinSock2.h>
 #include "Logging.h"
 
