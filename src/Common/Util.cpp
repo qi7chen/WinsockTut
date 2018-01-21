@@ -18,9 +18,8 @@ const char* GetErrorMessage(DWORD dwErrorCode)
     return description;
 }
 
-
 // create acceptor socket
-SOCKET CreateTCPAcceptor(const char* host, const char* port, bool nonblock)
+SOCKET CreateTCPAcceptor(const char* host, const char* port)
 {
     SOCKET fd = INVALID_SOCKET;
     struct addrinfo* aiList = NULL;
@@ -60,20 +59,21 @@ SOCKET CreateTCPAcceptor(const char* host, const char* port, bool nonblock)
             fd = INVALID_SOCKET;
             continue;
         }
-        if (nonblock)
-        {
-            // set to non-blocking mode
-            unsigned long value = 1;
-            if (ioctlsocket(fd, FIONBIO, &value) == SOCKET_ERROR)
-            {
-                LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
-                closesocket(fd);
-                fd = INVALID_SOCKET;
-                continue;
-            }
-        }
-        break;
+
+        break; // succeed
     }
     freeaddrinfo(aiList);
     return fd;
+}
+
+// set socket to non-blocking mode
+int SetNonblock(SOCKET fd, bool nonblock)
+{
+    unsigned long val = nonblock ? 1 : 0;
+    int r = ioctlsocket(fd, FIONBIO, &val);
+    if (r == SOCKET_ERROR)
+    {
+        LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
+    }
+    return r;
 }

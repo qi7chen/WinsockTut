@@ -27,7 +27,7 @@ typedef std::function<void(SOCKET, int, int)> EventProc;
 
 struct IOPoller
 {
-    virtual int AddFd(SOCKET fd, int mask) = 0;
-    virtual void DelFd(SOCKET fd, int mask) = 0;
+    virtual int AddFd(SOCKET fd) = 0;
+    virtual void DeleteFd(SOCKET fd) = 0;
     virtual int Poll(EventLoop* loop, int timeout) = 0;
 };

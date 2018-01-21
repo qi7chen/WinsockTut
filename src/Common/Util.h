@@ -14,4 +14,7 @@ const char*  GetErrorMessage(DWORD dwError);
 #define LAST_ERROR_MSG   GetErrorMessage(GetLastError())
 
 // Create an acceptor socket file descriptor
-SOCKET CreateTCPAcceptor(const char* host, const char* port, bool nonblock);
+SOCKET CreateTCPAcceptor(const char* host, const char* port);
+
+// set socket to non-blocking mode
+int SetNonblock(SOCKET fd, bool nonblock);
