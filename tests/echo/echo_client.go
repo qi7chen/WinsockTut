@@ -12,7 +12,7 @@ import (
 var maxCount = 6
 
 func main() {
-	var addr = "localhost:3001"
+	var addr = "localhost:8081"
 	var count = 63
 	if len(os.Args) > 1 {
 		addr = os.Args[1]

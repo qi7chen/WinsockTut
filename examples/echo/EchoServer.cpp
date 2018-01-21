@@ -6,6 +6,7 @@
 #include <functional>
 #include "Common/Util.h"
 #include "Common/Logging.h"
+#include "Common/StringPrintf.h"
 
 using namespace std::placeholders;
 
@@ -106,28 +107,28 @@ void EchoServer::OnAccept(SOCKET fd)
 
 void EchoServer::StartRead(SOCKET fd)
 {
-    int r = 0;
     Connection* conn = connections_[fd];
     while (true)
     {
-        r = recv(fd, conn->buf, conn->cap, 0);
+        int r = recv(fd, conn->buf, conn->cap, 0);
         if (r > 0)
         {
             conn->size += r;
         }
         else
         {
+            if (r == SOCKET_ERROR) 
+            {
+                if (WSAGetLastError() != WSAEWOULDBLOCK)
+                {
+                    Cleanup(fd); // EOF or error;
+                    return;
+                }
+            }
             break;
         }
     }
-    if (r == SOCKET_ERROR) 
-    {
-        if (WSAGetLastError() == WSAEWOULDBLOCK)
-        {
-            return;
-        }
-    }
-    Cleanup(fd); // EOF or error
+    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd, conn->size);
 }
 
 
@@ -138,11 +139,11 @@ void EchoServer::OnWritable(SOCKET fd)
     {
         return;
     }
-    int bytes = 0;
-    while(bytes < conn->size)
+    int transferred_bytes = 0;
+    while(transferred_bytes < conn->size)
     {
-        int remain = conn->size - bytes;
-        int r = send(fd, conn->buf, remain, 0);
+        int remain = conn->size - transferred_bytes;
+        int r = send(fd, conn->buf + transferred_bytes, remain, 0);
         if (r == SOCKET_ERROR)
         {
             if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -152,9 +153,10 @@ void EchoServer::OnWritable(SOCKET fd)
             }
             break;
         }
-        bytes += r;
+        transferred_bytes += r;
     }
     conn->size = 0;
+    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd, transferred_bytes);
 }
 
 void EchoServer::Run()
