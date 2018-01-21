@@ -19,9 +19,10 @@ public:
 
 private:
     void Cleanup();
-    bool Connect(const char* host, const char* port);
-    void OnReadable(SOCKET fd, int mask, int err);
-    void OnWritable(SOCKET fd, int mask, int err);
+    SOCKET Connect(const char* host, const char* port);
+    void HandleEvent(SOCKET fd, int mask, int err);
+    void OnReadable(SOCKET fd);
+    void OnWritable(SOCKET fd);
 
 private:
     SOCKET      fd_;

@@ -13,9 +13,9 @@
 using namespace std::placeholders;
 
 EchoClient::EchoClient(IOMode mode)
+    :fd_(INVALID_SOCKET)
 {
     loop_ = new EventLoop(mode);
-    fd_ = INVALID_SOCKET;
 }
 
 EchoClient::~EchoClient()
@@ -28,67 +28,85 @@ EchoClient::~EchoClient()
 
 void EchoClient::Cleanup()
 {
-    loop_->DelEvent(fd_, EV_READABLE | EV_WRITABLE);
+    loop_->DelEvent(fd_);
     closesocket(fd_);
 }
 
 void EchoClient::Start(const char* host, const char* port)
 {
-    bool ok = Connect(host, port);
-    CHECK(ok);
-    loop_->AddEvent(fd_, EV_WRITABLE, std::bind(&EchoClient::OnWritable, 
-        this, _1, _2, _3));
-    loop_->AddEvent(fd_, EV_READABLE, std::bind(&EchoClient::OnReadable, 
+    SOCKET fd = Connect(host, port);
+    CHECK(fd != INVALID_SOCKET);
+    fd_ = fd;
+    loop_->AddEvent(fd_, std::bind(&EchoClient::HandleEvent, 
         this, _1, _2, _3));
 }
 
-void EchoClient::OnReadable(SOCKET fd, int mask, int err)
+void EchoClient::HandleEvent(SOCKET fd, int ev, int err)
 {
     if (err != 0)
     {
         LOG(ERROR) << GetErrorMessage(err);
         Cleanup();
-        return ;
+        return;
     }
+    if (ev & EV_READABLE)
+    {
+        OnReadable(fd);
+    }
+    if (ev & EV_WRITABLE)
+    {
+        OnWritable(fd);
+    }
+}
+
+void EchoClient::OnReadable(SOCKET fd)
+{
     int bytes = 0;
+    int r = 0;
     char buf[1024] = {};
     while (true)
     {
-        int r = recv(fd_, buf, sizeof(buf), 0);
-        if (r == SOCKET_ERROR)
+        r = recv(fd_, buf, sizeof(buf), 0);
+        if (r > 0)
+        {
+            bytes += r;
+        }
+        else
+        {
+            break;
+        }
+        
+    }
+    if (r == SOCKET_ERROR)
+    {
+        if (WSAGetLastError() == WSAEWOULDBLOCK)
+        {
+            return;
+        }
+    }
+    Cleanup(); // EOF or error
+}
+
+void EchoClient::OnWritable(SOCKET fd)
+{
+    const char msg[] = "a quick brown fox jumps over the lazy dog";
+    int total_bytes = strlen(msg);
+    int transferred_bytes = 0;
+    while (transferred_bytes < total_bytes)
+    {
+        int r = send(fd_, msg + transferred_bytes, total_bytes - transferred_bytes, 0);
+        if (r >= 0)
+        {
+            transferred_bytes += r;
+        }
+        else if (r == SOCKET_ERROR)
         {
             if (WSAGetLastError() != WSAEWOULDBLOCK)
             {
-                LOG(ERROR) << "recv: " << LAST_ERROR_MSG;
+                LOG(ERROR) << "send: " << LAST_ERROR_MSG;
                 Cleanup();
             }
             break;
-        }
-        if (r == 0) // EOF
-        {
-            Cleanup();
-            break;
-        }
-        bytes += r;
-    }
-}
-
-void EchoClient::OnWritable(SOCKET fd, int mask, int err)
-{
-    if (err != 0)
-    {
-        LOG(ERROR) << GetErrorMessage(err);
-        Cleanup();
-        return ;
-    }
-    const char msg[] = "a quick brown fox jumps over the lazy dog";
-    int r = send(fd_, msg, sizeof(msg), 0);
-    if (r == SOCKET_ERROR)
-    {
-        if (WSAGetLastError() != WSAEWOULDBLOCK)
-        {
-            LOG(ERROR) << "send: " << LAST_ERROR_MSG;
-           Cleanup();
         }
     }
 }
@@ -98,7 +116,7 @@ void EchoClient::Run()
     loop_->Run();
 }
 
-bool EchoClient::Connect(const char* host, const char* port)
+SOCKET EchoClient::Connect(const char* host, const char* port)
 {
     SOCKET fd = INVALID_SOCKET;
     struct addrinfo* aiList = NULL;
@@ -112,7 +130,7 @@ bool EchoClient::Connect(const char* host, const char* port)
     if (err != 0)
     {
         LOG(ERROR) << StringPrintf("getaddrinfo(): %s:%s, %s.\n", host, port, gai_strerror(err));
-        return false;
+        return INVALID_SOCKET;
     }
     for (pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
     {
@@ -140,14 +158,12 @@ bool EchoClient::Connect(const char* host, const char* port)
                 LOG(ERROR) << StringPrintf("connect(): %s\n", LAST_ERROR_MSG);
                 closesocket(fd);
                 fd = INVALID_SOCKET;
-                return false;
             }
         }
-        break;
+        break; // succeed
     }
     freeaddrinfo(aiList);
-    fd_ = fd;
-    return fd_ != INVALID_SOCKET;
+    return fd;
 }
 
 

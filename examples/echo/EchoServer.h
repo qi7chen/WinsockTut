@@ -28,9 +28,10 @@ public:
 private:
     void Cleanup(SOCKET fd);
     void StartRead(SOCKET fd);
-    void OnAccept(SOCKET fd, int mask, int err);
-    void OnReadable(SOCKET fd, int mask, int err);
-    void OnWritable(SOCKET fd, int mask, int err);
+    void HandleEvent(SOCKET fd, int ev, int err);
+    void OnAccept(SOCKET fd);
+    void OnReadable(SOCKET fd);
+    void OnWritable(SOCKET fd);
 
 private:
     EventLoop*  loop_;
