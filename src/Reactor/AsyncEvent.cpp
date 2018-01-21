@@ -9,22 +9,34 @@
 
 AsyncEventPoller::AsyncEventPoller()
 {
-    events_.reserve(WSA_MAXIMUM_WAIT_EVENTS);
     fdEvents_.rehash(WSA_MAXIMUM_WAIT_EVENTS);
     eventFds_.rehash(WSA_MAXIMUM_WAIT_EVENTS);
 }
 
 AsyncEventPoller::~AsyncEventPoller()
 {
+    CleanUp();
 }
 
-int AsyncEventPoller::AddFd(SOCKET fd, int mask)
+void AsyncEventPoller::CleanUp()
 {
-    if (events_.size() >= WSA_MAXIMUM_WAIT_EVENTS)
+    for (auto iter = eventFds_.begin(); iter != eventFds_.end();++iter)
     {
-        LOG(ERROR) << "events too many";
+        WSAEventSelect(iter->second, NULL, 0);
+        WSACloseEvent(iter->first);
+        closesocket(iter->second);
+    }
+    eventFds_.clear();
+    fdEvents_.clear();
+}
+
+int AsyncEventPoller::AddFd(SOCKET fd)
+{
+    if (fdEvents_.size() >= WSA_MAXIMUM_WAIT_EVENTS)
+    {
         return -1;
     }
+
     WSAEVENT hEvent = WSACreateEvent();
     if (hEvent == WSA_INVALID_EVENT)
     {
@@ -33,16 +45,7 @@ int AsyncEventPoller::AddFd(SOCKET fd, int mask)
     }
     
     // associate event handle to socket
-    long lEvents = 0;
-    if (mask & EV_READABLE)
-    {
-        lEvents |= FD_READ;
-        lEvents |= FD_ACCEPT;
-    }
-    if (mask & EV_WRITABLE)
-    {
-        lEvents |= FD_WRITE;
-    }
+    long lEvents = FD_READ | FD_WRITE | FD_ACCEPT;
     int r = WSAEventSelect(fd, hEvent, lEvents);
     if (r == SOCKET_ERROR)
     {
@@ -55,10 +58,16 @@ int AsyncEventPoller::AddFd(SOCKET fd, int mask)
     return 0;
 }
 
-void AsyncEventPoller::DelFd(SOCKET fd, int mask)
+void AsyncEventPoller::DeleteFd(SOCKET fd)
 {
+    auto iter = fdEvents_.find(fd);
+    if (iter == fdEvents_.end())
+    {
+        return;
+    }
+    WSAEVENT hEvent = iter->second;
     WSAEventSelect(fd, NULL, 0);
-    WSAEVENT hEvent = fdEvents_[fd];
+    WSACloseEvent(hEvent);
     eventFds_.erase(hEvent);
     fdEvents_.erase(fd);
 }
@@ -66,32 +75,34 @@ void AsyncEventPoller::DelFd(SOCKET fd, int mask)
 void AsyncEventPoller::HandleEvents(EventLoop* loop, SOCKET fd, WSANETWORKEVENTS* events)
 {
     const int* errlist = events->iErrorCode;
-    if (events->lNetworkEvents & FD_READ)
+    long event = events->lNetworkEvents;
+    if (event & FD_READ)
     {
         loop->AddFiredEvent(fd, EV_READABLE, errlist[FD_READ_BIT]);
     }
-    if (events->lNetworkEvents & FD_WRITE)
+    if (event & FD_ACCEPT)
+    {
+        loop->AddFiredEvent(fd, EV_READABLE, errlist[FD_ACCEPT_BIT]);
+    }
+    if (event & FD_WRITE)
     {
         loop->AddFiredEvent(fd, EV_WRITABLE, errlist[FD_WRITE_BIT]);
-    }
-    if (events->lNetworkEvents & FD_CLOSE)
-    {
-        loop->AddFiredEvent(fd, EV_READABLE, errlist[FD_CLOSE_BIT]);
     }
 }
 
 int AsyncEventPoller::Poll(EventLoop* loop, int timeout)
 {
-    events_.clear();
-    for (auto iter = fdEvents_.begin(); iter != fdEvents_.end(); ++iter)
-    {
-        events_.push_back(iter->second);
-    }
-    if (events_.empty())
+    if (fdEvents_.empty())
     {
         return 0;
     }
-    int nready = WSAWaitForMultipleEvents(events_.size(), &events_[0], FALSE, timeout, false);
+    std::vector<WSAEVENT> events;
+    events.reserve(WSA_MAXIMUM_WAIT_EVENTS);
+    for (auto iter = fdEvents_.begin(); iter != fdEvents_.end(); ++iter)
+    {
+        events.push_back(iter->second);
+    }
+    int nready = WSAWaitForMultipleEvents(events.size(), &events[0], FALSE, timeout, false);
     if (nready == WSA_WAIT_FAILED)
     {
         LOG(ERROR) << "WSAWaitForMultipleEvents: " << LAST_ERROR_MSG;
@@ -103,6 +114,7 @@ int AsyncEventPoller::Poll(EventLoop* loop, int timeout)
     }
     else if (nready == WSA_WAIT_IO_COMPLETION)
     {
+        // Alertable I/O
     }
     else 
     {
@@ -112,9 +124,14 @@ int AsyncEventPoller::Poll(EventLoop* loop, int timeout)
             LOG(ERROR) << "WSA wait events index out of range: " << index;
             return 0;
         }
-        WSAEVENT hEvent = events_[index];
+        WSAEVENT hEvent = events[index];
         SOCKET fd = eventFds_[hEvent];
         WSANETWORKEVENTS events = {};
+        if (!WSAResetEvent(hEvent))
+        {
+            LOG(ERROR) << "WSAResetEvent: " << LAST_ERROR_MSG;
+            return 0;
+        }
         int r = WSAEnumNetworkEvents(fd, hEvent, &events);
         if (r == SOCKET_ERROR)
         {
@@ -124,5 +141,4 @@ int AsyncEventPoller::Poll(EventLoop* loop, int timeout)
         HandleEvents(loop, fd, &events);
         return 1;
     }
-    return 0;
 }

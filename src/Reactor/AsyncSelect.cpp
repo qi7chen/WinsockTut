@@ -9,11 +9,11 @@
 #include "EventLoop.h"
 
 // define socket message
-#define WM_SOCKET   WM_USER + 0xBF
+#define WM_SOCKET   WM_USER + 0x0F
 
 AsyncSelectPoller::AsyncSelectPoller()
+    : hwnd_(NULL)
 {
-    hwnd_ = NULL;
     CreateHidenWindow();
 }
 
@@ -25,48 +25,34 @@ AsyncSelectPoller::~AsyncSelectPoller()
 
 void AsyncSelectPoller::CreateHidenWindow()
 {
-    const wchar_t* szTitle = L"async-select";
     HINSTANCE hInstance = (HINSTANCE)GetModuleHandle(NULL);
-    HWND hWnd = CreateWindowW(L"button", szTitle, WS_POPUP, CW_USEDEFAULT, 0,
+    HWND hWnd = CreateWindowW(L"button", L"async-select", WS_POPUP, CW_USEDEFAULT, 0,
         CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
     CHECK(hWnd != NULL) << LAST_ERROR_MSG;
     ShowWindow(hWnd, SW_HIDE);
     hwnd_ = hWnd;
 }
 
-int AsyncSelectPoller::AddFd(SOCKET fd, int mask)
+int AsyncSelectPoller::AddFd(SOCKET fd)
 {
-    int r = 0;
-    if (masks_[fd] == 0)
-    {
-        long lEvent = 0;
-        lEvent |= FD_ACCEPT;
-        lEvent |= FD_READ;
-        lEvent |= FD_CLOSE;
-        lEvent |= FD_CONNECT;
-        lEvent |= FD_WRITE;
+    long lEvent = FD_READ | FD_WRITE | FD_ACCEPT | FD_CONNECT | FD_CLOSE;
 
-        //The WSAAsyncSelect function automatically sets socket s to nonblocking mode
-        r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, lEvent);
-        if (r == SOCKET_ERROR)
-        {
-            LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
-        }
+    // The WSAAsyncSelect function automatically sets socket s to nonblocking mode,
+    // and cancels any previous WSAAsyncSelect or WSAEventSelect for the same socket.
+    int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, lEvent);
+    if (r == SOCKET_ERROR)
+    {
+        LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
     }
-    masks_[fd] |= mask;
     return r;
 }
 
-void AsyncSelectPoller::DelFd(SOCKET fd, int mask)
+void AsyncSelectPoller::DeleteFd(SOCKET fd)
 {
-    masks_[fd] &= ~mask;
-    if (masks_[fd] == 0)
+    int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, 0);
+    if (r == SOCKET_ERROR)
     {
-        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, 0);
-        if (r == SOCKET_ERROR)
-        {
-            LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
-        }
+        LOG(ERROR) << StringPrintf("WSAsyncSelect: %s", LAST_ERROR_MSG);
     }
 }
 
@@ -77,19 +63,18 @@ void AsyncSelectPoller::HandleEvent(EventLoop* loop, SOCKET fd, int ev, int ec)
         loop->AddFiredEvent(fd, EV_READABLE, ec);
         return;
     }
-    if ((ev & FD_READ) || (ev & FD_ACCEPT) || (ev & FD_CLOSE))
+    switch(ev)
     {
-        if (masks_[fd] & EV_READABLE)
-        {
-            loop->AddFiredEvent(fd, EV_READABLE, ec);
-        }
-    }
-    if ((ev & FD_WRITE) || (ev & FD_CONNECT))
-    {
-        if (masks_[fd] & EV_WRITABLE)
-        {
-            loop->AddFiredEvent(fd, EV_WRITABLE, ec);
-        }
+    case FD_READ:
+    case FD_ACCEPT:
+    case FD_CLOSE:
+        loop->AddFiredEvent(fd, EV_READABLE, ec);
+        break;
+
+    case FD_WRITE:
+    case FD_CONNECT:
+        loop->AddFiredEvent(fd, EV_WRITABLE, ec);
+        break;
     }
 }
 

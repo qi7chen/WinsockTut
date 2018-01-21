@@ -8,22 +8,22 @@
 #include <unordered_map>
 #include "Common/Define.h"
 
-
+// TO-DO: WSAEventSelect implementation still has bug
 class AsyncEventPoller : public IOPoller
 {
 public:
     AsyncEventPoller();
     ~AsyncEventPoller();
 
-    int AddFd(SOCKET fd, int mask);
-    void DelFd(SOCKET fd, int mask);
+    int AddFd(SOCKET fd);
+    void DeleteFd(SOCKET fd);
     int Poll(EventLoop* loop, int timeout);
 
 private:
     void HandleEvents(EventLoop* loop, SOCKET fd, WSANETWORKEVENTS* events);
+    void CleanUp();
 
 private:
-    std::vector<WSAEVENT> events_;
     std::unordered_map<SOCKET, WSAEVENT> fdEvents_;
     std::unordered_map<WSAEVENT, SOCKET> eventFds_;
 };

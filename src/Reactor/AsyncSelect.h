@@ -8,14 +8,15 @@
 #include "Common/Define.h"
 #include <unordered_map>
 
+// TO-DO: WSAAsyncSelect implementation still has bug
 class AsyncSelectPoller : public IOPoller
 {
 public:
     AsyncSelectPoller();
     ~AsyncSelectPoller();
 
-    int AddFd(SOCKET fd, int mask);
-    void DelFd(SOCKET fd, int mask);
+    int AddFd(SOCKET fd);
+    void DeleteFd(SOCKET fd);
     int Poll(EventLoop* loop, int timeout);
 
 private:
@@ -24,5 +25,4 @@ private:
 
 private:
     HWND    hwnd_;
-    std::unordered_map<SOCKET, int> masks_;
 };
