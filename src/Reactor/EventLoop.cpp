@@ -42,31 +42,32 @@ void EventLoop::createIOPoller(IOMode type)
     }
 }
 
-void EventLoop::AddEvent(SOCKET fd, int mask, EventProc func)
+int EventLoop::AddEvent(SOCKET fd, EventProc func)
 {
     assert(poller_ != NULL);
+    EventEntry* entry = NULL;
     auto iter = events_.find(fd);
     if (iter == events_.end())
     {
-        EventEntry entry;
-        entry.fd = fd;
-        entry.mask =  mask;
+        entry = new EventEntry();
         events_[fd] = entry;
     }
-    EventEntry* entry = &events_[fd];
-    entry->mask |= mask;
-    if (mask & EV_READABLE)
+    else
     {
-        entry->readProc = func;
+        entry = iter->second;
     }
-    if (mask & EV_WRITABLE)
+    entry->fd = fd;
+    entry->callback = func;
+    
+    int r = poller_->AddFd(fd);
+    if (r < 0)
     {
-        entry->writeProc = func;
+        events_.erase(fd);
     }
-    poller_->AddFd(fd, mask);
+    return r;
 }
 
-void EventLoop::DelEvent(SOCKET fd, int mask)
+void EventLoop::DelEvent(SOCKET fd)
 {
     auto iter = events_.find(fd);
     if (iter == events_.end())
@@ -74,18 +75,9 @@ void EventLoop::DelEvent(SOCKET fd, int mask)
         LOG(ERROR) << "event entry not found " << fd;
         return;
     }
-    EventEntry* entry = &iter->second;
-    entry->mask = entry->mask & (~mask);
-    if (mask & EV_READABLE)
-    {
-        entry->readProc = NULL;
-        poller_->DelFd(fd, EV_READABLE);
-    }
-    if (mask & EV_WRITABLE)
-    {
-        entry->writeProc = NULL;
-        poller_->DelFd(fd, EV_WRITABLE);
-    }
+    events_.erase(iter);
+    poller_->DeleteFd(fd);
+
 }
 
 EventEntry* EventLoop::GetEntry(SOCKET fd)
@@ -93,17 +85,17 @@ EventEntry* EventLoop::GetEntry(SOCKET fd)
     auto iter = events_.find(fd);
     if (iter != events_.end())
     {
-        return &iter->second;
+        return iter->second;
     }
     return NULL;
 }
 
-void EventLoop::AddFiredEvent(SOCKET fd, int mask, int ec)
+void EventLoop::AddFiredEvent(SOCKET fd, int ev, int err)
 {
     FiredEvent event;
     event.fd = fd;
-    event.mask = mask;
-    event.ec = ec;
+    event.event = ev;
+    event.err = err;
     fired_.push_back(event);
 }
 
@@ -132,18 +124,10 @@ void EventLoop::RunOne()
         {
             continue;
         }
-        EventEntry* entry = &iter->second;
-        if ((event->mask & EV_READABLE) && entry->readProc)
+        EventEntry* entry = iter->second;
+        if (entry->callback)
         {
-            entry->readProc(event->fd, event->mask, event->ec);
-        }
-        if ((event->mask & EV_WRITABLE) && entry->writeProc)
-        {
-            entry->writeProc(event->fd, event->mask, event->ec);
-        }
-        if (entry->mask == EV_NONE)
-        {
-            events_.erase(event->fd);
+            entry->callback(event->fd, event->event, event->err);
         }
     }
 }

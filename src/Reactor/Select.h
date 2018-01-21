@@ -12,8 +12,8 @@ public:
     SelectPoller();
     ~SelectPoller();
 
-    int AddFd(SOCKET fd, int mask);
-    void DelFd(SOCKET fd, int mask);
+    int AddFd(SOCKET fd);
+    void DeleteFd(SOCKET fd);
     int Poll(EventLoop* loop, int timeout);
 
 private:

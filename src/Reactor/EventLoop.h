@@ -11,17 +11,15 @@
 
 struct EventEntry
 {
-    int         mask;
     SOCKET      fd;
-    EventProc   readProc;
-    EventProc   writeProc;
+    EventProc   callback;
 };
 
 struct FiredEvent
 {
     SOCKET fd;
-    int mask;
-    int ec;
+    int event;
+    int err;
 };
 
 class EventLoop
@@ -31,17 +29,20 @@ public:
     ~EventLoop();
 
     //
-    void AddEvent(SOCKET fd, int mask, EventProc func);
+    int AddEvent(SOCKET fd, EventProc func);
 
     //
-    void DelEvent(SOCKET fd, int mask);
+    void DelEvent(SOCKET fd);
 
     //
     EventEntry* GetEntry(SOCKET fd);
 
-    const std::unordered_map<SOCKET, EventEntry>& GetEventDict() { return events_; }
+    const std::unordered_map<SOCKET, EventEntry*>& GetEventDict() 
+    { 
+        return events_; 
+    }
 
-    void AddFiredEvent(SOCKET fd, int mask, int ec);
+    void AddFiredEvent(SOCKET fd, int mask, int err);
 
     void Run();
 
@@ -54,6 +55,6 @@ private:
     int         timeout_;
     IOPoller*   poller_;
 
-    std::unordered_map<SOCKET, EventEntry>  events_;
+    std::unordered_map<SOCKET, EventEntry*>  events_;
     std::vector<FiredEvent>  fired_;
 };

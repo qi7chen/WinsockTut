@@ -21,35 +21,23 @@ SelectPoller::~SelectPoller()
 {
 }
 
-int SelectPoller::AddFd(SOCKET fd, int mask)
+int SelectPoller::AddFd(SOCKET fd)
 {
-    if (mask & EV_READABLE)
+    if(readfds_.fd_count == FD_SETSIZE)
     {
-        assert(readfds_.fd_count < FD_SETSIZE);
-        FD_SET(fd, &readfds_);
-        FD_SET(fd, &exceptfds_);
+        return -1;
     }
-    if (mask & EV_WRITABLE) 
-    {
-        assert(writefds_.fd_count < FD_SETSIZE);
-        FD_SET(fd, &writefds_);
-        FD_SET(fd, &exceptfds_);
-    }
+    FD_SET(fd, &readfds_);
+    FD_SET(fd, &exceptfds_);
+    FD_SET(fd, &writefds_);
     return 0;
 }
 
-void SelectPoller::DelFd(SOCKET fd, int mask)
+void SelectPoller::DeleteFd(SOCKET fd)
 {
-    if (mask & EV_READABLE)
-    {
-        FD_CLR(fd, &readfds_);
-        FD_CLR(fd, &exceptfds_);
-    }
-    if (mask & EV_WRITABLE) 
-    {
-        FD_CLR(fd, &writefds_);
-        FD_CLR(fd, &exceptfds_);
-    }
+    FD_CLR(fd, &readfds_);
+    FD_CLR(fd, &writefds_);
+    FD_CLR(fd, &exceptfds_);
 }
 
 // timeout in milliseconds
@@ -74,38 +62,31 @@ int SelectPoller::Poll(EventLoop* loop, int timeout)
         return 0;
     }
     int count = 0;
-    const std::unordered_map<SOCKET, EventEntry>& dict = loop->GetEventDict();
+    const auto& dict = loop->GetEventDict();
     for (auto iter = dict.begin(); iter != dict.end(); ++iter)
     {
         int mask = 0;
-        int ec = 0;
         SOCKET fd = iter->first;
-        const EventEntry* entry = &iter->second;
-        if (entry->mask == EV_NONE)
+        const EventEntry* entry = iter->second;
+        if (entry->fd == INVALID_SOCKET)
         {
             continue;
         }
-        if ((entry->mask & EV_READABLE) && FD_ISSET(fd, &rdset))
+        if (FD_ISSET(fd, &rdset))
         {
             mask |= EV_READABLE;
         }
-        if ((entry->mask & EV_WRITABLE) && FD_ISSET(fd, &wrset))
+        if (FD_ISSET(fd, &wrset))
         {
             mask |= EV_WRITABLE;
         }
         if (FD_ISSET(fd, &exptset))
         {
             mask |= EV_READABLE;
-            int len = sizeof(ec);
-            int r = getsockopt(fd, SOL_SOCKET,SO_ERROR, (char*)&ec, &len);
-            if (r == SOCKET_ERROR)
-            {
-                LOG(ERROR) << StringPrintf("getsockopt: %s", LAST_ERROR_MSG);
-            }
         }
         if (mask != 0)
         {
-            loop->AddFiredEvent(fd, mask, ec);
+            loop->AddFiredEvent(fd, mask, 0);
             count++;
         }
     }
