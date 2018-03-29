@@ -4,9 +4,10 @@
 
 #include "EchoServer.h"
 #include <functional>
-#include "Common/Util.h"
+#include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
+#include "SocketOpts.h"
 
 using namespace std::placeholders;
 
@@ -15,22 +16,97 @@ enum
     MAX_CONN_RECVBUF = 1024,
 };
 
-EchoServer::EchoServer(IOMode mode)
+EchoConn::EchoConn(PollerBase* poller, SOCKET fd)
+{
+    fd_ = fd;
+    poller_ = poller;
+    cap_ = MAX_CONN_RECVBUF;
+    size_ = 0;
+    buf_ = new char[cap_];
+}
+
+EchoConn::~EchoConn()
+{
+    Close();
+}
+
+void EchoConn::Close()
+{
+    poller_->RemoveFd(fd_);
+    closesocket(fd_);
+    fd_ = INVALID_SOCKET;
+    cap_ = 0;
+    size_ = 0;
+    if (buf_ != nullptr)
+    {
+        delete buf_;
+        buf_ = nullptr;
+    }
+}
+
+void EchoConn::StartRead()
+{
+    while (true)
+    {
+        int r = recv(fd_, buf_, cap_, 0);
+        if (r > 0)
+        {
+            size_ += r;
+        }
+        else
+        {
+            if (r == SOCKET_ERROR) 
+            {
+                if (WSAGetLastError() != WSAEWOULDBLOCK)
+                {
+                    Close(); // EOF or error;
+                    return;
+                }
+            }
+            break;
+        }
+    }
+    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd_, size_);
+}
+
+void EchoConn::OnReadable()
+{
+    StartRead();
+}
+
+void EchoConn::OnWritable()
+{
+    int nbytes = 0;
+    while(nbytes < size_)
+    {
+        int remain = size_ - nbytes;
+        int r = send(fd_, buf_ + nbytes, remain, 0);
+        if (r == SOCKET_ERROR)
+        {
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+            {
+                LOG(ERROR) << "send: " << LAST_ERROR_MSG;
+                Close();
+            }
+            break;
+        }
+        nbytes += r;
+    }
+    size_ = 0;
+    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd_, nbytes);
+}
+
+//////////////////////////////////////////////////////
+
+EchoServer::EchoServer(PollerBase* poller)
     :acceptor_(INVALID_SOCKET)
 {
-    loop_ = new EventLoop(mode);
+    poller_ = poller;
 }
 
 EchoServer::~EchoServer()
 {
-    closesocket(acceptor_);
-    acceptor_ = INVALID_SOCKET;
-    delete loop_;
-    for (auto iter = connections_.begin(); iter != connections_.end(); ++iter)
-    {
-        closesocket(iter->first);
-        free(iter->second);
-    }
+    Cleanup();
 }
 
 void EchoServer::Start(const char* host, const char* port)
@@ -39,127 +115,43 @@ void EchoServer::Start(const char* host, const char* port)
     SetNonblock(fd, true);
     CHECK(fd != INVALID_SOCKET) << LAST_ERROR_MSG;
     acceptor_ = fd;
-    loop_->AddEvent(fd, std::bind(&EchoServer::HandleEvent, this, _1, _2, _3));
+    poller_->AddFd(acceptor_, this);
+    poller_->SetPollIn(fd);
 }
 
-void EchoServer::Cleanup(SOCKET fd)
+void EchoServer::Cleanup()
 {
-    closesocket(fd);
-    auto iter = connections_.find(fd);
-    if (iter != connections_.end())
+    poller_->RemoveFd(acceptor_);
+    closesocket(acceptor_);
+    acceptor_ = INVALID_SOCKET;
+
+    for (auto iter = connections_.begin(); iter != connections_.end(); ++iter)
     {
-        free(iter->second);
-        connections_.erase(iter);
+        EchoConn* conn = iter->second;
+        conn->Close();
+        delete conn;
     }
-    loop_->DelEvent(fd);
-    LOG(INFO) << "socket " << fd << " closed";
+    connections_.clear();
 }
 
-
-void EchoServer::HandleEvent(SOCKET fd, int ev, int err)
+void EchoServer::OnReadable()
 {
-    if (err != 0)
-    {
-        LOG(ERROR) << GetErrorMessage(err);
-        Cleanup(fd);
-        return;
-    }
-    if (ev & EV_READABLE)
-    {
-        if (fd == acceptor_)
-        {
-            OnAccept(fd);
-        }
-        else
-        {
-            StartRead(fd);
-        }
-    }
-    if (ev & EV_WRITABLE)
-    {
-        OnWritable(fd);
-    }
-}
-
-void EchoServer::OnAccept(SOCKET fd)
-{
-    SOCKET newfd = accept(fd, NULL, NULL);
+    SOCKET newfd = accept(acceptor_, NULL, NULL);
     if (newfd == INVALID_SOCKET )
     {
         LOG(ERROR) << "accept " << LAST_ERROR_MSG;
         return;
     }
-    
-    int r = loop_->AddEvent(newfd, std::bind(&EchoServer::HandleEvent, this, _1, _2, _3));
-    if (r < 0)
-    {
-        LOG(ERROR) << "OnAccept: events full";
-        closesocket(newfd);
-        return;
-    }
-    LOG(INFO) << "socket " << newfd << " accepted";
-    Connection* conn = (Connection*)malloc(sizeof(Connection) + MAX_CONN_RECVBUF);
-    memset(conn, 0, sizeof(Connection) + MAX_CONN_RECVBUF);
-    conn->cap = MAX_CONN_RECVBUF;
-    conn->size = 0;
+    EchoConn* conn = new EchoConn(poller_, newfd);
+    poller_->AddFd(newfd, conn);
+    poller_->SetPollIn(newfd);
+    poller_->SetPollOut(newfd);
+    conn->StartRead();
     connections_[newfd] = conn;
 }
 
-void EchoServer::StartRead(SOCKET fd)
-{
-    Connection* conn = connections_[fd];
-    while (true)
-    {
-        int r = recv(fd, conn->buf, conn->cap, 0);
-        if (r > 0)
-        {
-            conn->size += r;
-        }
-        else
-        {
-            if (r == SOCKET_ERROR) 
-            {
-                if (WSAGetLastError() != WSAEWOULDBLOCK)
-                {
-                    Cleanup(fd); // EOF or error;
-                    return;
-                }
-            }
-            break;
-        }
-    }
-    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd, conn->size);
-}
 
-
-void EchoServer::OnWritable(SOCKET fd)
+void EchoServer::OnWritable()
 {
-    Connection* conn = connections_[fd];
-    if (conn == NULL)
-    {
-        return;
-    }
-    int transferred_bytes = 0;
-    while(transferred_bytes < conn->size)
-    {
-        int remain = conn->size - transferred_bytes;
-        int r = send(fd, conn->buf + transferred_bytes, remain, 0);
-        if (r == SOCKET_ERROR)
-        {
-            if (WSAGetLastError() != WSAEWOULDBLOCK)
-            {
-                LOG(ERROR) << "send: " << LAST_ERROR_MSG;
-               Cleanup(fd);
-            }
-            break;
-        }
-        transferred_bytes += r;
-    }
-    conn->size = 0;
-    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd, transferred_bytes);
-}
-
-void EchoServer::Run()
-{
-    loop_->Run();
+    // do nothing here
 }

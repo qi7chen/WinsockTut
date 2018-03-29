@@ -6,29 +6,28 @@
 #include <WS2tcpip.h>
 #include <WinSock2.h>
 #include <functional>
-#include "Common/Util.h"
+#include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
+#include "SocketOpts.h"
 
 using namespace std::placeholders;
 
-EchoClient::EchoClient(IOMode mode)
+EchoClient::EchoClient(PollerBase* poller)
     :fd_(INVALID_SOCKET)
 {
-    loop_ = new EventLoop(mode);
+    poller_ = poller;
 }
 
 EchoClient::~EchoClient()
 {
     closesocket(fd_);
     fd_ = INVALID_SOCKET;
-    delete loop_;
-    loop_ = NULL;
 }
 
 void EchoClient::Cleanup()
 {
-    loop_->DelEvent(fd_);
+    poller_->RemoveFd(fd_);
     closesocket(fd_);
 }
 
@@ -37,29 +36,12 @@ void EchoClient::Start(const char* host, const char* port)
     SOCKET fd = Connect(host, port);
     CHECK(fd != INVALID_SOCKET);
     fd_ = fd;
-    loop_->AddEvent(fd_, std::bind(&EchoClient::HandleEvent, 
-        this, _1, _2, _3));
+    poller_->AddFd(fd, this);
+    poller_->SetPollIn(fd);
+    poller_->SetPollOut(fd);
 }
 
-void EchoClient::HandleEvent(SOCKET fd, int ev, int err)
-{
-    if (err != 0)
-    {
-        LOG(ERROR) << GetErrorMessage(err);
-        Cleanup();
-        return;
-    }
-    if (ev & EV_READABLE)
-    {
-        OnReadable(fd);
-    }
-    if (ev & EV_WRITABLE)
-    {
-        OnWritable(fd);
-    }
-}
-
-void EchoClient::OnReadable(SOCKET fd)
+void EchoClient::OnReadable()
 {
     int bytes = 0;
     int r = 0;
@@ -87,7 +69,7 @@ void EchoClient::OnReadable(SOCKET fd)
     Cleanup(); // EOF or error
 }
 
-void EchoClient::OnWritable(SOCKET fd)
+void EchoClient::OnWritable()
 {
     const char msg[] = "a quick brown fox jumps over the lazy dog";
     int total_bytes = strlen(msg);
@@ -109,11 +91,6 @@ void EchoClient::OnWritable(SOCKET fd)
             break;
         }
     }
-}
-
-void EchoClient::Run()
-{
-    loop_->Run();
 }
 
 SOCKET EchoClient::Connect(const char* host, const char* port)
@@ -142,8 +119,7 @@ SOCKET EchoClient::Connect(const char* host, const char* port)
         }
         
         // set to non-blocking mode
-        unsigned long value = 1;
-        if (ioctlsocket(fd, FIONBIO, &value) == SOCKET_ERROR)
+        if (SetNonblock(fd, true) == SOCKET_ERROR)
         {
             LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
             closesocket(fd);

@@ -3,6 +3,8 @@
 // See accompanying files LICENSE.
 
 #include <stdio.h>
+#include <assert.h>
+#include <signal.h>
 #include <string>
 #include "Common/WinsockInit.h"
 #include "EchoServer.h"
@@ -10,6 +12,13 @@
 
 using namespace std;
 
+bool g_stop = false;
+
+void HandleSignal(int sig)
+{
+    g_stop = true;
+    fprintf(stderr, "stop poller\n");
+}
 
 int main(int argc, const char* argv[])
 {
@@ -18,31 +27,38 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "Usage: %s <server/client> <mode> <host> <port>\n", argv[0]);
         return 1;
     }
-    
-    WinsockAutoInit init;
 
     string type = argv[1];
-    IOMode mode = (IOMode)atoi(argv[2]);
-    const char* host = argv[3];
-    const char* port = argv[4];
+    const char* host = argv[2];
+    const char* port = argv[3];
+    PollerType mode = (PollerType)atoi(argv[4]);
+
+    WinsockAutoInit init;
+    PollerBase* poller = CreatePoller(mode);
+    assert(poller != nullptr);
 
     if (type == "server")
     {
-        EchoServer server(mode);
+        EchoServer server(poller);
         server.Start(host, port);
         fprintf(stdout, "server started at %s:%s\n", host, port);
-        server.Run();
     }
     else if (type == "client")
     {
-        EchoClient client(mode);
+        EchoClient client(poller);
         client.Start(host, port);
         fprintf(stdout, "client started at %s:%s\n", host, port);
-        client.Run();
     }
     else
     {
         fprintf(stderr, "invalid instance type: [%s]\n", type.c_str());
     }
+
+    signal(SIGINT, HandleSignal);
+    while (!g_stop)
+    {
+        poller->Poll(50);
+    }
+
     return 0;
 }

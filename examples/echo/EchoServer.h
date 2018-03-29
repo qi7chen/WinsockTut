@@ -4,37 +4,50 @@
 
 #pragma once
 
+#include <vector>
 #include <unordered_map>
-#include "Common/Define.h"
-#include "Reactor/EventLoop.h"
+#include "PollerBase.h"
+#include "PollEvent.h"
 
-class EchoServer
+
+class EchoConn : public IPollEvent
 {
 public:
-    struct Connection
-    {
-        int cap;
-        int size;
-        char buf[1];
-    };
+    explicit EchoConn(PollerBase* poller, SOCKET fd);
+    ~EchoConn();
 
+    void OnReadable();
+    void OnWritable();
+    void OnTimeout(){}
+
+    void StartRead();
+    void Close();
+
+private:
+    PollerBase* poller_;
+    SOCKET  fd_;
+    int     cap_;
+    int     size_;
+    char*   buf_;
+};
+
+class EchoServer : public IPollEvent
+{
 public:
-    explicit EchoServer(IOMode mode);
+    explicit EchoServer(PollerBase* poller);
     ~EchoServer();
 
     void Start(const char* host, const char* port);
-    void Run();
+    
+private:
+    void Cleanup();
+
+    void OnReadable();
+    void OnWritable();
+    void OnTimeout(){}
 
 private:
-    void Cleanup(SOCKET fd);
-    void StartRead(SOCKET fd);
-    void HandleEvent(SOCKET fd, int ev, int err);
-    void OnAccept(SOCKET fd);
-    void OnReadable(SOCKET fd);
-    void OnWritable(SOCKET fd);
-
-private:
-    EventLoop*  loop_;
+    PollerBase* poller_;
     SOCKET      acceptor_;
-    std::unordered_map<SOCKET, Connection*> connections_;
+    std::unordered_map<SOCKET, EchoConn*> connections_;
 };

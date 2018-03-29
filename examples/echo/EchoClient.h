@@ -4,27 +4,27 @@
 
 #pragma once
 
-#include "Common/Define.h"
-#include "Reactor/EventLoop.h"
+#include "PollerBase.h"
+#include "PollEvent.h"
 
-class EchoClient
+class EchoClient : public IPollEvent
 {
 public:
-    explicit EchoClient(IOMode mode);
+    explicit EchoClient(PollerBase* poller);
     ~EchoClient();
 
     void Start(const char* host, const char* port);
 
-    void Run();
 
 private:
     void Cleanup();
     SOCKET Connect(const char* host, const char* port);
-    void HandleEvent(SOCKET fd, int mask, int err);
-    void OnReadable(SOCKET fd);
-    void OnWritable(SOCKET fd);
+
+    void OnReadable();
+    void OnWritable();
+    void OnTimeout(){}
 
 private:
     SOCKET      fd_;
-    EventLoop*  loop_;
+    PollerBase* poller_;
 };
