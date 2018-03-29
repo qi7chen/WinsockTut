@@ -5,7 +5,8 @@
 solution 'WinsockTut'
     configurations  {'Debug', 'Release'}
     targetdir       'bin'
-    language 'C++'
+	architecture 	'x64'
+    language 		'C++'
 
     filter 'configurations:Debug'
         defines 'DEBUG'
@@ -15,7 +16,7 @@ solution 'WinsockTut'
     filter 'configurations:Release'
         defines 'NDEBUG'
         symbols 'On'
-        flags 'Optimize'
+        optimize 'On'
 
     filter 'action:vs*'
         defines
