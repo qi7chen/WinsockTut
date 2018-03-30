@@ -27,7 +27,6 @@ public:
 
 private:
     void CreateHidenWindow();
-    void WatchWritable();
     void HandleEvent(SOCKET fd, int ev, int ec);
 
     struct FdEntry

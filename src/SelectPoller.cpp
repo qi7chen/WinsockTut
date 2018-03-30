@@ -4,6 +4,7 @@
 
 
 #include "SelectPoller.h"
+#include <assert.h>
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include <algorithm>
@@ -24,6 +25,7 @@ SelectPoller::~SelectPoller()
 
 int SelectPoller::AddFd(SOCKET fd, IPollEvent* event)
 {
+    assert(event != nullptr);
     if (fds_.size() >= FD_SETSIZE)
     {
         return -1;

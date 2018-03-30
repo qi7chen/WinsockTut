@@ -3,6 +3,7 @@
 // See accompanying files LICENSE.
 
 #include "AsyncSelectPoller.h"
+#include <assert.h>
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
@@ -37,6 +38,8 @@ void AsyncSelectPoller::CreateHidenWindow()
 
 int AsyncSelectPoller::AddFd(SOCKET fd, IPollEvent* event)
 {
+    assert(event != nullptr);
+
     long lEvent = FD_READ | FD_WRITE | FD_CONNECT;
 
     // The WSAAsyncSelect function automatically sets socket s to nonblocking mode,
@@ -101,16 +104,19 @@ void AsyncSelectPoller::ResetPollOut(SOCKET fd)
     }
 }
 
+// The FD_WRITE event is handled slightly differently.
+// an application can assume that sends are possible starting from the first FD_WRITE message,
+// and lasting until a send returns WSAEWOULDBLOCK.
 void AsyncSelectPoller::HandleEvent(SOCKET fd, int ev, int ec)
 {
-    //if (ec > 0)
-    //{
-    //    fprintf(stderr, "HandleEvent: %d, ec: %d\n", fd, ec);
-    //    return;
-    //}
+    if (ec > 0)
+    {
+        fprintf(stderr, "HandleEvent: %d, ev: %d, ec: %d\n", fd, ev, ec);
+    }
     auto iter = fds_.find(fd);
     if (iter == fds_.end())
     {
+        fprintf(stderr, "socket %d not found in registration\n", fd);
         return;
     }
     FdEntry& entry = iter->second;
@@ -157,21 +163,8 @@ int AsyncSelectPoller::Poll(int timeout)
     }
     if (count == 0 && timeout > 0)
     {
-        WatchWritable();
+        UpdateTimer();
         Sleep(timeout);
     }
     return count;
-}
-
-void AsyncSelectPoller::WatchWritable()
-{
-    for (auto iter = fds_.begin(); iter != fds_.end(); ++iter)
-    {
-        SOCKET fd = iter->first;
-        FdEntry& entry = iter->second;
-        if (fd != INVALID_SOCKET && (entry.mask | MASK_WRITABLE))
-        {
-            entry.sink->OnWritable();
-        }
-    }
 }
