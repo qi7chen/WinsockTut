@@ -17,6 +17,7 @@ EchoClient::EchoClient(PollerBase* poller)
     :fd_(INVALID_SOCKET)
 {
     poller_ = poller;
+    sent_count_ = 10;
 }
 
 EchoClient::~EchoClient()
@@ -57,6 +58,24 @@ void EchoClient::OnReadable()
 }
 
 void EchoClient::OnWritable()
+{
+    // connected
+    poller_->AddTimer(1000, this);
+
+    poller_->ResetPollOut(fd_);
+}
+
+void EchoClient::OnTimeout()
+{
+    SendData();
+
+    if (sent_count_-- > 0)
+    {
+        poller_->AddTimer(1000, this);
+    }
+}
+
+void EchoClient::SendData()
 {
     const char msg[] = "a quick brown fox jumps over the lazy dog";
     int nbytes = WriteSome(fd_, msg, (int)strlen(msg));

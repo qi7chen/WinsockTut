@@ -51,12 +51,19 @@ void EchoConn::StartRead()
     if (nbytes <= 0)
     {
         Close(); // EOF or error;
+        return;
     }
-    else
+    size_ = nbytes;
+    fprintf(stdout, "%d recv %d bytes\n", fd_, nbytes);
+
+    // echo back
+    nbytes = WriteSome(fd_, buf_, size_);
+    if (nbytes < 0)
     {
-        size_ = nbytes;
-        fprintf(stdout, "%d recv %d bytes\n", fd_, nbytes);
+        Close();
+        return ;
     }
+    fprintf(stdout, "%d send %d bytes\n", fd_, nbytes);
 }
 
 void EchoConn::OnReadable()
@@ -66,15 +73,7 @@ void EchoConn::OnReadable()
 
 void EchoConn::OnWritable()
 {
-    int nbytes = WriteSome(fd_, buf_, size_);
-    if (nbytes < 0)
-    {
-        Close();
-    }
-    else
-    {
-        fprintf(stdout, "%d send %d bytes\n", fd_, nbytes);
-    }
+    // writable
 }
 
 //////////////////////////////////////////////////////

@@ -17,14 +17,16 @@ public:
 
 
 private:
-    void Cleanup();
-    SOCKET Connect(const char* host, const char* port);
-
     void OnReadable();
     void OnWritable();
-    void OnTimeout(){}
+    void OnTimeout();
+
+    void Cleanup();
+    SOCKET Connect(const char* host, const char* port);
+    void SendData();
 
 private:
     SOCKET      fd_;
     PollerBase* poller_;
+    int         sent_count_;
 };
