@@ -11,5 +11,3 @@ const char*  GetErrorMessage(DWORD dwError);
 
 // last error description of current thread
 #define LAST_ERROR_MSG   GetErrorMessage(GetLastError())
-
-

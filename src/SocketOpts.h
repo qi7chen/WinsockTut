@@ -6,8 +6,11 @@
 
 #include <WinSock2.h>
 
-// Create an acceptor socket file descriptor
-SOCKET CreateTCPAcceptor(const char* host, const char* port);
-
 // set socket to non-blocking mode
 int SetNonblock(SOCKET fd, bool nonblock);
+
+// read no more than `size` bytes
+int ReadSome(SOCKET fd, void* buf, int size);
+
+// write `size` bytes 
+int WriteSome(SOCKET fd, const void* buf, int size);

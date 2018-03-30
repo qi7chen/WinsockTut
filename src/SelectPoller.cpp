@@ -11,6 +11,7 @@
 
 SelectPoller::SelectPoller()
 {
+    fds_.reserve(64);
     has_retired_ = false;
     memset(&readfds_, 0, sizeof(fd_set));
     memset(&writefds_, 0, sizeof(fd_set));
@@ -89,7 +90,7 @@ int SelectPoller::Poll(int timeout)
 	int r = select(0, &rdset, &wrset, &exptset, &tvp);
     if (r == SOCKET_ERROR)
     {
-        LOG(ERROR) << LAST_ERROR_MSG;
+        LOG(ERROR) << GetLastError() << ": " << LAST_ERROR_MSG;
         return 0;
     } 
     else if (r == 0)  // timed-out
