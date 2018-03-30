@@ -13,6 +13,7 @@ enum PollerType
 {
     PollerSelect = 1,
     PollerAsyncSelect = 2,
+    PollerAsyncEvent = 3,
 };
 
 class PollerBase
@@ -30,6 +31,7 @@ public:
     virtual void ResetPollOut(SOCKET fd) = 0;
     virtual int Poll(int timeout) = 0;
 
+    int LastError();
     int AddTimer(int millsec, IPollEvent* event);
     void CancelTimer(int id);
     void UpdateTimer();
@@ -42,7 +44,8 @@ private:
 
     struct TimerEntry;
 
-private:
+protected:
+    int last_err_;
     int counter_;                       // next timer id
     std::vector<TimerEntry*>  heap_;    // min-heap timer
 };
