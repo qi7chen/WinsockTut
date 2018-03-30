@@ -40,6 +40,7 @@ public:
     void Start(const char* host, const char* port);
     
 private:
+    SOCKET CreateTCPAcceptor(const char* host, const char* port);
     void Cleanup();
 
     void OnReadable();

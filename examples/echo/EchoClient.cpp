@@ -21,14 +21,15 @@ EchoClient::EchoClient(PollerBase* poller)
 
 EchoClient::~EchoClient()
 {
-    closesocket(fd_);
-    fd_ = INVALID_SOCKET;
+    Cleanup();
 }
 
 void EchoClient::Cleanup()
 {
+    fprintf(stderr, "%d closed\n", fd_);
     poller_->RemoveFd(fd_);
     closesocket(fd_);
+    fd_ = INVALID_SOCKET;
 }
 
 void EchoClient::Start(const char* host, const char* port)
@@ -43,53 +44,29 @@ void EchoClient::Start(const char* host, const char* port)
 
 void EchoClient::OnReadable()
 {
-    int bytes = 0;
-    int r = 0;
     char buf[1024] = {};
-    while (true)
+    int nbytes = ReadSome(fd_, buf, 1024);
+    if (nbytes < 1)
     {
-        r = recv(fd_, buf, sizeof(buf), 0);
-        if (r > 0)
-        {
-            bytes += r;
-        }
-        else
-        {
-            break;
-        }
-        
+        Cleanup();
     }
-    if (r == SOCKET_ERROR)
+    else
     {
-        if (WSAGetLastError() == WSAEWOULDBLOCK)
-        {
-            return;
-        }
+        fprintf(stdout, "%d recv %d bytes\n", fd_, nbytes);
     }
-    Cleanup(); // EOF or error
 }
 
 void EchoClient::OnWritable()
 {
     const char msg[] = "a quick brown fox jumps over the lazy dog";
-    int total_bytes = strlen(msg);
-    int transferred_bytes = 0;
-    while (transferred_bytes < total_bytes)
+    int nbytes = WriteSome(fd_, msg, (int)strlen(msg));
+    if (nbytes < 0)
     {
-        int r = send(fd_, msg + transferred_bytes, total_bytes - transferred_bytes, 0);
-        if (r >= 0)
-        {
-            transferred_bytes += r;
-        }
-        else if (r == SOCKET_ERROR)
-        {
-            if (WSAGetLastError() != WSAEWOULDBLOCK)
-            {
-                LOG(ERROR) << "send: " << LAST_ERROR_MSG;
-                Cleanup();
-            }
-            break;
-        }
+        Cleanup();
+    }
+    else
+    {
+        fprintf(stdout, "%d send %d bytes\n", fd_, nbytes);
     }
 }
 
@@ -99,8 +76,8 @@ SOCKET EchoClient::Connect(const char* host, const char* port)
     struct addrinfo* aiList = NULL;
     struct addrinfo* pinfo = NULL;
     struct addrinfo hints = {};
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM; // TCP
+    hints.ai_family = AF_UNSPEC;        // both IPv4 and IPv6
+    hints.ai_socktype = SOCK_STREAM;    // TCP
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
     int err = getaddrinfo(host, port, &hints, &aiList);
@@ -117,7 +94,6 @@ SOCKET EchoClient::Connect(const char* host, const char* port)
             LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
             continue;
         }
-        
         // set to non-blocking mode
         if (SetNonblock(fd, true) == SOCKET_ERROR)
         {

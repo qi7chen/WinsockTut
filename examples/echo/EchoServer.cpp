@@ -4,6 +4,7 @@
 
 #include "EchoServer.h"
 #include <functional>
+#include <WS2tcpip.h>
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
@@ -46,27 +47,16 @@ void EchoConn::Close()
 
 void EchoConn::StartRead()
 {
-    while (true)
+    int nbytes = ReadSome(fd_, buf_, cap_);
+    if (nbytes <= 0)
     {
-        int r = recv(fd_, buf_, cap_, 0);
-        if (r > 0)
-        {
-            size_ += r;
-        }
-        else
-        {
-            if (r == SOCKET_ERROR) 
-            {
-                if (WSAGetLastError() != WSAEWOULDBLOCK)
-                {
-                    Close(); // EOF or error;
-                    return;
-                }
-            }
-            break;
-        }
+        Close(); // EOF or error;
     }
-    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd_, size_);
+    else
+    {
+        size_ = nbytes;
+        fprintf(stdout, "%d recv %d bytes\n", fd_, nbytes);
+    }
 }
 
 void EchoConn::OnReadable()
@@ -76,24 +66,15 @@ void EchoConn::OnReadable()
 
 void EchoConn::OnWritable()
 {
-    int nbytes = 0;
-    while(nbytes < size_)
+    int nbytes = WriteSome(fd_, buf_, size_);
+    if (nbytes < 0)
     {
-        int remain = size_ - nbytes;
-        int r = send(fd_, buf_ + nbytes, remain, 0);
-        if (r == SOCKET_ERROR)
-        {
-            if (WSAGetLastError() != WSAEWOULDBLOCK)
-            {
-                LOG(ERROR) << "send: " << LAST_ERROR_MSG;
-                Close();
-            }
-            break;
-        }
-        nbytes += r;
+        Close();
     }
-    size_ = 0;
-    LOG(ERROR) << StringPrintf("socket %d recv %d bytes", fd_, nbytes);
+    else
+    {
+        fprintf(stdout, "%d send %d bytes\n", fd_, nbytes);
+    }
 }
 
 //////////////////////////////////////////////////////
@@ -112,7 +93,6 @@ EchoServer::~EchoServer()
 void EchoServer::Start(const char* host, const char* port)
 {
     SOCKET fd = CreateTCPAcceptor(host, port);
-    SetNonblock(fd, true);
     CHECK(fd != INVALID_SOCKET) << LAST_ERROR_MSG;
     acceptor_ = fd;
     poller_->AddFd(acceptor_, this);
@@ -154,4 +134,61 @@ void EchoServer::OnReadable()
 void EchoServer::OnWritable()
 {
     // do nothing here
+}
+
+
+// create acceptor socket
+SOCKET EchoServer::CreateTCPAcceptor(const char* host, const char* port)
+{
+    SOCKET fd = INVALID_SOCKET;
+    struct addrinfo* aiList = NULL;
+    struct addrinfo* pinfo = NULL;
+    struct addrinfo hints = {};
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM; // TCP
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+    int err = getaddrinfo(host, port, &hints, &aiList);
+    if (err != 0)
+    {
+        LOG(ERROR) << StringPrintf("getaddrinfo(): %s:%s, %s.\n", host, port, gai_strerror(err));
+        return INVALID_SOCKET;
+    }
+    for (pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
+    {
+        fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
+        if (fd == INVALID_SOCKET)
+        {
+            LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
+            continue;
+        }
+        err = bind(fd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
+        if (err == SOCKET_ERROR)
+        {
+            LOG(ERROR) << StringPrintf("%s bind(): %s\n", pinfo->ai_addr, LAST_ERROR_MSG);
+            closesocket(fd);
+            fd = INVALID_SOCKET;
+            continue;
+        }
+        // set to non-blocking mode
+        if (SetNonblock(fd, true) == SOCKET_ERROR)
+        {
+            LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
+            closesocket(fd);
+            fd = INVALID_SOCKET;
+            continue;
+        }
+        err = listen(fd, SOMAXCONN);
+        if (err == SOCKET_ERROR)
+        {
+            LOG(ERROR) << StringPrintf("listen(): %s\n", LAST_ERROR_MSG);
+            closesocket(fd);
+            fd = INVALID_SOCKET;
+            continue;
+        }
+
+        break; // succeed
+    }
+    freeaddrinfo(aiList);
+    return fd;
 }

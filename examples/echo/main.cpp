@@ -37,16 +37,19 @@ int main(int argc, const char* argv[])
     PollerBase* poller = CreatePoller(mode);
     assert(poller != nullptr);
 
+    IPollEvent* sink = nullptr;
     if (type == "server")
     {
-        EchoServer server(poller);
-        server.Start(host, port);
+        auto server = new EchoServer(poller);
+        server->Start(host, port);
+        sink = server;
         fprintf(stdout, "server started at %s:%s\n", host, port);
     }
     else if (type == "client")
     {
-        EchoClient client(poller);
-        client.Start(host, port);
+        auto client = new EchoClient(poller);
+        client->Start(host, port);
+        sink = client;
         fprintf(stdout, "client started at %s:%s\n", host, port);
     }
     else
@@ -59,6 +62,7 @@ int main(int argc, const char* argv[])
     {
         poller->Poll(50);
     }
+    delete sink;
 
     return 0;
 }
