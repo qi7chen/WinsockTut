@@ -12,6 +12,7 @@
 enum PollerType
 {
     PollerSelect = 1,
+    PollerAsyncSelect = 2,
 };
 
 class PollerBase

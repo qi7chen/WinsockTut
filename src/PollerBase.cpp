@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <Windows.h>
 #include "SelectPoller.h"
+#include "AsyncSelectPoller.h"
 
 struct PollerBase::TimerEntry
 {
@@ -162,6 +163,9 @@ PollerBase* CreatePoller(PollerType type)
     {
     case PollerSelect:
         return new SelectPoller;
+
+    case PollerAsyncSelect:
+        return new AsyncSelectPoller;
 
     default:
         return nullptr;
