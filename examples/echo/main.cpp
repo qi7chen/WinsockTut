@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ichenq@outlook.com. All rights reserved.
+// Copyright (C) 2012-2018 ichenq@outlook.com. All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -22,6 +22,8 @@ void HandleSignal(int sig)
 
 int main(int argc, const char* argv[])
 {
+    signal(SIGINT, HandleSignal);
+
     if (argc != 5)
     {
         fprintf(stderr, "Usage: %s <server/client> <mode> <host> <port>\n", argv[0]);
@@ -57,7 +59,7 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "invalid instance type: [%s]\n", type.c_str());
     }
 
-    signal(SIGINT, HandleSignal);
+    
     while (!g_stop)
     {
         poller->Poll(50);

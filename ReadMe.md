@@ -1,19 +1,20 @@
 # WinsockTut
 
-Simple TCP echo server implement with different Winsock I/O strategies.
+尝试用不同的Windows API实现网络I/O多路复用模型
     
 
 ### Introduction
 
-I/O Model       | Description
-----------------|------------
-socket          | basic BSD socket
-select          | with select()
-async_select    | with WSAAsyncSelect()
-async_event     | with WSAAsyncSelect()
-complete_routine| with alertable I/O
-overlap         | with overlapped I/O
-iocp            | with Completion Port, both server and client usage
+I/O Model         | Description
+------------------|------------
+SelectPoller      | select() API
+AsyncSelectPoller | WSAAsyncSelect() API
+AsyncEventPoller  | WSAEventSelect() API
+complete_routine  | alertable I/O
+overlap           | overlapped I/O
+iocp              | Completion Port, both server and client usage
 
 
-`test_echo.py` is a simple testing python script
+### Example 
+
+[echo示例](https://github.com/ichenq/WinsockTut/tree/master/examples/echo)
