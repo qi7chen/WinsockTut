@@ -9,7 +9,7 @@
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
-#include "SocketOpts.h"
+#include "Reactor/SocketOpts.h"
 
 using namespace std::placeholders;
 
