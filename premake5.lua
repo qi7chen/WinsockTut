@@ -29,8 +29,29 @@ solution 'WinsockTut'
         }
         links 'ws2_32'
 
-
-	project 'libWinNet'
+    project 'echo'
+        location    'build'
+        kind        'ConsoleApp' 
+        files
+        {
+            'examples/echo/*.h',
+            'examples/echo/*.cpp',
+        }
+        includedirs 'src'
+        links 'libtutnet'
+		
+    project 'pingpong'
+        location    'build'
+        kind        'ConsoleApp' 
+        files
+        {
+            'examples/pingpong/*.h',
+            'examples/pingpong/*.cpp',
+        }
+        includedirs 'src'
+        links 'libtutnet'
+		
+	project 'libtutnet'
         location 'build'
         kind 'StaticLib'
 
@@ -40,18 +61,4 @@ solution 'WinsockTut'
             'src/**.h',
         }
         includedirs 'src'
-
-
-    project 'ExampleEcho'
-        location    'build'
-        kind        'ConsoleApp' 
-        files
-        {
-            'examples/echo/*.h',
-            'examples/echo/*.cpp',
-        }
-        includedirs 'src'
-        links 'libWinNet'
-
-
             
