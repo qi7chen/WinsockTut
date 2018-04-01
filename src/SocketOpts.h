@@ -5,6 +5,7 @@
 #pragma once
 
 #include <WinSock2.h>
+#include <functional>
 
 // set socket to non-blocking mode
 int SetNonblock(SOCKET fd, bool nonblock);
@@ -14,3 +15,7 @@ int ReadSome(SOCKET fd, void* buf, int size);
 
 // write `size` bytes 
 int WriteSome(SOCKET fd, const void* buf, int size);
+
+typedef std::function<bool(addrinfo*)> LoopProcessor;
+
+void LoopThroughStreamAddr(const char* host, const char* port, LoopProcessor processor);
