@@ -3,8 +3,10 @@
 // See accompanying files LICENSE.
 
 #include "IOServiceBase.h"
+#include "Common/Logging.h"
+#include "OverlappedIOService.h"
 
-
+//////////////////////////////////////////////////////////////////////////
 IOServiceBase::IOServiceBase()
 {
     counter_ = 2018;
@@ -56,3 +58,15 @@ void IOServiceBase::UpdateTimer()
     }
 }
 
+IOServiceBase* CreateIOService(IOServiceType type)
+{
+    switch(type)
+    {
+    case Overlapped:
+        return new OverlappedIOService;
+
+    default:
+        LOG(ERROR) << "unsupported service type";
+        return nullptr;
+    }
+}
