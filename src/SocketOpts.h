@@ -18,4 +18,4 @@ int WriteSome(SOCKET fd, const void* buf, int size);
 
 typedef std::function<bool(addrinfo*)> LoopProcessor;
 
-void LoopThroughStreamAddr(const char* host, const char* port, LoopProcessor processor);
+int RangeTCPAddrList(const char* host, const char* port, LoopProcessor processor);

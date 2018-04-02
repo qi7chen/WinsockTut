@@ -73,7 +73,7 @@ int WriteSome(SOCKET fd, const void* buf, int size)
     return nbytes;
 }
 
-void LoopThroughStreamAddr(const char* host, const char* port, LoopProcessor processor)
+int RangeTCPAddrList(const char* host, const char* port, LoopProcessor processor)
 {
     SOCKET fd = INVALID_SOCKET;
     struct addrinfo* aiList = NULL;
@@ -87,42 +87,13 @@ void LoopThroughStreamAddr(const char* host, const char* port, LoopProcessor pro
     if (err != 0)
     {
         LOG(ERROR) << StringPrintf("getaddrinfo(): %s:%s, %s.\n", host, port, gai_strerror(err));
-        return INVALID_SOCKET;
+        return err;
     }
     for (pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
     {
-        fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
-        if (fd == INVALID_SOCKET)
-        {
-            LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
-            continue;
-        }
-        err = bind(fd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
-        if (err == SOCKET_ERROR)
-        {
-            LOG(ERROR) << StringPrintf("%s bind(): %s\n", pinfo->ai_addr, LAST_ERROR_MSG);
-            closesocket(fd);
-            fd = INVALID_SOCKET;
-            continue;
-        }
-        // set to non-blocking mode
-        if (SetNonblock(fd, true) == SOCKET_ERROR)
-        {
-            LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
-            closesocket(fd);
-            fd = INVALID_SOCKET;
-            continue;
-        }
-        err = listen(fd, SOMAXCONN);
-        if (err == SOCKET_ERROR)
-        {
-            LOG(ERROR) << StringPrintf("listen(): %s\n", LAST_ERROR_MSG);
-            closesocket(fd);
-            fd = INVALID_SOCKET;
-            continue;
-        }
-
-        break; // succeed
+        if (processor(pinfo))
+            break; // succeed
     }
     freeaddrinfo(aiList);
+    return 0;
 }
