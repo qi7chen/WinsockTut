@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <set>
-#include "Operation.h"
+#include "OverlapFd.h"
 
 
 enum IOServiceType
@@ -22,10 +22,10 @@ public:
     IOServiceBase();
     virtual ~IOServiceBase();
 
-    virtual int AsyncConnect(const std::string& addr, const std::string& port, ConnectCallback cb) = 0;
-    virtual int AsyncListen(SOCKET fd, const std::string& addr, const std::string& port, AcceptCallback cb) = 0;
-    virtual int AsyncRead(SOCKET fd, void* buf, int size, ReadCallback cb) = 0;
-    virtual int AsyncWrite(SOCKET fd, void* buf, int size, WriteCallback cb) = 0;
+    virtual int AsyncConnect(const char* addr, const char* port, ConnectCallback cb) = 0;
+    virtual int AsyncListen(OverlapFd* fd, const char* addr, const char* port, AcceptCallback cb) = 0;
+    virtual int AsyncRead(OverlapFd* fd, void* buf, int size, ReadCallback cb) = 0;
+    virtual int AsyncWrite(OverlapFd* fd, void* buf, int size, WriteCallback cb) = 0;
 
     virtual int Poll(int timeout) = 0;
 
