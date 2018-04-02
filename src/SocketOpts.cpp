@@ -3,10 +3,12 @@
 // See accompanying files LICENSE.
 
 #include "SocketOpts.h"
+#include <assert.h>
+#include <WS2tcpip.h>
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
-#include <WS2tcpip.h>
+
 
 
 // set socket to non-blocking mode
@@ -19,6 +21,40 @@ int SetNonblock(SOCKET fd, bool nonblock)
         LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
     }
     return r;
+}
+
+int BindAnyAddr(SOCKET fd, int family)
+{
+    sockaddr* paddr = nullptr;
+    int addrlen = 0;
+    sockaddr_in addr4 = {};
+    sockaddr_in6 addr6 = {};
+    switch (family)
+    {
+    case AF_INET:
+        addr4.sin_family = family;
+        addr4.sin_addr.S_un.S_addr = INADDR_ANY;
+        paddr = (sockaddr*)&addr4;
+        addrlen = sizeof(addr4);
+        break;
+    case AF_INET6:
+        addr6.sin6_family = family;
+        addr6.sin6_addr = in6addr_any;
+        paddr = (sockaddr*)&addr6;
+        addrlen = sizeof(addr6);
+        break;
+    default:
+        assert(false && "invalid net family");
+        abort();
+        return -1;
+    }
+    int r = bind(fd, paddr, addrlen);
+    if (r == SOCKET_ERROR)
+    {
+        LOG(ERROR) << "bind: " << LAST_ERROR_MSG;
+        return -1;
+    }
+    return 0;
 }
 
 int ReadSome(SOCKET fd, void* buf, int size)

@@ -10,6 +10,8 @@
 // set socket to non-blocking mode
 int SetNonblock(SOCKET fd, bool nonblock);
 
+int BindAnyAddr(SOCKET fd, int family);
+
 // read no more than `size` bytes
 int ReadSome(SOCKET fd, void* buf, int size);
 
