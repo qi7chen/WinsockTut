@@ -4,12 +4,30 @@
 
 #include <assert.h>
 #include <string>
+#include <iostream>
 #include "Common/WinsockInit.h"
-#include "Proactor/OverlappedIOService.h"
-#include "Proactor/WsaExt.h"
+#include "Common/Error.h"
 #include "Common/Any.h"
+#include "Proactor/OverlappedIOService.h"
+#include "WsaExt.h"
 
 using namespace std;
+
+IOServiceBase* service = nullptr;
+
+void OnConnected(OverlapFd* fd)
+{
+    if (fd->err > 0)
+    {
+        cout << GetErrorMessage(fd->err) << endl;
+        return ;
+    }
+    char msg[] = "a quick brown fox jumps over the lazy dog";
+    service->AsyncWrite(fd, msg, sizeof(msg), [](int ec, int nbytes)
+    {
+        cout << ec << ": " << nbytes;
+    });
+}
 
 int main(int argc, char* argv[])
 {
@@ -20,25 +38,23 @@ int main(int argc, char* argv[])
     }
 
     string type = argv[1];
-    string host = argv[2];
-    string port = argv[3];
+    const char* host = argv[2];
+    const char* port = argv[3];
     IOServiceType mode = (IOServiceType)atoi(argv[4]);
 
     WinsockAutoInit init;
     WsaExt::Init(INVALID_SOCKET);
 
-    IOServiceBase* service = CreateIOService(mode);
+    service = CreateIOService(mode);
     assert(service != nullptr);
 
-    service->AsyncConnect(host, port, [=](int ec)
-    {
-        LOG(INFO) << ec << ", " << fd;
-    });
+    service->AsyncConnect(host, port, OnConnected);
 
     while(true)
     {
         service->Poll(50);
     }
+    delete service;
 
     return 0;
 }
