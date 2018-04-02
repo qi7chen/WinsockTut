@@ -8,16 +8,9 @@
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringPrintf.h"
+#include "SocketOpts.h"
 #include "WsaExt.h"
 
-
-struct OverlappedIOService::PerHandleData
-{
-    WSAOVERLAPPED   overlap;
-    WSABUF          wsbuf;
-    SOCKET          fd;
-    boost::any      callback;
-};
 
 //////////////////////////////////////////////////////////////////////////
 OverlappedIOService::OverlappedIOService()
@@ -35,13 +28,13 @@ void OverlappedIOService::CleanUp()
 {
     for (auto iter = sock_handles_.begin(); iter != sock_handles_.end(); ++iter)
     {
-        FreeHandleData(iter->second);
+        FreeOverlapFd(iter->second);
     }
     sock_handles_.clear();
     event_socks_.clear();
 }
 
-OverlappedIOService::PerHandleData* OverlappedIOService::AllocHandleData(SOCKET fd)
+OverlapFd* OverlappedIOService::AllocOverlapFd(SOCKET fd)
 {
     auto iter = sock_handles_.find(fd);
     if (iter != sock_handles_.end())
@@ -55,8 +48,7 @@ OverlappedIOService::PerHandleData* OverlappedIOService::AllocHandleData(SOCKET 
         LOG(ERROR) << "WSACreateEvent: " << LAST_ERROR_MSG;
         return nullptr;
     }
-    PerHandleData* data = new PerHandleData;
-    memset(data, 0, sizeof(*data));
+    OverlapFd* data = new OverlapFd;
     data->fd = fd;
     data->overlap.hEvent = hEvent;
     sock_handles_[fd] = data;
@@ -64,7 +56,7 @@ OverlappedIOService::PerHandleData* OverlappedIOService::AllocHandleData(SOCKET 
     return data;
 }
 
-void OverlappedIOService::FreeHandleData(PerHandleData* data)
+void OverlappedIOService::FreeOverlapFd(OverlapFd* data)
 {
     sock_handles_.erase(data->fd);
     event_socks_.erase(data->overlap.hEvent);
@@ -73,7 +65,7 @@ void OverlappedIOService::FreeHandleData(PerHandleData* data)
     delete data;
 }
 
-OverlappedIOService::PerHandleData* OverlappedIOService::GetHandleData(WSAEVENT hEvent)
+OverlapFd* OverlappedIOService::GetOverlapFdByEvent(WSAEVENT hEvent)
 {
     auto iter = event_socks_.find(hEvent);
     if (iter != event_socks_.end())
@@ -87,55 +79,37 @@ OverlappedIOService::PerHandleData* OverlappedIOService::GetHandleData(WSAEVENT 
     return nullptr;
 }
 
-int OverlappedIOService::AsyncConnect(const std::string& addr, const std::string& port, ConnectCallback cb)
+int OverlappedIOService::AsyncConnect(const char* addr, const char* port, ConnectCallback cb)
 {
-    struct addrinfo* aiList = NULL;
-    struct addrinfo* pinfo = NULL;
-    struct addrinfo hints = {};
-    hints.ai_family = AF_UNSPEC;        // both IPv4 and IPv6
-    hints.ai_socktype = SOCK_STREAM;    // TCP
-    hints.ai_protocol = IPPROTO_TCP;
-    hints.ai_flags = AI_PASSIVE;
-
-    int err = getaddrinfo(addr.c_str(), port.c_str(), &hints, &aiList);
-    if (err != 0)
-    {
-        LOG(ERROR) << StringPrintf("getaddrinfo(): %s:%s, %s.\n", addr.c_str(), port.c_str(), 
-            gai_strerror(err));
-        return err;
-    }
-    SOCKET fd = INVALID_SOCKET;
-    for (pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
+    return RangeTCPAddrList(addr, port, [=](const addrinfo* pinfo) -> bool
     {
         // fd has the overlapped attribute as a default.
-        fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
+        SOCKET fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
         if (fd == INVALID_SOCKET)
         {
             LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
-            continue; // try next addrinfo
+            return false; // try next addrinfo
         }
 
         // ConnectEx need previously bound socket.
-        int r = bind(fd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
-        if (r == SOCKET_ERROR)
+        if (BindAnyAddr(fd, pinfo->ai_family) != 0)
         {
-            LOG(ERROR) << "bind: " << LAST_ERROR_MSG;
             closesocket(fd);
-            continue;
+            return false;
         }
 
-        PerHandleData* data = AllocHandleData(fd);
+        OverlapFd* data = AllocOverlapFd(fd);
         CHECK(data != nullptr) << "AllocHandleData";
 
-        r = WsaExt::ConnectEx(fd, (const struct sockaddr*)pinfo->ai_addr, (int)pinfo->ai_addrlen, 
+        int r = WsaExt::ConnectEx(fd, (const struct sockaddr*)pinfo->ai_addr, (int)pinfo->ai_addrlen, 
             nullptr, 0, nullptr, (OVERLAPPED*)data);
         if (r != TRUE)
         {
             if (GetLastError() != WSA_IO_PENDING)
             {
                 LOG(ERROR) << "ConenctEx: " << LAST_ERROR_MSG;
-                FreeHandleData(data);
-                continue;
+                FreeOverlapFd(data);
+                return false;
             }
         }
         else
@@ -144,28 +118,27 @@ int OverlappedIOService::AsyncConnect(const std::string& addr, const std::string
             r = setsockopt(fd, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
             if (r != 0)
             {
-                FreeHandleData(data);
+                FreeOverlapFd(data);
                 delete data;
             }
         }
-        data->callback = cb;
-        break; // succeed
-    }
-    freeaddrinfo(aiList);
-    return 0;
+        data->op = OpConnect;
+        data->ctx = cb;
+        return true; // succeed
+    });
 }
 
-int OverlappedIOService::AsyncListen(SOCKET fd, const std::string& addr, const std::string& port, AcceptCallback cb)
+int OverlappedIOService::AsyncListen(OverlapFd* fd, const char* addr, const char* port, AcceptCallback cb)
 {
     return 0;
 }
 
-int OverlappedIOService::AsyncRead(SOCKET fd, void* buf, int size, ReadCallback cb)
+int OverlappedIOService::AsyncRead(OverlapFd* fd, void* buf, int size, ReadCallback cb)
 {
     return 0;
 }
 
-int OverlappedIOService::AsyncWrite(SOCKET fd, void* buf, int size, WriteCallback cb)
+int OverlappedIOService::AsyncWrite(OverlapFd* fd, void* buf, int size, WriteCallback cb)
 {
     return 0;
 }
@@ -206,7 +179,7 @@ int OverlappedIOService::Poll(int timeout)
             return -1;
         }
         WSAEVENT hEvent = events_[index];
-        PerHandleData* data = GetHandleData(hEvent);
+        OverlapFd* data = GetOverlapFdByEvent(hEvent);
         if (data == nullptr)
         {
             LOG(ERROR) << "GetHandleData: not found";
@@ -215,13 +188,40 @@ int OverlappedIOService::Poll(int timeout)
 
         DWORD dwBytes = 0;
         DWORD dwFlags = 0;
+        data->err = 0;
         if (!WSAGetOverlappedResult(data->fd, &data->overlap, &dwBytes, 0, &dwFlags))
         {
-            LOG(ERROR) << "WSAGetOverlappedResult: " << LAST_ERROR_MSG;
-            return -1;
+            data->err = WSAGetLastError();
         }
-        //data->callback();
+        DispatchEvent(data);
         return 1;
     }
     return 0;
+}
+
+void OverlappedIOService::DispatchEvent(OverlapFd* ev)
+{
+    switch(ev->op)
+    {
+    case OpConnect:
+        {
+            auto cb = boost::any_cast<ConnectCallback>(ev->ctx);
+            if (cb)
+            {
+                cb(ev);
+            }
+        }
+        break;
+
+    case OpAccept:
+        break;
+    case OpRead:
+        break;
+    case OpWrite:
+        break;
+    case OpClose:
+        break;
+    default:
+        return;
+    }
 }

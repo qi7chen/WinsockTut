@@ -13,23 +13,22 @@ public:
     OverlappedIOService();
     ~OverlappedIOService();
 
-    int AsyncConnect(const std::string& addr, const std::string& port, ConnectCallback cb);
-    int AsyncListen(SOCKET fd, const std::string& addr, const std::string& port, AcceptCallback cb);
-    int AsyncRead(SOCKET fd, void* buf, int size, ReadCallback cb);
-    int AsyncWrite(SOCKET fd, void* buf, int size, WriteCallback cb);
+    int AsyncConnect(const char* addr, const char* port, ConnectCallback cb);
+    int AsyncListen(OverlapFd* fd, const char* addr, const char* port, AcceptCallback cb);
+    int AsyncRead(OverlapFd* fd, void* buf, int size, ReadCallback cb);
+    int AsyncWrite(OverlapFd* fd, void* buf, int size, WriteCallback cb);
 
     int Poll(int timeout);
 
 private:
-    struct PerHandleData;
-
-    PerHandleData* AllocHandleData(SOCKET fd);
-    void FreeHandleData(PerHandleData* data);
-    PerHandleData* GetHandleData(WSAEVENT hEvent);
+    void DispatchEvent(OverlapFd* ev);
+    OverlapFd* AllocOverlapFd(SOCKET fd);
+    void FreeOverlapFd(OverlapFd* data);
+    OverlapFd* GetOverlapFdByEvent(WSAEVENT hEvent);
     void CleanUp();
 
 private:
     WSAEVENT events_[WSA_MAXIMUM_WAIT_EVENTS];
     std::unordered_map<HANDLE, SOCKET>  event_socks_;
-    std::unordered_map<SOCKET, PerHandleData*>  sock_handles_;
+    std::unordered_map<SOCKET, OverlapFd*>  sock_handles_;
 };
