@@ -82,14 +82,14 @@ void SelectPoller::ResetPollOut(SOCKET fd)
 int SelectPoller::Poll(int timeout)
 {
     timeval tvp = {};
-	tvp.tv_usec = timeout * 1000;
+    tvp.tv_usec = timeout * 1000;
 
     fd_set rdset, wrset, exptset;
-	memcpy(&rdset, &readfds_, sizeof(fd_set));
-	memcpy(&wrset, &writefds_, sizeof(fd_set));
+    memcpy(&rdset, &readfds_, sizeof(fd_set));
+    memcpy(&wrset, &writefds_, sizeof(fd_set));
     memcpy(&exptset, &exceptfds_, sizeof(fd_set));
 
-	int r = select(0, &rdset, &wrset, &exptset, &tvp);
+    int r = select(0, &rdset, &wrset, &exptset, &tvp);
     if (r == SOCKET_ERROR)
     {
         LOG(ERROR) << GetLastError() << ": " << LAST_ERROR_MSG;

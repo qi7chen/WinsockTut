@@ -34,7 +34,7 @@ private:
     std::vector<FdEntry>    fds_;
     bool has_retired_; 
 
-    fd_set		readfds_;
-	fd_set		writefds_;
-    fd_set		exceptfds_;
+    fd_set      readfds_;
+    fd_set      writefds_;
+    fd_set      exceptfds_;
 };
