@@ -38,7 +38,6 @@ private:
     void HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events);
 
 private:
-    int                             count_;
     WSAEVENT                        events_[WSA_MAXIMUM_WAIT_EVENTS];
     std::map<SOCKET, FdEntry*>      fdEvents_;
     std::map<WSAEVENT, FdEntry*>    eventFds_;

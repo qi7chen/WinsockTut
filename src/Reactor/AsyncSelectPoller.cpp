@@ -109,10 +109,7 @@ void AsyncSelectPoller::ResetPollOut(SOCKET fd)
 // and lasting until a send returns WSAEWOULDBLOCK.
 void AsyncSelectPoller::HandleEvent(SOCKET fd, int ev, int ec)
 {
-    if (ec > 0)
-    {
-        fprintf(stderr, "HandleEvent: %d, ev: %d, ec: %d\n", fd, ev, ec);
-    }
+    last_err_ = ec;
     auto iter = fds_.find(fd);
     if (iter == fds_.end())
     {

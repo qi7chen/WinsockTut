@@ -11,7 +11,6 @@
 
 AsyncEventPoller::AsyncEventPoller()
 {
-    count_ = 0;
     memset(events_, 0, sizeof(events_));
 }
 
@@ -132,16 +131,15 @@ int AsyncEventPoller::Poll(int timeout)
         Sleep(timeout);
         return 0;
     }
-    
+    int count = 0;
     for (auto iter = eventFds_.begin(); iter != eventFds_.end(); ++iter)
     {
-        events_[count_++] = iter->first;
+        events_[count++] = iter->first;
     }
-    int nready = WSAWaitForMultipleEvents((DWORD)count_, events_, FALSE, timeout, FALSE);
+    int nready = WSAWaitForMultipleEvents((DWORD)count, events_, FALSE, timeout, FALSE);
     if (nready == WSA_WAIT_FAILED)
     {
         LOG(ERROR) << "WSAWaitForMultipleEvents: " << LAST_ERROR_MSG;
-        count_ = 0;
         return 0;
     }
     else if (nready == WSA_WAIT_TIMEOUT)
@@ -175,7 +173,6 @@ int AsyncEventPoller::Poll(int timeout)
         HandleEvents(entry, &events);
         return 1;
     }
-    count_ = 0;
     return 0;
 }
 
@@ -186,10 +183,7 @@ void AsyncEventPoller::HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events)
     if (event & FD_READ)
     {
         int err = errlist[FD_READ_BIT];
-        if (err > 0)
-        {
-            fprintf(stderr, "read err: %d\n", err);
-        }
+        last_err_ = err;
         if (entry->mask | MASK_READABLE)
         {
             entry->sink->OnReadable();
@@ -198,10 +192,7 @@ void AsyncEventPoller::HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events)
     if (event & FD_CLOSE)
     {
         int err = errlist[FD_CLOSE_BIT];
-        if (err > 0)
-        {
-            fprintf(stderr, "close err: %d\n", err);
-        }
+        last_err_ = err;
         if (entry->mask | MASK_READABLE)
         {
             entry->sink->OnReadable();
@@ -210,10 +201,7 @@ void AsyncEventPoller::HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events)
     if (event & FD_ACCEPT)
     {
         int err = errlist[FD_ACCEPT_BIT];
-        if (err > 0)
-        {
-            fprintf(stderr, "accept err: %d\n", err);
-        }
+        last_err_ = err;
         if (entry->mask | MASK_READABLE)
         {
             entry->sink->OnReadable();
@@ -222,10 +210,7 @@ void AsyncEventPoller::HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events)
     if (event & FD_WRITE)
     {
         int err = errlist[FD_WRITE_BIT];
-        if (err > 0)
-        {
-            fprintf(stderr, "write err: %d\n", err);
-        }
+        last_err_ = err;
         if (entry->mask | MASK_READABLE)
         {
             entry->sink->OnWritable();
@@ -234,10 +219,7 @@ void AsyncEventPoller::HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events)
     if (event & FD_CONNECT)
     {
         int err = errlist[FD_CONNECT_BIT];
-        if (err > 0)
-        {
-            fprintf(stderr, "connect err: %d\n", err);
-        }
+        last_err_ = err;
         if (entry->mask | MASK_READABLE)
         {
             entry->sink->OnWritable();
