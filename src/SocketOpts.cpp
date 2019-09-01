@@ -7,7 +7,7 @@
 #include <WS2tcpip.h>
 #include "Common/Error.h"
 #include "Common/Logging.h"
-#include "Common/StringPrintf.h"
+#include "Common/StringUtil.h"
 
 
 
@@ -109,13 +109,12 @@ int WriteSome(SOCKET fd, const void* buf, int size)
     return nbytes;
 }
 
-int RangeTCPAddrList(const char* host, const char* port, LoopProcessor processor)
+SOCKET CreateTCPAcceptor(const char* host, const char* port, bool nonblock, bool ipv6)
 {
-    SOCKET fd = INVALID_SOCKET;
     struct addrinfo* aiList = NULL;
     struct addrinfo* pinfo = NULL;
     struct addrinfo hints = {};
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = ipv6 ? AF_INET6 : AF_INET;
     hints.ai_socktype = SOCK_STREAM; // TCP
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
@@ -123,13 +122,96 @@ int RangeTCPAddrList(const char* host, const char* port, LoopProcessor processor
     if (err != 0)
     {
         LOG(ERROR) << StringPrintf("getaddrinfo(): %s:%s, %s.\n", host, port, gai_strerror(err));
-        return err;
+        return INVALID_SOCKET;
     }
+	SOCKET fd = INVALID_SOCKET;
     for (pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
     {
-        if (processor(pinfo))
-            break; // succeed
+		fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
+		if (fd == INVALID_SOCKET)
+		{
+			LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
+			continue;
+		}
+		int err = bind(fd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
+		if (err == SOCKET_ERROR)
+		{
+			LOG(ERROR) << StringPrintf("%s bind(): %s\n", pinfo->ai_addr, LAST_ERROR_MSG);
+			closesocket(fd);
+			fd = INVALID_SOCKET;
+			continue;
+		}
+		// set to non-blocking mode
+		if (nonblock)
+		{
+			if (SetNonblock(fd, true) == SOCKET_ERROR)
+			{
+				closesocket(fd);
+				fd = INVALID_SOCKET;
+				continue;
+			}
+		}
+		err = listen(fd, SOMAXCONN);
+		if (err == SOCKET_ERROR)
+		{
+			LOG(ERROR) << StringPrintf("listen(): %s\n", LAST_ERROR_MSG);
+			closesocket(fd);
+			fd = INVALID_SOCKET;
+			continue;
+		}
+		break; // done
     }
     freeaddrinfo(aiList);
-    return 0;
+    return fd;
+}
+
+SOCKET CreateTcpConnector(const char* host, const char* port, bool nonblock, bool ipv6)
+{
+	struct addrinfo* aiList = NULL;
+	struct addrinfo* pinfo = NULL;
+	struct addrinfo hints = {};
+	hints.ai_family = ipv6 ? AF_INET6 : AF_INET;
+	hints.ai_socktype = SOCK_STREAM; // TCP
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = AI_PASSIVE;
+	int err = getaddrinfo(host, port, &hints, &aiList);
+	if (err != 0)
+	{
+		LOG(ERROR) << StringPrintf("getaddrinfo(): %s:%s, %s.\n", host, port, gai_strerror(err));
+		return INVALID_SOCKET;
+	}
+	SOCKET fd = INVALID_SOCKET;
+	for (pinfo = aiList; pinfo != NULL; pinfo = pinfo->ai_next)
+	{
+		fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
+		if (fd == INVALID_SOCKET)
+		{
+			LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
+			continue;
+		}
+		// set to non-blocking mode
+		if (nonblock) 
+		{
+			if (SetNonblock(fd, true) == SOCKET_ERROR)
+			{
+				closesocket(fd);
+				fd = INVALID_SOCKET;
+				continue;
+			}
+		}
+		int err = connect(fd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
+		if (err == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() != WSAEWOULDBLOCK)
+			{
+				LOG(ERROR) << StringPrintf("connect(): %s\n", LAST_ERROR_MSG);
+				closesocket(fd);
+				fd = INVALID_SOCKET;
+				return false;
+			}
+		}
+		break;
+	}
+	freeaddrinfo(aiList);
+	return fd;
 }

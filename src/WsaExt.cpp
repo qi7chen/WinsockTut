@@ -18,12 +18,12 @@ WsaExt::WsaExt()
     Init(INVALID_SOCKET);
 }
 
-void WsaExt::Init()
+void WsaExt::Init(SOCKET sock)
 {
     if (intialized_)
         return;
 
-    SOCKET fd = socket(AF_INET, SOCK_STREAM, IPPROTO_AH);
+    SOCKET fd = sock;
     if (fd == INVALID_SOCKET)
     {
         fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); // IPv4
@@ -57,7 +57,7 @@ void WsaExt::Init()
         sizeof(guid_getacceptexaddr), &GetAcceptExSockaddrs, sizeof(GetAcceptExSockaddrs), &bytes, NULL, NULL);
     CHECK(err != SOCKET_ERROR) << "WSAIoctl: GetAcceptExSockaddrs, " << LAST_ERROR_MSG;
 
-    if (s == INVALID_SOCKET)
+    if (sock == INVALID_SOCKET)
     {
         closesocket(fd);
     }

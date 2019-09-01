@@ -12,7 +12,7 @@ class WsaExt
 public:
     WsaExt();
 
-    static void Init();
+    static void Init(SOCKET sock);
 
     static LPFN_CONNECTEX              ConnectEx;
     static LPFN_ACCEPTEX               AcceptEx;
