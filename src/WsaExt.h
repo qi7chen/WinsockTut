@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2018 ichenq@outlook.com. All rights reserved.
+// Copyright (C) 2012-2018 . All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -12,7 +12,7 @@ class WsaExt
 public:
     WsaExt();
 
-    static void Init(SOCKET fd);
+    static void Init();
 
     static LPFN_CONNECTEX              ConnectEx;
     static LPFN_ACCEPTEX               AcceptEx;

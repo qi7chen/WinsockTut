@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2018 ichenq@outlook.com. All rights reserved.
+// Copyright (C) 2012-2018 . All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -18,12 +18,12 @@ WsaExt::WsaExt()
     Init(INVALID_SOCKET);
 }
 
-void WsaExt::Init(SOCKET s)
+void WsaExt::Init()
 {
     if (intialized_)
         return;
 
-    SOCKET fd = s;
+    SOCKET fd = socket(AF_INET, SOCK_STREAM, IPPROTO_AH);
     if (fd == INVALID_SOCKET)
     {
         fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); // IPv4
