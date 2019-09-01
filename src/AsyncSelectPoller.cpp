@@ -6,7 +6,7 @@
 #include <assert.h>
 #include "Common/Error.h"
 #include "Common/Logging.h"
-#include "Common/StringPrintf.h"
+#include "Common/StringUtil.h"
 #include "Mask.h"
 
 

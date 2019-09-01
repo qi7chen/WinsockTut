@@ -2,7 +2,7 @@
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
-#include "StringPrintf.h"
+#include "StringUtil.h"
 #include <stdarg.h>
 
 #ifndef va_copy
