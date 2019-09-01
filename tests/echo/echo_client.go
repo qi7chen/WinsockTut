@@ -1,38 +1,25 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 )
 
-var maxCount = 6
+var maxPktCount int
 
 func main() {
-	var addr = "localhost:8081"
-	var count = 63
-	if len(os.Args) > 1 {
-		addr = os.Args[1]
-	}
-	if len(os.Args) > 2 {
-		i, err := strconv.Atoi(os.Args[2])
-		if err != nil {
-			log.Fatalf("strconv: %v", err)
-		}
-		count = i
-	}
-    if len(os.Args) > 3 {
-		i, err := strconv.Atoi(os.Args[2])
-		if err != nil {
-			log.Fatalf("strconv: %v", err)
-		}
-        maxCount = i
-    }
+	var addr string
+	var connCount int
+	flag.StringVar(&addr, "h", "localhost:8081", "server address to bind")
+	flag.IntVar(&connCount, "c", 63, "connection count to make")
+	flag.IntVar(&maxPktCount, "p", 10, "packet count to send")
+	flag.Parse()
+
 	var wg sync.WaitGroup
-	for i := 0; i < count; i++ {
+	for i := 0; i < connCount; i++ {
 		conn, err := net.Dial("tcp", addr)
 		if err != nil {
 			log.Fatalf("Dial: %v", err)
@@ -50,7 +37,7 @@ func handleConn(conn net.Conn, wg *sync.WaitGroup) {
 
 	var msg = []byte("a quick brown fox jumps over the lazy dog")
 	var buf = make([]byte, 1024)
-	for i := 0; i < maxCount; i++ {
+	for i := 0; i < maxPktCount; i++ {
 		nbytes, err := conn.Write(msg)
 		if err != nil {
 			log.Printf("%v Read: %v\n", conn.LocalAddr(), err)

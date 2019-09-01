@@ -4,10 +4,9 @@
 
 #include "OverlappedIOService.h"
 #include <WS2tcpip.h>
-#include "Common/Any.h"
 #include "Common/Error.h"
 #include "Common/Logging.h"
-#include "Common/StringPrintf.h"
+#include "Common/StringUtil.h"
 #include "SocketOpts.h"
 #include "WsaExt.h"
 
@@ -78,55 +77,56 @@ OverlapFd* OverlappedIOService::GetOverlapFdByEvent(WSAEVENT hEvent)
     }
     return nullptr;
 }
-
-int OverlappedIOService::AsyncConnect(const char* addr, const char* port, ConnectCallback cb)
-{
-    return RangeTCPAddrList(addr, port, [=](const addrinfo* pinfo) -> bool
-    {
-        // fd has the overlapped attribute as a default.
-        SOCKET fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
-        if (fd == INVALID_SOCKET)
-        {
-            LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
-            return false; // try next addrinfo
-        }
-
-        // ConnectEx need previously bound socket.
-        if (BindAnyAddr(fd, pinfo->ai_family) != 0)
-        {
-            closesocket(fd);
-            return false;
-        }
-
-        OverlapFd* data = AllocOverlapFd(fd);
-        CHECK(data != nullptr) << "AllocHandleData";
-
-        int r = WsaExt::ConnectEx(fd, (const struct sockaddr*)pinfo->ai_addr, (int)pinfo->ai_addrlen, 
-            nullptr, 0, nullptr, (OVERLAPPED*)data);
-        if (r != TRUE)
-        {
-            if (GetLastError() != WSA_IO_PENDING)
-            {
-                LOG(ERROR) << "ConenctEx: " << LAST_ERROR_MSG;
-                FreeOverlapFd(data);
-                return false;
-            }
-        }
-        else
-        {
-            // enable previously set properties or options
-            r = setsockopt(fd, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
-            if (r != 0)
-            {
-                FreeOverlapFd(data);
-                delete data;
-            }
-        }
-        data->op = OpConnect;
-        data->ctx = cb;
-        return true; // succeed
-    });
-}
+//
+//int OverlappedIOService::AsyncConnect(const char* addr, const char* port, ConnectCallback cb)
+//{
+//
+//    return RangeTCPAddrList(addr, port, [=](const addrinfo* pinfo) -> bool
+//    {
+//         fd has the overlapped attribute as a default.
+//        SOCKET fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
+//        if (fd == INVALID_SOCKET)
+//        {
+//            LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
+//            return false; // try next addrinfo
+//        }
+//
+//         ConnectEx need previously bound socket.
+//        if (BindAnyAddr(fd, pinfo->ai_family) != 0)
+//        {
+//            closesocket(fd);
+//            return false;
+//        }
+//
+//        OverlapFd* data = AllocOverlapFd(fd);
+//        CHECK(data != nullptr) << "AllocHandleData";
+//
+//        int r = WsaExt::ConnectEx(fd, (const struct sockaddr*)pinfo->ai_addr, (int)pinfo->ai_addrlen, 
+//            nullptr, 0, nullptr, (OVERLAPPED*)data);
+//        if (r != TRUE)
+//        {
+//            if (GetLastError() != WSA_IO_PENDING)
+//            {
+//                LOG(ERROR) << "ConenctEx: " << LAST_ERROR_MSG;
+//                FreeOverlapFd(data);
+//                return false;
+//            }
+//        }
+//        else
+//        {
+//             enable previously set properties or options
+//            r = setsockopt(fd, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
+//            if (r != 0)
+//            {
+//                FreeOverlapFd(data);
+//                delete data;
+//            }
+//        }
+//        data->op = OpConnect;
+//        data->ctx = cb;
+//        return true; // succeed
+//    });
+//}
 
 int OverlappedIOService::AsyncListen(OverlapFd* fd, const char* addr, const char* port, AcceptCallback cb)
 {
@@ -205,11 +205,11 @@ void OverlappedIOService::DispatchEvent(OverlapFd* ev)
     {
     case OpConnect:
         {
-            auto cb = boost::any_cast<ConnectCallback>(ev->ctx);
-            if (cb)
-            {
-                cb(ev);
-            }
+            //auto cb = boost::any_cast<ConnectCallback>(ev->ctx);
+            //if (cb)
+            //{
+            //    cb(ev);
+            //}
         }
         break;
 

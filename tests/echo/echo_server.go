@@ -1,17 +1,17 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
-	"os"
 	"time"
 )
 
 func main() {
-	var addr = ":8081"
-	if len(os.Args) > 1 {
-		addr = os.Args[1]
-	}
+	var addr string
+	flag.StringVar(&addr, "", ":8081", "server address to bind")
+	flag.Parse()
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("Listen: %v", err)

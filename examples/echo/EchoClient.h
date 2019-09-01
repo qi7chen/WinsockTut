@@ -1,11 +1,11 @@
-// Copyright (C) 2012-2018 ichenq@outlook.com. All rights reserved.
+// Copyright (C) 2012-2018 . All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
 #pragma once
 
-#include "Reactor/PollerBase.h"
-#include "Reactor/PollEvent.h"
+#include "PollerBase.h"
+#include "PollEvent.h"
 
 class EchoClient : public IPollEvent
 {

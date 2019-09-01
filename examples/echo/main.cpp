@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2018 ichenq@outlook.com. All rights reserved.
+// Copyright (C) 2012-2018 . All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -37,19 +37,19 @@ int main(int argc, const char* argv[])
 
     WinsockAutoInit init;
     PollerBase* poller = CreatePoller(mode);
-    assert(poller != nullptr);
+    assert(poller != NULL);
 
-    IPollEvent* sink = nullptr;
+    IPollEvent* sink = NULL;
     if (type == "server")
     {
-        auto server = new EchoServer(poller);
+		EchoServer* server = new EchoServer(poller);
         server->Start(host, port);
         sink = server;
         fprintf(stdout, "server started at %s:%s\n", host, port);
     }
     else if (type == "client")
     {
-        auto client = new EchoClient(poller);
+		EchoClient* client = new EchoClient(poller);
         client->Start(host, port);
         sink = client;
         fprintf(stdout, "client started at %s:%s\n", host, port);

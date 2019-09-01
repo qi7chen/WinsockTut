@@ -6,7 +6,6 @@
 
 #include <WinSock2.h>
 #include <functional>
-#include "Common/Any.h"
 
 enum OperationType
 {
@@ -25,7 +24,7 @@ struct OverlapFd
     SOCKET          fd;
     OperationType   op;
     int             err;
-    boost::any      ctx;
+    void*			ctx;
 
     OverlapFd()
     {

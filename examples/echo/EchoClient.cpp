@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2018 ichenq@outlook.com. All rights reserved.
+// Copyright (C) 2012-2018 . All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -8,7 +8,7 @@
 #include <functional>
 #include "Common/Error.h"
 #include "Common/Logging.h"
-#include "Common/StringPrintf.h"
+#include "Common/StringUtil.h"
 #include "SocketOpts.h"
 
 using namespace std::placeholders;
@@ -91,39 +91,6 @@ void EchoClient::SendData()
 
 SOCKET EchoClient::Connect(const char* host, const char* port)
 {
-    SOCKET fd = INVALID_SOCKET;
-    RangeTCPAddrList(host, port, [&](const addrinfo* pinfo) -> bool
-    {
-        fd = socket(pinfo->ai_family, pinfo->ai_socktype, pinfo->ai_protocol);
-        if (fd == INVALID_SOCKET)
-        {
-            LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
-            return false;
-        }
-        // set to non-blocking mode
-        if (SetNonblock(fd, true) == SOCKET_ERROR)
-        {
-            LOG(ERROR) << StringPrintf("ioctlsocket(): %s\n", LAST_ERROR_MSG);
-            closesocket(fd);
-            fd = INVALID_SOCKET;
-            return false;
-        }
-        int err = connect(fd, pinfo->ai_addr, (int)pinfo->ai_addrlen);
-        if (err == SOCKET_ERROR)
-        {
-            if (WSAGetLastError() != WSAEWOULDBLOCK)
-            {
-                LOG(ERROR) << StringPrintf("connect(): %s\n", LAST_ERROR_MSG);
-                closesocket(fd);
-                fd = INVALID_SOCKET;
-                return false;
-            }
-        }
-        return true;
-    });
-    
-    
+    SOCKET fd = CreateTcpConnector(host, port); 
     return fd;
 }
-
-
