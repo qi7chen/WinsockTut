@@ -7,5 +7,5 @@
 enum
 {
     MASK_READABLE = 1,
-    MASK_WRITABLE = 1,
+    MASK_WRITABLE = 2,
 };
