@@ -47,6 +47,7 @@ void SelectPoller::RemoveFd(SOCKET fd)
         if (fds_[i].fd == fd)
         {
             fds_[i].fd = INVALID_SOCKET;
+			fds_[i].sink = NULL;
             break;
         }
     }
@@ -81,67 +82,74 @@ void SelectPoller::ResetPollOut(SOCKET fd)
 // timeout in milliseconds
 int SelectPoller::Poll(int timeout)
 {
-    timeval tvp = {};
-    tvp.tv_usec = timeout * 1000;
-
-    fd_set rdset, wrset, exptset;
-    memcpy(&rdset, &readfds_, sizeof(fd_set));
-    memcpy(&wrset, &writefds_, sizeof(fd_set));
-    memcpy(&exptset, &exceptfds_, sizeof(fd_set));
-
-    int r = select(0, &rdset, &wrset, &exptset, &tvp);
-    if (r == SOCKET_ERROR)
-    {
-        LOG(ERROR) << GetLastError() << ": " << LAST_ERROR_MSG;
-        return 0;
-    } 
-    else if (r == 0)  // timed-out
-    {
-        UpdateTimer();
-        return 0;
-    }
+	int r = 0;
+	fd_set rdset, wrset, exptset;
+	if (!fds_.empty()) // WSAEINVAL if all 3 fd_sets empty
+	{		
+		memcpy(&rdset, &readfds_, sizeof(fd_set));
+		memcpy(&wrset, &writefds_, sizeof(fd_set));
+		memcpy(&exptset, &exceptfds_, sizeof(fd_set));
+		timeval tvp = {};
+		tvp.tv_usec = timeout * 1000;
+		r = select(0, &rdset, &wrset, &exptset, &tvp);
+		if (r == SOCKET_ERROR)
+		{
+			LOG(ERROR) << GetLastError() << ": " << LAST_ERROR_MSG;
+			return 0;
+		}
+	}
+	else
+	{
+		Sleep(timeout / 2);
+	}
     
     int count = 0;
-    for (size_t i = 0; i < fds_.size(); i++)
-    {
-        SOCKET fd = fds_[i].fd;
-        if (fd == INVALID_SOCKET)
-            continue;
+	for (size_t i = 0; r > 0 && i < fds_.size(); i++)
+	{
+		SOCKET fd = fds_[i].fd;
+		if (fd == INVALID_SOCKET)
+			continue;
 
-        if (FD_ISSET(fd, &exptset))
-        {
-            fds_[i].sink->OnReadable();
-            count++;
-        }
-        if (fd == INVALID_SOCKET)
-            continue;
+		if (FD_ISSET(fd, &exptset))
+		{
+			fds_[i].sink->OnReadable();
+			count++;
+		}
+		if (fd == INVALID_SOCKET)
+			continue;
 
-        if (FD_ISSET(fd, &wrset))
-        {
-            fds_[i].sink->OnWritable();
-            count++;
-        }
-        if (fd == INVALID_SOCKET)
-            continue;
+		if (FD_ISSET(fd, &wrset))
+		{
+			fds_[i].sink->OnWritable();
+			count++;
+		}
+		if (fd == INVALID_SOCKET)
+			continue;
 
-        if (FD_ISSET(fd, &rdset))
-        {
-            fds_[i].sink->OnReadable();
-            count++;
-        }
-    }
-    
-    if (has_retired_)
-    {
-        auto iter = std::remove_if(fds_.begin(), fds_.end(), [](const FdEntry& entry)
-        {
-            return entry.fd == INVALID_SOCKET;
-        });
-        fds_.erase(iter, fds_.end());
-        has_retired_ = false;
-    }
+		if (FD_ISSET(fd, &rdset))
+		{
+			fds_[i].sink->OnReadable();
+			count++;
+		}
+	}
 
-    UpdateTimer();
+	// execute time out callbacks
+	UpdateTimer(); 
+
+	RemoveRetired();
 
     return count;
+}
+
+void SelectPoller::RemoveRetired()
+{
+	if (has_retired_)
+	{
+		auto iter = std::remove_if(fds_.begin(), fds_.end(), [](const FdEntry& entry)
+		{
+			return entry.fd == INVALID_SOCKET;
+		});
+		fds_.erase(iter, fds_.end());
+		has_retired_ = false;
+	}
 }

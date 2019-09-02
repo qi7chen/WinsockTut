@@ -24,6 +24,8 @@ public:
     int Poll(int timeout);
 
 private:
+	void RemoveRetired();
+
     struct FdEntry
     {
         SOCKET      fd;
