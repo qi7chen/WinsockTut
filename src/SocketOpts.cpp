@@ -109,6 +109,50 @@ int WriteSome(SOCKET fd, const void* buf, int size)
     return nbytes;
 }
 
+bool IsSelfConnection(SOCKET fd)
+{
+	sockaddr_storage local_addr = {};
+	int local_len = sizeof(local_addr);
+	int r = getsockname(fd, (sockaddr*)&local_addr, &local_len);
+	if (r == SOCKET_ERROR) 
+	{
+		LOG(ERROR) << StringPrintf("getsockname(): %s", LAST_ERROR_MSG);
+		return false;
+	}
+	sockaddr_storage peer_addr = {};
+	int peer_len = sizeof(peer_addr);
+	r = getpeername(fd, (sockaddr*)&peer_addr, &peer_len);
+	if (r == SOCKET_ERROR)
+	{
+		LOG(ERROR) << StringPrintf("getpeername(): %s", LAST_ERROR_MSG);
+		return false;
+	}
+	switch (local_addr.ss_family)
+	{
+	case AF_INET:
+		{
+			const sockaddr_in* locaddr = (const sockaddr_in*)&local_addr;
+			const sockaddr_in* remoteaddr = (const sockaddr_in*)&peer_addr;
+			if (locaddr->sin_port == remoteaddr->sin_port)
+			{
+				return locaddr->sin_addr.S_un.S_addr == remoteaddr->sin_addr.S_un.S_addr;
+			}
+		}
+		break;
+	case AF_INET6:
+		{
+			const sockaddr_in6* locaddr = (const sockaddr_in6*)&local_addr;
+			const sockaddr_in6* remoteaddr = (const sockaddr_in6*)&peer_addr;
+			if (locaddr->sin6_port == remoteaddr->sin6_port)
+			{
+				return memcmp(&locaddr->sin6_addr, &remoteaddr->sin6_addr, sizeof(in6_addr)) == 0;
+			}
+		}
+		break;
+	}
+	return false;
+}
+
 SOCKET CreateTCPAcceptor(const char* host, const char* port, bool nonblock, bool ipv6)
 {
     struct addrinfo* aiList = NULL;
