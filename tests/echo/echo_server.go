@@ -31,7 +31,7 @@ func handleConn(conn net.Conn) {
 	defer conn.Close()
 	defer log.Printf("connection %v closed\n", conn.RemoteAddr())
 	var buf = make([]byte, 1024)
-	for {
+	for i := 0; i < 5; i++ {
 		conn.SetDeadline(time.Now().Add(300 * time.Second))
 		nbytes, err := conn.Read(buf)
 		if err != nil {

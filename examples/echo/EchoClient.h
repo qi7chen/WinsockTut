@@ -15,7 +15,6 @@ public:
 
     void Start(const char* host, const char* port);
 
-
 private:
     void OnReadable();
     void OnWritable();
@@ -26,7 +25,10 @@ private:
     void SendData();
 
 private:
-    SOCKET      fd_;
-    PollerBase* poller_;
-    int         sent_count_;
+	std::string         host_;
+	std::string         port_;
+    SOCKET				fd_;
+    PollerBase*			poller_;
+    int					sent_count_;
+	std::vector<char>	buf_;
 };

@@ -13,16 +13,20 @@
 
 using namespace std::placeholders;
 
+enum {
+	MAX_SEND_COUNT = 5,
+};
+
 EchoClient::EchoClient(PollerBase* poller)
     :fd_(INVALID_SOCKET)
 {
     poller_ = poller;
-    sent_count_ = 10;
+	buf_.reserve(1024);
+    sent_count_ = 0;
 }
 
 EchoClient::~EchoClient()
 {
-    Cleanup();
 }
 
 void EchoClient::Cleanup()
@@ -35,7 +39,9 @@ void EchoClient::Cleanup()
 
 void EchoClient::Start(const char* host, const char* port)
 {
-    SOCKET fd = Connect(host, port);
+	host_ = host;
+	port_ = port;
+    SOCKET fd = CreateTcpConnector(host, port); 
     CHECK(fd != INVALID_SOCKET);
     fd_ = fd;
     poller_->AddFd(fd, this);
@@ -47,29 +53,39 @@ void EchoClient::OnReadable()
 {
     char buf[1024] = {};
     int nbytes = ReadSome(fd_, buf, 1024);
-    if (nbytes < 1)
+    if (nbytes <= 0)
     {
         Cleanup();
     }
     else
     {
-        fprintf(stdout, "%d recv %d bytes\n", fd_, nbytes);
+        fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, sent_count_);
+		buf_.resize(nbytes);
+		memcpy(&buf_[0], buf, nbytes);
     }
 }
 
 void EchoClient::OnWritable()
 {
     // connected
+	if (IsSelfConnection(fd_))
+	{
+		Cleanup();
+		Start(host_.c_str(), port_.c_str());
+		return;
+	}
     poller_->AddTimer(1000, this);
-
     poller_->ResetPollOut(fd_);
 }
 
 void EchoClient::OnTimeout()
 {
-    SendData();
+	if (fd_ != INVALID_SOCKET)
+	{
+		SendData();
+	}
 
-    if (sent_count_-- > 0)
+    if (sent_count_++ < MAX_SEND_COUNT)
     {
         poller_->AddTimer(1000, this);
     }
@@ -77,20 +93,22 @@ void EchoClient::OnTimeout()
 
 void EchoClient::SendData()
 {
-    const char msg[] = "a quick brown fox jumps over the lazy dog";
-    int nbytes = WriteSome(fd_, msg, (int)strlen(msg));
+    const char* msg = "a quick brown fox jumps over the lazy dog";
+	int len = (int)strlen(msg);
+	if (sent_count_ > 0)
+	{
+		msg = &buf_[0];
+		len = (int)buf_.size();
+	}
+    int nbytes = WriteSome(fd_, msg, len);
     if (nbytes < 0)
     {
         Cleanup();
     }
     else
     {
-        fprintf(stdout, "%d send %d bytes\n", fd_, nbytes);
+        fprintf(stdout, "%d send %d bytes, %d\n", fd_, nbytes, sent_count_);
+		buf_.clear();
     }
 }
 
-SOCKET EchoClient::Connect(const char* host, const char* port)
-{
-    SOCKET fd = CreateTcpConnector(host, port); 
-    return fd;
-}
