@@ -23,7 +23,6 @@ public:
 	void Close();
 
 private:
-	PollerBase* poller_;
 	EchoServer* server_;
 	SOCKET  fd_;
 	int     cap_;

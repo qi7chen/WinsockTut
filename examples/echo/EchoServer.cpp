@@ -57,6 +57,8 @@ void EchoServer::Close(SOCKET fd)
 	auto iter = connections_.find(fd);
 	if (iter != connections_.end()) 
 	{
+		poller_->RemoveFd(fd);
+		closesocket(fd);
 		EchoConn* conn = iter->second;
 		delete conn;
 		connections_.erase(iter);

@@ -12,7 +12,7 @@ enum
 };
 
 EchoConn::EchoConn(EchoServer* server, SOCKET fd)
-	: poller_(server->Poller()), server_(server), fd_(fd)
+	: server_(server), fd_(fd)
 {
 	cap_ = MAX_CONN_RECVBUF;
 	size_ = 0;
@@ -37,8 +37,6 @@ void EchoConn::Close()
 	{
 		SOCKET fd = fd_;
 		fd_ = INVALID_SOCKET;
-		poller_->RemoveFd(fd);
-		closesocket(fd);
 		server_->Close(fd); // delete this
 	}
 }
