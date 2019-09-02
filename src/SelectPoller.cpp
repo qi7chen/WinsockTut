@@ -41,17 +41,7 @@ int SelectPoller::AddFd(SOCKET fd, IPollEvent* event)
 
 void SelectPoller::RemoveFd(SOCKET fd)
 {
-    // mark the descriptor as retired.
-    for (size_t i = 0; i < fds_.size(); i++)
-    {
-        if (fds_[i].fd == fd)
-        {
-            fds_[i].fd = INVALID_SOCKET;
-			fds_[i].sink = NULL;
-            break;
-        }
-    }
-    has_retired_ = true;
+	MarkRetired(fd);
 
     // stop polling on the descriptor
     FD_CLR(fd, &readfds_);
@@ -100,7 +90,10 @@ int SelectPoller::Poll(int timeout)
 	}
 	else
 	{
-		Sleep(timeout / 2);
+		if (timeout > 0)
+		{
+			Sleep(timeout / 2);
+		}
 	}
     
     int count = 0;
@@ -139,6 +132,20 @@ int SelectPoller::Poll(int timeout)
 	RemoveRetired();
 
     return count;
+}
+
+void SelectPoller::MarkRetired(SOCKET fd)
+{
+	for (size_t i = 0; i < fds_.size(); i++)
+	{
+		if (fds_[i].fd == fd)
+		{
+			fds_[i].fd = INVALID_SOCKET;
+			fds_[i].sink = NULL;
+			break;
+		}
+	}
+	has_retired_ = true;
 }
 
 void SelectPoller::RemoveRetired()
