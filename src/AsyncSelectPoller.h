@@ -29,13 +29,21 @@ private:
     void CreateHidenWindow();
     void HandleEvent(SOCKET fd, int ev, int ec);
 
+	void MarkRetired(SOCKET fd);
+	void RemoveRetired();
+
     struct FdEntry
     {
+		SOCKET      fd;
+        LONG        event;
         int         mask;
         IPollEvent* sink;
     };
 
+	FdEntry* FindEntry(SOCKET fd);
+
 private:
-    HWND    hwnd_;
-    std::map<SOCKET, FdEntry> fds_;
+    HWND					hwnd_;
+	std::vector<FdEntry>    fds_;
+	bool					has_retired_;
 };
