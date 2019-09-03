@@ -5,7 +5,6 @@
 #pragma once
 
 #include <Windows.h>
-#include <map>
 #include <vector>
 #include "PollerBase.h"
 
@@ -28,17 +27,21 @@ public:
 private:
     struct FdEntry
     {
-        SOCKET fd;
-        WSAEVENT hEvent;
+        SOCKET      fd;
+        WSAEVENT    hEvent;
+        LONG        lEvents;
+        int         mask;
         IPollEvent* sink;
-        int mask;
     };
 
     void CleanUp();
     void HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events);
+    FdEntry* FindEntry(SOCKET fd);
+    FdEntry* FindEntryByEvent(WSAEVENT hEvent);
+    void RemoveRetired();
 
 private:
-    WSAEVENT                        events_[WSA_MAXIMUM_WAIT_EVENTS];
-    std::map<SOCKET, FdEntry*>      fdEvents_;
-    std::map<WSAEVENT, FdEntry*>    eventFds_;
+    std::vector<WSAEVENT>   events_;
+    std::vector<FdEntry>    fds_;
+    bool has_retired_;
 };

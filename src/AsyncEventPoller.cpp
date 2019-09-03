@@ -3,6 +3,7 @@
 // See accompanying files LICENSE.
 
 #include "AsyncEventPoller.h"
+#include <algorithm>
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Mask.h"
@@ -10,8 +11,9 @@
 
 
 AsyncEventPoller::AsyncEventPoller()
+    : has_retired_(false)
 {
-    memset(events_, 0, sizeof(events_));
+    events_.reserve(WSA_MAXIMUM_WAIT_EVENTS);
 }
 
 AsyncEventPoller::~AsyncEventPoller()
@@ -21,22 +23,22 @@ AsyncEventPoller::~AsyncEventPoller()
 
 void AsyncEventPoller::CleanUp()
 {
-    for (auto iter = eventFds_.begin(); iter != eventFds_.end();++iter)
+    for (size_t i = 0; i < fds_.size(); i++)
     {
-        WSAEVENT hEvent = iter->first;
-        FdEntry* entry = iter->second;
+        FdEntry* entry = &fds_[i];
         WSAEventSelect(entry->fd, NULL, 0);
-        WSACloseEvent(hEvent);
+        WSACloseEvent(entry->hEvent);
         closesocket(entry->fd);
-        delete entry;
+        entry->fd = INVALID_SOCKET;
+        entry->hEvent = NULL;
     }
-    eventFds_.clear();
-    fdEvents_.clear(); 
+    fds_.clear();
+    events_.clear();
 }
 
 int AsyncEventPoller::AddFd(SOCKET fd, IPollEvent* event)
 {
-    if (fdEvents_.size() >= WSA_MAXIMUM_WAIT_EVENTS)
+    if (fds_.size() >= WSA_MAXIMUM_WAIT_EVENTS)
     {
         return -1;
     }
@@ -46,120 +48,146 @@ int AsyncEventPoller::AddFd(SOCKET fd, IPollEvent* event)
         LOG(ERROR) << "WSACreateEvent: " << LAST_ERROR_MSG;
         return -1;
     }
+    FdEntry entry = {};
+    entry.fd = fd;
+    entry.hEvent = hEvent;
+    entry.sink = event;
+    fds_.push_back(entry);
     
-    // automatically sets socket s to nonblocking mode
-    long lEvents = FD_READ | FD_WRITE | FD_ACCEPT | FD_CONNECT | FD_CLOSE;
-    int r = WSAEventSelect(fd, hEvent, lEvents);
-    if (r == SOCKET_ERROR)
-    {
-        LOG(ERROR) << "WSAEventSelect: " << LAST_ERROR_MSG;
-        WSACloseEvent(hEvent);
-        return -1;
-    }
-    FdEntry* entry = new FdEntry;
-    entry->fd = fd;
-    entry->hEvent = hEvent;
-    entry->sink = event;
-    entry->mask = 0;
-    eventFds_[hEvent] = entry;
-    fdEvents_[fd] = entry;
     return 0;
 }
 
 void AsyncEventPoller::RemoveFd(SOCKET fd)
 {
-    auto iter = fdEvents_.find(fd);
-    if (iter == fdEvents_.end())
+    FdEntry* entry = FindEntry(fd);
+    if (entry != NULL)
     {
-        return; // not found
+        //clear the event record associated with socket
+        WSACloseEvent(entry->hEvent);
+        entry->hEvent = WSA_INVALID_EVENT;
+        entry->fd = INVALID_SOCKET; // mark retired
     }
-
-    WSAEVENT hEvent = iter->second;
-
-    //clear the event record associated with socket
-    WSAEventSelect(fd, NULL, 0); 
-    WSACloseEvent(hEvent);
-    eventFds_.erase(hEvent);
-    fdEvents_.erase(fd);
+    has_retired_ = true;
+    WSAEventSelect(fd, NULL, 0);
 }
 
 void AsyncEventPoller::SetPollIn(SOCKET fd)
 {
-    auto iter = fdEvents_.find(fd);
-    if (iter != fdEvents_.end())
+    FdEntry* entry = FindEntry(fd);
+    if (entry != NULL)
     {
-        FdEntry* entry = iter->second;
+        long lEvent = FD_READ | FD_ACCEPT | FD_CLOSE;
+        entry->lEvents |= lEvent;
         entry->mask |= MASK_READABLE;
+        int r = WSAEventSelect(fd, entry->hEvent, entry->lEvents);
+        if (r == SOCKET_ERROR)
+        {
+            LOG(ERROR) << "SetPollIn: WSAEventSelect, " << LAST_ERROR_MSG;
+            return;
+        }
     }
 }
 
 void AsyncEventPoller::ResetPollIn(SOCKET fd)
 {
-    auto iter = fdEvents_.find(fd);
-    if (iter != fdEvents_.end())
+    FdEntry* entry = FindEntry(fd);
+    if (entry != NULL)
     {
-        FdEntry* entry = iter->second;
+        long lEvent = FD_READ | FD_ACCEPT | FD_CLOSE;
+        entry->lEvents &= ~lEvent;
         entry->mask &= ~MASK_READABLE;
+        int r = WSAEventSelect(fd, entry->hEvent, entry->lEvents);
+        if (r == SOCKET_ERROR)
+        {
+            LOG(ERROR) << "ResetPollIn: WSAEventSelect, " << LAST_ERROR_MSG;
+            return;
+        }
     }
 }
 
 void AsyncEventPoller::SetPollOut(SOCKET fd)
 {
-    auto iter = fdEvents_.find(fd);
-    if (iter != fdEvents_.end())
+    FdEntry* entry = FindEntry(fd);
+    if (entry != NULL)
     {
-        FdEntry* entry = iter->second;
+        long lEvent = FD_WRITE | FD_CONNECT | FD_CLOSE;
+        entry->lEvents |= lEvent;
         entry->mask |= MASK_WRITABLE;
+        int r = WSAEventSelect(fd, entry->hEvent, entry->lEvents);
+        if (r == SOCKET_ERROR)
+        {
+            LOG(ERROR) << "SetPollOut: WSAEventSelect, " << LAST_ERROR_MSG;
+            return;
+        }
     }
 }
 
 void AsyncEventPoller::ResetPollOut(SOCKET fd)
 {
-    auto iter = fdEvents_.find(fd);
-    if (iter != fdEvents_.end())
+    FdEntry* entry = FindEntry(fd);
+    if (entry != NULL)
     {
-        FdEntry* entry = iter->second;
+        long lEvent = FD_WRITE | FD_CONNECT | FD_CLOSE;
+        entry->lEvents &= ~lEvent;
         entry->mask &= ~MASK_WRITABLE;
+        int r = WSAEventSelect(fd, entry->hEvent, entry->lEvents);
+        if (r == SOCKET_ERROR)
+        {
+            LOG(ERROR) << "ResetPollOut: WSAEventSelect, " << LAST_ERROR_MSG;
+            return;
+        }
     }
 }
 
 int AsyncEventPoller::Poll(int timeout)
 {
-    if (fdEvents_.empty())
+    int nready = 0;
+    events_.clear();
+    for (size_t i = 0; i < fds_.size(); i++)
     {
-        UpdateTimer();
-        Sleep(timeout);
-        return 0;
+        FdEntry* entry = &fds_[i];
+        if (entry->fd != INVALID_SOCKET && entry->hEvent != WSA_INVALID_EVENT)
+        {
+            events_.push_back(entry->hEvent);
+        }
     }
-    int count = 0;
-    for (auto iter = eventFds_.begin(); iter != eventFds_.end(); ++iter)
+    if (!events_.empty())
     {
-        events_[count++] = iter->first;
+        nready = WSAWaitForMultipleEvents((DWORD)events_.size(), &events_[0], FALSE, timeout, FALSE);
+        if (nready == WSA_WAIT_FAILED)
+        {
+            LOG(ERROR) << "Poll: WSAWaitForMultipleEvents, " << LAST_ERROR_MSG;
+            nready = -1;
+        }
+        else if (nready == WSA_WAIT_TIMEOUT)
+        {
+            nready = -1;
+        }
     }
-    int nready = WSAWaitForMultipleEvents((DWORD)count, events_, FALSE, timeout, FALSE);
-    if (nready == WSA_WAIT_FAILED)
+    else
     {
-        LOG(ERROR) << "WSAWaitForMultipleEvents: " << LAST_ERROR_MSG;
-        return 0;
+        if (timeout > 0)
+        {
+            Sleep(timeout / 2);
+        }
     }
-    else if (nready == WSA_WAIT_TIMEOUT)
-    {
-        UpdateTimer();
-    }
-    else if (nready == WSA_WAIT_IO_COMPLETION)
-    {
-        // Alertable I/O
-    }
-    else 
+    UpdateTimer();
+
+    if (nready >= 0 && !events_.empty())
     {
         int index = nready - WSA_WAIT_EVENT_0;
         if (index >= WSA_MAXIMUM_WAIT_EVENTS)
         {
-            LOG(ERROR) << "WSA wait events index out of range: " << index;
+            LOG(ERROR) << "Poll: wait events index out of range: " << index;
             return 0;
         }
         WSAEVENT hEvent = events_[index];
-        FdEntry* entry = eventFds_[hEvent];
+        FdEntry* entry = FindEntryByEvent(hEvent);
+        if (entry == NULL)
+        {
+            LOG(ERROR) << "Poll: entry not found";
+            return 0;
+        }
         WSANETWORKEVENTS events = {};
 
         // This will reset the event object and adjust the status of 
@@ -167,12 +195,13 @@ int AsyncEventPoller::Poll(int timeout)
         int r = WSAEnumNetworkEvents(entry->fd, hEvent, &events);
         if (r == SOCKET_ERROR)
         {
-            LOG(ERROR) << "WSAEnumNetworkEvents: " << LAST_ERROR_MSG;
+            LOG(ERROR) << "Poll: WSAEnumNetworkEvents, " << LAST_ERROR_MSG;
             return 0;
         }
         HandleEvents(entry, &events);
         return 1;
     }
+    RemoveRetired();
     return 0;
 }
 
@@ -224,5 +253,42 @@ void AsyncEventPoller::HandleEvents(FdEntry* entry, WSANETWORKEVENTS* events)
         {
             entry->sink->OnWritable();
         }
+    }
+}
+
+AsyncEventPoller::FdEntry* AsyncEventPoller::FindEntry(SOCKET fd)
+{
+    for (size_t i = 0; i < fds_.size(); i++)
+    {
+        if (fds_[i].fd == fd)
+        {
+            return &fds_[i];
+        }
+    }
+    return NULL;
+}
+
+AsyncEventPoller::FdEntry* AsyncEventPoller::FindEntryByEvent(WSAEVENT hEvent)
+{
+    for (size_t i = 0; i < fds_.size(); i++)
+    {
+        if (fds_[i].hEvent == hEvent)
+        {
+            return &fds_[i];
+        }
+    }
+    return NULL;
+}
+
+void AsyncEventPoller::RemoveRetired()
+{
+    if (has_retired_)
+    {
+        auto iter = std::remove_if(fds_.begin(), fds_.end(), [](const FdEntry& entry)
+        {
+            return entry.fd == INVALID_SOCKET;
+        });
+        fds_.erase(iter, fds_.end());
+        has_retired_ = false;
     }
 }
