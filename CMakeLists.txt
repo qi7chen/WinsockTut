@@ -1,3 +1,7 @@
+# Copyright (C) 2012-present prototyped.cn All rights reserved.
+# Distributed under the terms and conditions of the Apache License. 
+# See accompanying files LICENSE.
+
 cmake_minimum_required(VERSION 3.0)
 
 project(WinsockTut)
@@ -41,3 +45,4 @@ add_library(libwinet ${LIB_HEADER_FILES} ${LIB_SOURCE_FILES})
 target_link_libraries(libwinet ws2_32 mswsock)
 
 add_subdirectory(examples/echo)
+add_subdirectory(examples/chat)
