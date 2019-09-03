@@ -5,10 +5,10 @@
 #include "SocketOpts.h"
 #include <assert.h>
 #include <WS2tcpip.h>
+#include <MSWSock.h>
 #include "Common/Error.h"
 #include "Common/Logging.h"
 #include "Common/StringUtil.h"
-
 
 
 // set socket to non-blocking mode
@@ -54,6 +54,17 @@ int BindAnyAddr(SOCKET fd, int family)
         return -1;
     }
     return 0;
+}
+
+
+int UpdateConnectCtx(SOCKET fd)
+{
+    int r = setsockopt(fd, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
+    if (r == SOCKET_ERROR)
+    {
+        LOG(ERROR) << "UpdateConnectCtx: " << LAST_ERROR_MSG;
+    }
+    return r;
 }
 
 int ReadSome(SOCKET fd, void* buf, int size)

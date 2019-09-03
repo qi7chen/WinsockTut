@@ -11,6 +11,9 @@ int SetNonblock(SOCKET fd, bool nonblock);
 
 int BindAnyAddr(SOCKET fd, int family);
 
+// enable previously set properties or options after ConnectEx
+int UpdateConnectCtx(SOCKET fd);
+
 // read no more than `size` bytes
 // return -1 when error or EOF
 // return 0 when would block
