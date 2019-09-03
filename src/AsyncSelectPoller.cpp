@@ -23,8 +23,16 @@ AsyncSelectPoller::AsyncSelectPoller()
 
 AsyncSelectPoller::~AsyncSelectPoller()
 {
-    CloseHandle(hwnd_);
-    hwnd_ = NULL;
+    Cleanup();
+}
+
+void AsyncSelectPoller::Cleanup()
+{
+    if (hwnd_ != NULL)
+    {
+        CloseHandle(hwnd_);
+        hwnd_ = NULL;
+    }
 }
 
 void AsyncSelectPoller::CreateHidenWindow()
@@ -56,7 +64,13 @@ int AsyncSelectPoller::AddFd(SOCKET fd, IPollEvent* event)
 // and cancels any previous WSAAsyncSelect or WSAEventSelect for the same socket.
 void AsyncSelectPoller::RemoveFd(SOCKET fd)
 {
-	MarkRetired(fd);
+    FdEntry* entry = FindEntry(fd);
+    if (entry != NULL)
+    {
+        entry->fd = INVALID_SOCKET; // mark retired
+        entry->mask = 0;
+    }
+    has_retired_ = true;
     int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, 0);
     if (r == SOCKET_ERROR)
     {
@@ -70,9 +84,9 @@ void AsyncSelectPoller::SetPollIn(SOCKET fd)
 	if (entry != NULL)
     {
         long lEvent = FD_READ | FD_ACCEPT | FD_CLOSE;
-        entry->event |= lEvent;
+        entry->lEvents |= lEvent;
         entry->mask |= MASK_READABLE;
-        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->event);
+        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->lEvents);
         if (r == SOCKET_ERROR)
         {
             LOG(ERROR) << StringPrintf("SetPollIn£º WSAsyncSelect %s", LAST_ERROR_MSG);
@@ -86,9 +100,9 @@ void AsyncSelectPoller::ResetPollIn(SOCKET fd)
 	if (entry != NULL)
 	{
         long lEvent = FD_READ | FD_ACCEPT | FD_CLOSE;
-        entry->event &= ~lEvent;
+        entry->lEvents &= ~lEvent;
 		entry->mask &= ~MASK_READABLE;
-        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->event);
+        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->lEvents);
         if (r == SOCKET_ERROR)
         {
             LOG(ERROR) << StringPrintf("ResetPollIn£º WSAsyncSelect %s", LAST_ERROR_MSG);
@@ -102,9 +116,9 @@ void AsyncSelectPoller::SetPollOut(SOCKET fd)
 	if (entry != NULL)
 	{
         long lEvent = FD_WRITE | FD_CONNECT | FD_CLOSE;
-        entry->event |= lEvent;
+        entry->lEvents |= lEvent;
         entry->mask |= MASK_WRITABLE;
-        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->event);
+        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->lEvents);
         if (r == SOCKET_ERROR)
         {
             LOG(ERROR) << StringPrintf("SetPollOut£º WSAsyncSelect %s", LAST_ERROR_MSG);
@@ -119,9 +133,9 @@ void AsyncSelectPoller::ResetPollOut(SOCKET fd)
 	if (entry != NULL)
 	{
         long lEvent = FD_WRITE | FD_CONNECT | FD_CLOSE;
-        entry->event &= ~lEvent;
+        entry->lEvents &= ~lEvent;
 		entry->mask &= ~MASK_WRITABLE;
-        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->event);
+        int r = WSAAsyncSelect(fd, hwnd_, WM_SOCKET, entry->lEvents);
         if (r == SOCKET_ERROR)
         {
             LOG(ERROR) << StringPrintf("ResetPollOut£º WSAsyncSelect %s", LAST_ERROR_MSG);
@@ -187,6 +201,7 @@ int AsyncSelectPoller::Poll(int timeout)
         UpdateTimer();
         Sleep(timeout);
     }
+    RemoveRetired();
     return count;
 }
 
@@ -200,18 +215,6 @@ AsyncSelectPoller::FdEntry* AsyncSelectPoller::FindEntry(SOCKET fd)
 		}
 	}
 	return NULL;
-}
-
-void AsyncSelectPoller::MarkRetired(SOCKET fd)
-{
-	FdEntry* entry = FindEntry(fd);
-	if (entry != NULL)
-	{
-		entry->fd = INVALID_SOCKET;
-		entry->mask = 0;
-		entry->sink = NULL;
-	}
-	has_retired_ = true;
 }
 
 void AsyncSelectPoller::RemoveRetired()

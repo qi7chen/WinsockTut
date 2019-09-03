@@ -30,7 +30,9 @@ int SelectPoller::AddFd(SOCKET fd, IPollEvent* event)
     {
         return -1;
     }
-    FdEntry entry = {fd, event};
+    FdEntry entry = {};
+    entry.fd = fd;
+    entry.sink = event;
     fds_.push_back(entry);
 
     // start polling on errors.

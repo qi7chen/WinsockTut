@@ -25,22 +25,22 @@ public:
 
     int Poll(int timeout);
 
+    void Cleanup();
+
 private:
-    void CreateHidenWindow();
-    void HandleEvent(SOCKET fd, int ev, int ec);
-
-	void MarkRetired(SOCKET fd);
-	void RemoveRetired();
-
     struct FdEntry
     {
-		SOCKET      fd;
-        LONG        event;
+        SOCKET      fd;
+        LONG        lEvents;
         int         mask;
         IPollEvent* sink;
     };
 
-	FdEntry* FindEntry(SOCKET fd);
+    void CreateHidenWindow();
+    void HandleEvent(SOCKET fd, int ev, int ec);
+
+    FdEntry* FindEntry(SOCKET fd);
+	void RemoveRetired();
 
 private:
     HWND					hwnd_;
