@@ -19,6 +19,7 @@ AsyncSelectPoller::AsyncSelectPoller()
     : hwnd_(NULL), has_retired_(false)
 {
     CreateHidenWindow();
+    fds_.reserve(FD_SETSIZE);
 }
 
 AsyncSelectPoller::~AsyncSelectPoller()

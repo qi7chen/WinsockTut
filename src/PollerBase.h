@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "PollEvent.h"
+#include "TimerSched.h"
 #include <WinSock2.h>
 #include <vector>
 #include <map>
@@ -16,7 +16,7 @@ enum PollerType
     PollerAsyncEvent = 3,
 };
 
-class PollerBase
+class PollerBase : public TimerSched
 {
 public:
     PollerBase();
@@ -31,23 +31,11 @@ public:
     virtual void ResetPollOut(SOCKET fd) = 0;
     virtual int Poll(int timeout) = 0;
 
-    int LastError();
-    int AddTimer(int millsec, IPollEvent* event);
-    void CancelTimer(int id);
-    void UpdateTimer();
+    int LastError() { return last_err_;  }
 
-private:
-    int nextCounter();
-    void clear();
-    bool siftdown(int x, int n);
-    void siftup(int j);
-
-    struct TimerEntry;
 
 protected:
     int last_err_;
-    int counter_;                       // next timer id
-    std::vector<TimerEntry*>  heap_;    // min-heap timer
 };
 
 PollerBase* CreatePoller(PollerType type);

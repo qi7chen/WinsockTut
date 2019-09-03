@@ -4,10 +4,17 @@
 
 #pragma once
 
-struct IPollEvent
+struct ITimerEvent
+{
+    virtual ~ITimerEvent() {}
+
+    virtual void OnTimeout() = 0;
+};
+
+struct IPollEvent : ITimerEvent
 {
     virtual ~IPollEvent(){}
+
     virtual void OnReadable() = 0;
     virtual void OnWritable() = 0;
-    virtual void OnTimeout() = 0;
 };

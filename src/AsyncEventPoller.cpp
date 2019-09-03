@@ -14,6 +14,7 @@ AsyncEventPoller::AsyncEventPoller()
     : has_retired_(false)
 {
     events_.reserve(WSA_MAXIMUM_WAIT_EVENTS);
+    fds_.reserve(WSA_MAXIMUM_WAIT_EVENTS);
 }
 
 AsyncEventPoller::~AsyncEventPoller()
