@@ -167,9 +167,10 @@ int AsyncEventPoller::Poll(int timeout)
     }
     else
     {
+        // nothing to do, sleep a while
         if (timeout > 0)
         {
-            Sleep(timeout / 2);
+            Sleep(timeout / 2); 
         }
     }
     UpdateTimer();

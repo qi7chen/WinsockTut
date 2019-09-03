@@ -90,11 +90,12 @@ int SelectPoller::Poll(int timeout)
 			return 0;
 		}
 	}
-	else
+	else 
 	{
+        // nothing to do, sleep a while
 		if (timeout > 0)
 		{
-			Sleep(timeout / 2);
+			Sleep(timeout / 2); 
 		}
 	}
     

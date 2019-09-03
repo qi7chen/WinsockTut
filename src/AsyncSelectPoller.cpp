@@ -197,10 +197,11 @@ int AsyncSelectPoller::Poll(int timeout)
             DispatchMessage(&msg);
         }
     }
+    UpdateTimer();
     if (count == 0 && timeout > 0)
     {
-        UpdateTimer();
-        Sleep(timeout);
+        // nothing to do, sleep a while
+        Sleep(timeout / 2); 
     }
     RemoveRetired();
     return count;

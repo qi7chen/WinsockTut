@@ -6,6 +6,7 @@
 
 #include <WinSock2.h>
 #include "Logging.h"
+#include "WsaExt.h"
 
 // Auto initialize winsock
 struct WinsockAutoInit
@@ -15,6 +16,7 @@ struct WinsockAutoInit
         WSADATA data;
         int r = WSAStartup(MAKEWORD(2, 2), &data);
         CHECK(r == 0);
+        WsaExt init;    // initialize winsock extension 
     }
 
     ~WinsockAutoInit()

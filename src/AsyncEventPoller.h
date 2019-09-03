@@ -43,5 +43,5 @@ private:
 private:
     std::vector<WSAEVENT>   events_;
     std::vector<FdEntry>    fds_;
-    bool has_retired_;
+    bool    has_retired_;
 };
