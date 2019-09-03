@@ -68,17 +68,21 @@ int ReadSome(SOCKET fd, void* buf, int size)
             nbytes += r;
             continue;
         }
-        if (r == SOCKET_ERROR)
+        else if (r == 0) // EOF
         {
-            r = WSAGetLastError();
-            if (r != WSAEWOULDBLOCK)
+            return -1; 
+        }
+        else if (r == SOCKET_ERROR)
+        {
+            int err = WSAGetLastError();
+            if (err != WSAEWOULDBLOCK)
             {
                 LOG(ERROR) << r << LAST_ERROR_MSG;
                 return -1;
             }
             break;
         }
-        break;  // EOF
+        break;
     }
     return nbytes;
 }

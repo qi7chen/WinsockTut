@@ -12,6 +12,8 @@ int SetNonblock(SOCKET fd, bool nonblock);
 int BindAnyAddr(SOCKET fd, int family);
 
 // read no more than `size` bytes
+// return -1 when error or EOF
+// return 0 when would block
 int ReadSome(SOCKET fd, void* buf, int size);
 
 // write `size` bytes 
