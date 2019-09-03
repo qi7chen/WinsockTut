@@ -9,7 +9,9 @@ import (
 
 func main() {
 	var addr string
+	var echoCount int
 	flag.StringVar(&addr, "", ":8081", "server address to bind")
+	flag.IntVar(&echoCount, "", 5, "server response echo back count")
 	flag.Parse()
 
 	ln, err := net.Listen("tcp", addr)
@@ -23,15 +25,15 @@ func main() {
 			log.Fatalf("Accept: %v", err)
 		}
 		log.Printf("accepted %v\n", conn.RemoteAddr())
-		go handleConn(conn)
+		go handleConn(conn, echoCount)
 	}
 }
 
-func handleConn(conn net.Conn) {
+func handleConn(conn net.Conn, echoCount int) {
 	defer conn.Close()
 	defer log.Printf("connection %v closed\n", conn.RemoteAddr())
 	var buf = make([]byte, 1024)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < echoCount; i++ {
 		conn.SetDeadline(time.Now().Add(300 * time.Second))
 		nbytes, err := conn.Read(buf)
 		if err != nil {

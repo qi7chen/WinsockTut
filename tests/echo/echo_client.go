@@ -8,14 +8,12 @@ import (
 	"time"
 )
 
-var maxPktCount int
-
 func main() {
 	var addr string
-	var connCount int
+	var connCount, maxReqCount int
 	flag.StringVar(&addr, "h", "localhost:8081", "server address to bind")
-	flag.IntVar(&connCount, "c", 63, "connection count to make")
-	flag.IntVar(&maxPktCount, "p", 10, "packet count to send")
+	flag.IntVar(&connCount, "c", 63, "how many connections to make")
+	flag.IntVar(&maxReqCount, "p", 10, "max request packet to send")
 	flag.Parse()
 
 	var wg sync.WaitGroup
@@ -25,19 +23,19 @@ func main() {
 			log.Fatalf("Dial: %v", err)
 		}
 		wg.Add(1)
-		go handleConn(conn, &wg)
+		go handleConn(conn, maxReqCount, &wg)
 		time.Sleep(10 * time.Millisecond)
 	}
 	wg.Wait()
 }
 
-func handleConn(conn net.Conn, wg *sync.WaitGroup) {
+func handleConn(conn net.Conn, maxReqCount int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer conn.Close()
 
 	var msg = []byte("a quick brown fox jumps over the lazy dog")
 	var buf = make([]byte, 1024)
-	for i := 0; i < maxPktCount; i++ {
+	for i := 0; i < maxReqCount; i++ {
 		nbytes, err := conn.Write(msg)
 		if err != nil {
 			log.Printf("%v Read: %v\n", conn.LocalAddr(), err)
