@@ -5,6 +5,7 @@
 #pragma once
 
 #include <WinSock2.h>
+#include <stdint.h>
 #include <functional>
 
 enum OperationType
@@ -23,15 +24,11 @@ struct OverlapContext
     WSABUF          buf;        // buffer
     OperationType   op;         // operation type
     SOCKET          fd;         // socket descriptor
-    int             error;      // error code
-    void*			udata;      // user data
+    int64_t			udata;      // user data
+    std::function<void()> cb;   // callback 
 };
 
-typedef std::function<void(int)>        ConnectCallback;
-typedef std::function<void(SOCKET)>     AcceptCallback;
-typedef std::function<void(int,int)>    ReadCallback;
-typedef std::function<void(int,int)>    WriteCallback;
-typedef std::function<void()>           TimerCallback;
+typedef std::function<void(OverlapContext*)>    OverlapCallback;
 
 struct AcceptInfo
 {

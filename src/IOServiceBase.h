@@ -23,12 +23,15 @@ public:
     IOServiceBase();
     virtual ~IOServiceBase();
 
-    virtual int AsyncConnect(SOCKET fd, const addrinfo* pinfo, ConnectCallback cb) = 0;
-    virtual int AsyncAccept(SOCKET acceptor, AcceptCallback cb) = 0;
-    virtual int AsyncRead(void* buf, int size, ReadCallback cb) = 0;
-    virtual int AsyncWrite(const void* buf, int size, WriteCallback cb) = 0;
-    virtual int CancelFd(SOCKET fd) = 0;
+    virtual int AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo, OverlapCallback cb) = 0;
+    virtual int AsyncAccept(OverlapContext* ctx, OverlapCallback cb) = 0;
+    virtual int AsyncRead(OverlapContext* ctx, OverlapCallback cb) = 0;
+    virtual int AsyncWrite(OverlapContext* ctx, OverlapCallback cb) = 0;
+
     virtual int Run(int timeout) = 0;
+
+    virtual OverlapContext* AllocOverlapCtx() = 0;
+    virtual void FreeOverlapCtx(OverlapContext* ctx) = 0;
 };
 
 IOServiceBase* CreateIOService(IOServiceType type);

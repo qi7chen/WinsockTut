@@ -14,7 +14,6 @@ using namespace std::placeholders;
 
 
 OverlappedIOService::OverlappedIOService()
-    : has_retired_(false)
 {
     events_.reserve(WSA_MAXIMUM_WAIT_EVENTS);
     fds_.reserve(WSA_MAXIMUM_WAIT_EVENTS);
@@ -27,126 +26,83 @@ OverlappedIOService::~OverlappedIOService()
 
 void OverlappedIOService::CleanUp()
 {
-    for (size_t i = 0; i < fds_.size(); i++)
+    for (auto iter = fds_.begin(); iter != fds_.end(); ++iter)
     {
-        OverlapContext* ctx = fds_[i];
-        FreeOverlapFd(ctx);
+        OverlapContext* ctx = iter->second;
+        FreeOverlapCtx(ctx);
         delete ctx;
     }
     fds_.clear();
     events_.clear();
 }
 
-int OverlappedIOService::CancelFd(SOCKET fd)
+OverlapContext* OverlappedIOService::AllocOverlapCtx()
 {
-    OverlapContext* ctx = GetOrCreateOverlapContext(fd, false);
-    if (ctx != NULL)
+    if (!pool_.empty())
     {
-        FreeOverlapFd(ctx);
-        has_retired_ = true;
+        auto iter = pool_.begin();
+        pool_.erase(iter);
+        return *iter;
     }
-    return 0;
-}
-
-OverlapContext* OverlappedIOService::GetOrCreateOverlapContext(SOCKET fd, bool will_create)
-{
-    for (size_t i = 0; i < fds_.size(); i++)
+    WSAEVENT hEvent = WSACreateEvent();
+    if (hEvent == WSA_INVALID_EVENT)
     {
-        OverlapContext* ctx = fds_[i];
-        if (ctx->fd == fd) 
-        {
-            return ctx;
-        }
+        LOG(ERROR) << "AllocOverlapContext: WSACreateEvent " << LAST_ERROR_MSG;
+        return NULL;
     }
-    if (will_create)
-    {
-        WSAEVENT hEvent = WSACreateEvent();
-        if (hEvent == WSA_INVALID_EVENT)
-        {
-            LOG(ERROR) << "AllocOverlapFd: WSACreateEvent " << LAST_ERROR_MSG;
-            return NULL;
-        }
-        OverlapContext* ctx = new OverlapContext;
-        ctx->fd = fd;
-        ctx->overlap.hEvent = hEvent;
-        ctx->fd = fd;
-        fds_.push_back(ctx);
-        return ctx;
-    }
+    OverlapContext* ctx = new OverlapContext;
+    ctx->overlap.hEvent = hEvent;
+    fds_[hEvent] = ctx;
     return NULL;
 }
 
-void OverlappedIOService::FreeOverlapFd(OverlapContext* ctx)
+void OverlappedIOService::FreeOverlapCtx(OverlapContext* ctx)
 {
-    WSACloseEvent(ctx->overlap.hEvent);
+    WSAEVENT hEvent = ctx->overlap.hEvent;
+    WSACloseEvent(hEvent);
     closesocket(ctx->fd);
     ctx->fd = INVALID_SOCKET;
     ctx->overlap.hEvent = WSA_INVALID_EVENT;
-}
-
-OverlapContext* OverlappedIOService::FindContextEntryByEvent(WSAEVENT hEvent)
-{
-    for (size_t i = 0; i < fds_.size(); i++)
+    ctx->op = OpNone;
+    fds_.erase(hEvent);
+    if (pool_.size() < WSA_MAXIMUM_WAIT_EVENTS)
     {
-        OverlapContext* ctx = fds_[i];
-        if (ctx->overlap.hEvent == hEvent)
-        {
-            return ctx;
-        }
+        pool_.push_front(ctx);
     }
-    return NULL;
-}
-
-void OverlappedIOService::RemoveRetired()
-{
-    if (has_retired_)
+    else
     {
-        for (auto iter = fds_.begin(); iter != fds_.end(); ++iter)
-        {
-            OverlapContext* ctx = *iter;
-            if (ctx->fd == INVALID_SOCKET)
-            {
-                delete ctx;
-                iter = fds_.erase(iter);
-            }
-        }
-        has_retired_ = false;
+        delete ctx;
     }
 }
 
-int OverlappedIOService::AsyncConnect(SOCKET fd, const addrinfo* pinfo, ConnectCallback cb)
+int OverlappedIOService::AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo, OverlapCallback cb)
 {
     // ConnectEx need previously bound socket.
-    if (BindAnyAddr(fd, pinfo->ai_family) != 0)
+    int r = BindAnyAddr(ctx->fd, pinfo->ai_family);
+    if (r != 0)
     {
-        return -1;
+        return r;
     }
-    OverlapContext* ctx = GetOrCreateOverlapContext(fd, true);
-    if (ctx == NULL)
-    {
-        return -1;
-    }
-    int r = WsaExt::ConnectEx(fd, (const struct sockaddr*)pinfo->ai_addr, (int)pinfo->ai_addrlen,
+    ctx->op = OpConnect;
+    int fOK = WsaExt::ConnectEx(ctx->fd, (const struct sockaddr*)pinfo->ai_addr, (int)pinfo->ai_addrlen,
         nullptr, 0, nullptr, &ctx->overlap);
-    if (r != TRUE)
+    if (!fOK)
     {
         if (GetLastError() != WSA_IO_PENDING)
         {
-            LOG(ERROR) << "AsyncConnect: " << LAST_ERROR_MSG;
-            FreeOverlapFd(ctx);
-            return false;
+            LOG(ERROR) << "ConnectEx: " << LAST_ERROR_MSG;
+            return -1;
         }
     }
     else
     {
-        UpdateConnectCtx(fd);
+        UpdateConnectCtx(ctx->fd);
     }
-    ctx->op = OpConnect;
-    ctx->udata = new ConnectCallback(cb);
+    ctx->cb = std::bind(cb, ctx);
     return 0; // succeed
 }
 
-int OverlappedIOService::AsyncAccept(SOCKET acceptor, AcceptCallback cb)
+int OverlappedIOService::AsyncAccept(OverlapContext* ctx, OverlapCallback cb)
 {
     SOCKET fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (fd == INVALID_SOCKET)
@@ -154,47 +110,62 @@ int OverlappedIOService::AsyncAccept(SOCKET acceptor, AcceptCallback cb)
         LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
         return -1;
     }
-    OverlapContext* ctx = GetOrCreateOverlapContext(fd, true);
-    if (ctx == NULL)
+    ctx->udata = fd;
+    if (ctx->buf.buf == NULL)
     {
-        closesocket(fd);
-        return -1;
-    }
-    OverlapContext* acceptorCtx = GetOrCreateOverlapContext(acceptor, true);
-    if (ctx == NULL)
-    {
-        return -1;
-    }
-    if (acceptorCtx->buf.buf == NULL)
-    {
-        acceptorCtx->buf.buf = (char*)new AcceptInfo;
-        acceptorCtx->buf.len = sizeof(AcceptInfo);
+        ctx->buf.buf = (char*)new AcceptInfo;
+        ctx->buf.len = sizeof(AcceptInfo);
     }
     else
     {
-        memset(acceptorCtx->buf.buf, 0, acceptorCtx->buf.len);
+        memset(ctx->buf.buf, 0, ctx->buf.len);
     }
-    int fOK = WsaExt::AcceptEx(acceptor, fd, acceptorCtx->buf.buf, 0, sizeof(sockaddr_storage), 
-        sizeof(sockaddr_storage), NULL, &acceptorCtx->overlap);
+    
+    int fOK = WsaExt::AcceptEx(ctx->fd, fd, ctx->buf.buf, 0, sizeof(sockaddr_storage),
+        sizeof(sockaddr_storage), NULL, &ctx->overlap);
     if (!fOK)
     {
         int r = WSAGetLastError();
-        if (r != ERROR_IO_PENDING)
+        if (r != WSA_IO_PENDING)
         {
             LOG(ERROR) << StringPrintf("AcceptEx(): %s\n", LAST_ERROR_MSG);
             return r;
         }
     }
+    ctx->cb = std::bind(cb, ctx);
     return 0;
 }
 
-int OverlappedIOService::AsyncRead(void* buf, int size, ReadCallback cb)
+int OverlappedIOService::AsyncRead(OverlapContext* ctx, OverlapCallback cb)
 {
+    DWORD dwFlags = 0;
+    int r = WSARecv(ctx->fd, &ctx->buf, 1, NULL, &dwFlags, &ctx->overlap, NULL);
+    if (r == SOCKET_ERROR)
+    {
+        int r = WSAGetLastError();
+        if (r != WSA_IO_PENDING)
+        {
+            LOG(ERROR) << StringPrintf("WSARecv(): %s\n", LAST_ERROR_MSG);
+            return r;
+        }
+    }
+    ctx->cb = std::bind(cb, ctx);
     return 0;
 }
 
-int OverlappedIOService::AsyncWrite(const void* buf, int size, WriteCallback cb)
+int OverlappedIOService::AsyncWrite(OverlapContext* ctx, OverlapCallback cb)
 {
+    int r = WSASend(ctx->fd, &ctx->buf, 1, NULL, 0, &ctx->overlap, NULL);
+    if (r == SOCKET_ERROR)
+    {
+        int r = WSAGetLastError();
+        if (r != WSA_IO_PENDING)
+        {
+            LOG(ERROR) << StringPrintf("WSASend(): %s\n", LAST_ERROR_MSG);
+            return r;
+        }
+    }
+    ctx->cb = std::bind(cb, ctx);
     return 0;
 }
 
@@ -202,13 +173,9 @@ int OverlappedIOService::Run(int timeout)
 {
     int nready = 0;
     events_.clear();
-    for (size_t i = 0; i < fds_.size(); i++)
+    for (auto iter = fds_.begin(); iter != fds_.end(); ++iter)
     {
-        OverlapContext* ctx = fds_[i];
-        if (ctx->fd != INVALID_SOCKET && ctx->overlap.hEvent != WSA_INVALID_EVENT)
-        {
-            events_.push_back(ctx->overlap.hEvent);
-        }
+        events_.push_back(iter->first);
     }
     if (!events_.empty())
     {
@@ -241,22 +208,20 @@ int OverlappedIOService::Run(int timeout)
             return -1;
         }
         WSAEVENT hEvent = events_[index];
-        OverlapContext* ctx = FindContextEntryByEvent(hEvent);
+        OverlapContext* ctx = fds_[hEvent];
         if (ctx == NULL)
         {
-            LOG(ERROR) << "Poll: overlap context not found";
+            LOG(ERROR) << "Run: overlap context not found";
             return -1;
         }
         DWORD dwBytes = 0;
         DWORD dwFlags = 0;
-        ctx->error = 0;
         if (!WSAGetOverlappedResult(ctx->fd, &ctx->overlap, &dwBytes, 1, &dwFlags))
         {
-            ctx->error = WSAGetLastError();
+            LOG(ERROR) << "WSAGetOverlappedResult: " << LAST_ERROR_MSG;
         }
         DispatchEvent(ctx);
     }
-    RemoveRetired();
     return 0;
 }
 
@@ -265,14 +230,8 @@ void OverlappedIOService::DispatchEvent(OverlapContext* ctx)
     switch(ctx->op)
     {
     case OpConnect:
-        {
-            ConnectCallback* callback = (ConnectCallback*)ctx->udata;
-            (*callback)(ctx->error);
-            delete ctx->udata;
-        }
-        break;
-
     case OpAccept:
+        ctx->cb();
         break;
 
     case OpRead:

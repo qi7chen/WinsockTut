@@ -13,12 +13,12 @@ public:
     CompletionPortService();
     ~CompletionPortService();
 
-    int AsyncConnect(SOCKET fd, const addrinfo* pinfo, ConnectCallback cb);
-    int AsyncAccept(SOCKET acceptor, AcceptCallback cb);
-    int AsyncRead(void* buf, int size, ReadCallback cb);
-    int AsyncWrite(const void* buf, int size, WriteCallback cb);
-    int CancelFd(SOCKET fd);
-    int Run(int timeout);
+    //int AsyncConnect(SOCKET fd, const addrinfo* pinfo, ConnectCallback cb);
+    //int AsyncAccept(SOCKET acceptor, AcceptCallback cb);
+    //int AsyncRead(void* buf, int size, ReadCallback cb);
+    //int AsyncWrite(const void* buf, int size, WriteCallback cb);
+    //int CancelFd(SOCKET fd);
+    //int Run(int timeout);
 
 private:
     HANDLE  completion_port_;

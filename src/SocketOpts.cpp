@@ -50,8 +50,7 @@ int BindAnyAddr(SOCKET fd, int family)
     int r = bind(fd, paddr, addrlen);
     if (r == SOCKET_ERROR)
     {
-        LOG(ERROR) << "bind: " << LAST_ERROR_MSG;
-        return -1;
+        return r;
     }
     return 0;
 }

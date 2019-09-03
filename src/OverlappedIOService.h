@@ -6,6 +6,8 @@
 
 #include "IOServiceBase.h"
 #include <vector>
+#include <list>
+#include <unordered_map>
 
 class OverlappedIOService : public IOServiceBase
 {
@@ -13,24 +15,22 @@ public:
     OverlappedIOService();
     ~OverlappedIOService();
 
-    int AsyncConnect(SOCKET fd, const addrinfo* pinfo, ConnectCallback cb);
-    int AsyncAccept(SOCKET acceptor, AcceptCallback cb);
-    int AsyncRead(void* buf, int size, ReadCallback cb);
-    int AsyncWrite(const void* buf, int size, WriteCallback cb);
-    int CancelFd(SOCKET fd);
+    int AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo, OverlapCallback cb);
+    int AsyncAccept(OverlapContext* ctx, OverlapCallback cb);
+    int AsyncRead(OverlapContext* ctx, OverlapCallback cb);
+    int AsyncWrite(OverlapContext* ctx, OverlapCallback cb);
+
+    OverlapContext* AllocOverlapCtx();
+    void FreeOverlapCtx(OverlapContext* ctx);
+
     int Run(int timeout);
 
 private:
     void CleanUp();
-    void RemoveRetired();
-
-    OverlapContext* FindContextEntryByEvent(WSAEVENT hEvent);
     void DispatchEvent(OverlapContext* ctx);
-    OverlapContext* GetOrCreateOverlapContext(SOCKET fd, bool will_create);
-    void FreeOverlapFd(OverlapContext* ctx);
     
 private:
+    std::list<OverlapContext*>      pool_;
     std::vector<WSAEVENT>           events_;
-    std::vector<OverlapContext*>    fds_;
-    bool					        has_retired_;
+    std::unordered_map<WSAEVENT, OverlapContext*> fds_;
 };
