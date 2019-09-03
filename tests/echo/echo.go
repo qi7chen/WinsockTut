@@ -8,12 +8,14 @@ import (
 	"flag"
 	"log"
 	"net"
+	"sync"
 	"time"
 )
 
 func main() {
 	var mode, addr string
 	var connCount, echoCount int
+	flag.StringVar(&mode, "m", "server", "run server or client")
 	flag.StringVar(&addr, "h", "127.0.0.1:8081", "host address")
 	flag.IntVar(&connCount, "c", 32, "how many connections to make")
 	flag.IntVar(&echoCount, "e", 5, "server response echo back count")
@@ -31,6 +33,7 @@ func main() {
 
 // 开始跑echo client
 func startClient(addr string, connCount, echoCount int) {
+	log.Printf("starting %d clients to connect %s\n", connCount, addr)
 	var wg sync.WaitGroup
 	for i := 0; i < connCount; i++ {
 		conn, err := net.Dial("tcp", addr)
