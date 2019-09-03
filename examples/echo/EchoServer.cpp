@@ -75,7 +75,12 @@ void EchoServer::OnReadable()
     }
 	LOG(INFO) << StringPrintf("sock %d accepted.", newfd);
     EchoConn* conn = new EchoConn(this, newfd);
-    poller_->AddFd(newfd, conn);
+    if (poller_->AddFd(newfd, conn) < 0)
+    {
+        conn->Close();
+        delete conn;
+        return; 
+    }
     poller_->SetPollIn(newfd);
     poller_->SetPollOut(newfd);
     conn->StartRead();

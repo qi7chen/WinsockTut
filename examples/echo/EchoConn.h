@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <vector>
 #include "PollerBase.h"
 #include "PollEvent.h"
 
@@ -23,9 +24,8 @@ public:
 	void Close();
 
 private:
-	EchoServer* server_;
-	SOCKET  fd_;
-	int     cap_;
-	int     size_;
-	char*   buf_;
+	EchoServer*         server_;
+	SOCKET              fd_;
+    std::vector<char>	buf_;
+    int                 recv_count_;
 };

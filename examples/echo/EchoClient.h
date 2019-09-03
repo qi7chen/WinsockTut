@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <vector>
 #include "PollerBase.h"
 #include "PollEvent.h"
 

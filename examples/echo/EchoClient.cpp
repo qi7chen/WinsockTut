@@ -13,7 +13,8 @@
 
 using namespace std::placeholders;
 
-enum {
+enum 
+{
 	MAX_SEND_COUNT = 5,
 };
 
@@ -53,11 +54,11 @@ void EchoClient::OnReadable()
 {
     char buf[1024] = {};
     int nbytes = ReadSome(fd_, buf, 1024);
-    if (nbytes <= 0)
+    if (nbytes < 0)
     {
         Cleanup();
     }
-    else
+    else if(nbytes > 0)
     {
         fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, sent_count_);
 		buf_.resize(nbytes);
@@ -85,7 +86,7 @@ void EchoClient::OnTimeout()
 		SendData();
 	}
 
-    if (sent_count_++ < MAX_SEND_COUNT)
+    if (sent_count_ < MAX_SEND_COUNT)
     {
         poller_->AddTimer(1000, this);
     }
@@ -95,11 +96,12 @@ void EchoClient::SendData()
 {
     const char* msg = "a quick brown fox jumps over the lazy dog";
 	int len = (int)strlen(msg);
-	if (sent_count_ > 0)
+	if (sent_count_ > 0 && !buf_.empty())
 	{
 		msg = &buf_[0];
 		len = (int)buf_.size();
 	}
+    sent_count_++;
     int nbytes = WriteSome(fd_, msg, len);
     if (nbytes < 0)
     {
