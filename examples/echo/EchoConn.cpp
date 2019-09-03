@@ -28,7 +28,7 @@ void EchoConn::Close()
 	{
 		SOCKET fd = fd_;
 		fd_ = INVALID_SOCKET;
-		server_->Close(fd); // delete this
+		server_->CloseSession(fd); // delete this
 	}
 }
 

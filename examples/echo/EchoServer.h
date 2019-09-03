@@ -18,7 +18,7 @@ public:
     ~EchoServer();
 
     void Start(const char* host, const char* port);
-	void Close(SOCKET fd);
+	void CloseSession(SOCKET fd);
 
 	PollerBase* Poller() { return poller_;  }
     

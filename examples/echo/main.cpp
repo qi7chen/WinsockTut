@@ -3,9 +3,9 @@
 // See accompanying files LICENSE.
 
 #include <stdio.h>
-#include <assert.h>
 #include <signal.h>
 #include <string>
+#include <memory>
 #include "Common/WinsockInit.h"
 #include "EchoServer.h"
 #include "EchoClient.h"
@@ -36,20 +36,23 @@ int main(int argc, const char* argv[])
     PollerType mode = (PollerType)atoi(argv[4]);
 
     WinsockAutoInit init;
-    PollerBase* poller = CreatePoller(mode);
-    assert(poller != NULL);
 
-    IPollEvent* sink = NULL;
+    PollerBase* poller = CreatePoller(mode);
+    CHECK(poller != NULL);
+
+    std::shared_ptr<EchoServer> server = NULL;
+    std::shared_ptr<EchoClient> client = NULL;
+    std::shared_ptr<IPollEvent> sink = NULL;
     if (type == "server")
     {
-		EchoServer* server = new EchoServer(poller);
+		server.reset(new EchoServer(poller));
         server->Start(host, port);
         sink = server;
         fprintf(stdout, "server started at %s:%s\n", host, port);
     }
     else if (type == "client")
     {
-		EchoClient* client = new EchoClient(poller);
+        client.reset(new EchoClient(poller));
         client->Start(host, port);
         sink = client;
         fprintf(stdout, "client started at %s:%s\n", host, port);
@@ -59,12 +62,11 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "invalid instance type: [%s]\n", type.c_str());
     }
 
-    
     while (!g_stop)
     {
         poller->Poll(50);
     }
-    delete sink;
+    delete poller;
 
     return 0;
 }

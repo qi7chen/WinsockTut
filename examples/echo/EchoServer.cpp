@@ -51,7 +51,7 @@ void EchoServer::Cleanup()
     connections_.clear();
 }
 
-void EchoServer::Close(SOCKET fd)
+void EchoServer::CloseSession(SOCKET fd)
 {
 	LOG(INFO) << StringPrintf("sock %d closed.", fd);
 	auto iter = connections_.find(fd);
