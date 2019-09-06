@@ -6,11 +6,11 @@
 
 #include "IOServiceBase.h"
 
-class ChatServer
+class Server
 {
 public:
-    explicit ChatServer(IOServiceBase* service);
-    ~ChatServer();
+    explicit Server(IOServiceBase* service);
+    ~Server();
 
     void Start(const char* host, const char* port);
     void CloseSession(SOCKET fd);
@@ -18,9 +18,9 @@ public:
     IOServiceBase* GetIOService() { return service_; }
 
 private:
-    void OnAccept(SOCKET fd);
+    void OnAccept(OverlapContext* ctx);
 
 private:
     IOServiceBase*  service_;
-    SOCKET          acceptor_;
+    OverlapContext* ctx_;
 };

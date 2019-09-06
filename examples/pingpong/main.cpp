@@ -8,8 +8,8 @@
 #include <memory>
 #include "Common/WinsockInit.h"
 #include "IOServiceBase.h"
-#include "ChatServer.h"
-#include "ChatClient.h"
+#include "Server.h"
+#include "Client.h"
 
 using namespace std;
 
@@ -43,17 +43,17 @@ int main(int argc, char* argv[])
     IOServiceBase* service = CreateIOService(mode);
     CHECK(service != nullptr);
 
-    std::shared_ptr<ChatServer> server = NULL;
-    std::shared_ptr<ChatClient> client = NULL;
+    std::shared_ptr<Server> server = NULL;
+    std::shared_ptr<Client> client = NULL;
     if (type == "server")
     {
-        server.reset(new ChatServer(service));
+        server.reset(new Server(service));
         server->Start(host, port);
         fprintf(stdout, "server started at %s:%s\n", host, port);
     }
     else if (type == "client")
     {
-        client.reset(new ChatClient(service));
+        client.reset(new Client(service));
         client->Start(host, port);
         fprintf(stdout, "client started at %s:%s\n", host, port);
     }

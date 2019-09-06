@@ -4,22 +4,26 @@
 
 #pragma once
 
+#include <vector>
 #include "IOServiceBase.h"
 
-class ChatClient
+class Client
 {
 public:
-    explicit ChatClient(IOServiceBase* service);
-    ~ChatClient();
+    explicit Client(IOServiceBase* service);
+    ~Client();
 
     int Start(const char* host, const char* port);
 
 private:
     int Connect(const char* host, const char* port);
 
-    void OnConnect(int error);
+    void OnConnect(OverlapContext* ctx);
+    void OnRead(OverlapContext* ctx);
+    void OnWritten(OverlapContext* ctx);
 
 private:
-    IOServiceBase*  service_;
-    SOCKET          fd_;
+    IOServiceBase*      service_;
+    OverlapContext*     ctx_;
+    std::vector<char>   recv_buf_;
 };

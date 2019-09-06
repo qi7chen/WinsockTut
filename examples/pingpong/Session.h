@@ -6,13 +6,13 @@
 
 #include "IOServiceBase.h"
 
-class ChatServer;
+class Server;
 
-class ChatSession
+class Session
 {
 public:
-    ChatSession(ChatServer* server, SOCKET fd);
-    ~ChatSession();
+    Session(Server* server, SOCKET fd);
+    ~Session();
 
     void StartRead();
 
@@ -22,6 +22,6 @@ private:
 
 private:
     IOServiceBase*  service_;
-    ChatServer*     server_;
+    Server*         server_;
     SOCKET          fd_;
 };

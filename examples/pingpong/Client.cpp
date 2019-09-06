@@ -2,36 +2,34 @@
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
-#include "ChatClient.h"
+#include "Client.h"
 #include <WS2tcpip.h>
 #include <functional>
 #include "Common/Logging.h"
 #include "Common/StringUtil.h"
 
-
 using namespace std::placeholders;
 
-ChatClient::ChatClient(IOServiceBase* service)
-    : fd_(INVALID_SOCKET), service_(service)
+Client::Client(IOServiceBase* service)
+    : ctx_(NULL), service_(service)
 {
 }
 
-ChatClient::~ChatClient()
+Client::~Client()
 {
-
 }
 
-int ChatClient::Start(const char* host, const char* port)
+int Client::Start(const char* host, const char* port)
 {
     return Connect(host, port);
 }
 
-int ChatClient::Connect(const char* host, const char* port)
+int Client::Connect(const char* host, const char* port)
 {
     struct addrinfo* aiList = NULL;
     struct addrinfo* pinfo = NULL;
     struct addrinfo hints = {};
-    hints.ai_family = AF_UNSPEC; // IPv4 or IPv6
+    hints.ai_family = AF_INET; // IPv4 or IPv6
     hints.ai_socktype = SOCK_STREAM; // TCP
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
@@ -48,23 +46,44 @@ int ChatClient::Connect(const char* host, const char* port)
         {
             continue;
         }
-        int r = service_->AsyncConnect(fd, pinfo, std::bind(&ChatClient::OnConnect, this, _1));
-        if (r < 0)
+        OverlapContext* ctx = service_->AllocOverlapCtx();
+        if (ctx == NULL)
         {
-            closesocket(fd);
             continue;
         }
-        fd_ = fd;
+        ctx->fd = fd;
+        int r = service_->AsyncConnect(ctx, pinfo, std::bind(&Client::OnConnect, this, _1));
+        if (r < 0)
+        {
+            service_->FreeOverlapCtx(ctx);
+            continue;
+        }
+        ctx_ = ctx;
         break;
     }
     freeaddrinfo(aiList);
     return 0;
 }
 
-void ChatClient::OnConnect(int error)
+void Client::OnConnect(OverlapContext* ctx)
 {
-    if (error == 0)
+    if (ctx->GetStatusCode() != 0)
     {
-        
+        LOG(ERROR) << "Conenct error: " << ctx->GetStatusCode();
+        service_->FreeOverlapCtx(ctx);
+        return;
     }
+    recv_buf_.resize(1024);
+    ctx->SetBuffer(&recv_buf_[0], recv_buf_.size());
+    service_->AsyncRead(ctx, std::bind(&Client::OnConnect, this, _1));
+}
+
+void Client::OnRead(OverlapContext* ctx)
+{
+    service_->AsyncRead(ctx, std::bind(&Client::OnConnect, this, _1));
+}
+
+void Client::OnWritten(OverlapContext* ctx)
+{
+
 }

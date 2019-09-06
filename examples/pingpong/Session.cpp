@@ -2,29 +2,29 @@
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
-#include "ChatSession.h"
-#include "ChatServer.h"
+#include "Session.h"
+#include "Server.h"
 
-ChatSession::ChatSession(ChatServer* server, SOCKET fd)
+Session::Session(Server* server, SOCKET fd)
     : server_(server), service_(server->GetIOService()), fd_(fd)
 {
 }
 
-ChatSession::~ChatSession()
+Session::~Session()
 {
 }
 
-void ChatSession::StartRead()
-{
-
-}
-
-void ChatSession::OnRead(int error, int bytes)
+void Session::StartRead()
 {
 
 }
 
-void ChatSession::OnWritten(int error, int bytes)
+void Session::OnRead(int error, int bytes)
+{
+
+}
+
+void Session::OnWritten(int error, int bytes)
 {
 
 }
