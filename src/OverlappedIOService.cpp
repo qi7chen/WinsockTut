@@ -33,6 +33,11 @@ void OverlappedIOService::CleanUp()
 
 OverlapContext* OverlappedIOService::AllocOverlapCtx()
 {
+    if (fds_.size() >= WSA_MAXIMUM_WAIT_EVENTS)
+    {
+        LOG(ERROR) << "WSA_MAXIMUM_WAIT_EVENTS limit";
+        return NULL;
+    }
     WSAEVENT hEvent = WSACreateEvent();
     if (hEvent == WSA_INVALID_EVENT)
     {
@@ -92,24 +97,15 @@ int OverlappedIOService::AsyncAccept(OverlapContext* ctx, OverlapCallback cb)
         LOG(ERROR) << StringPrintf("socket(): %s\n", LAST_ERROR_MSG);
         return -1;
     }
-    ctx->udata = fd;
-    if (ctx->buf.buf == NULL)
-    {
-        ctx->buf.buf = (char*)new AcceptInfo;
-        ctx->buf.len = sizeof(AcceptInfo);
-    }
-    else
-    {
-        memset(ctx->buf.buf, 0, ctx->buf.len);
-    }
-    
-    int fOK = WsaExt::AcceptEx(ctx->fd, fd, ctx->buf.buf, 0, sizeof(sockaddr_storage),
-        sizeof(sockaddr_storage), NULL, &ctx->overlap);
+    ctx->udata = fd;    
+    int fOK = WsaExt::AcceptEx(ctx->fd, fd, ctx->buf.buf, 0, ACCEPTEX_ADDR_LEN, ACCEPTEX_ADDR_LEN,
+        NULL, &ctx->overlap);
     if (!fOK)
     {
         int r = WSAGetLastError();
         if (r != WSA_IO_PENDING)
         {
+            closesocket(fd);
             LOG(ERROR) << StringPrintf("AcceptEx(): %s\n", LAST_ERROR_MSG);
             return r;
         }

@@ -39,8 +39,16 @@ struct OverlapContext
 
 typedef std::function<void(OverlapContext*)>    OverlapCallback;
 
+
 struct AcceptInfo
 {
-    struct sockaddr_storage local_addr;
+    struct sockaddr_storage local_addr; 
+    char reserved1[16];
     struct sockaddr_storage remote_addr;
+    char reserved2[16];
+};
+
+enum 
+{
+    ACCEPTEX_ADDR_LEN = sizeof(sockaddr_storage) + 16,
 };
