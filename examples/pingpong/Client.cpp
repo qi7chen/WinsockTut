@@ -8,15 +8,37 @@
 #include "Common/Logging.h"
 #include "Common/StringUtil.h"
 
+
+enum
+{
+    MAX_SEND_COUNT = 5,
+};
+
 using namespace std::placeholders;
 
 Client::Client(IOServiceBase* service)
-    : ctx_(NULL), service_(service)
+    : ctx_(NULL), service_(service), fd_(INVALID_SOCKET), sent_count_(0)
 {
 }
 
 Client::~Client()
 {
+    Cleanup();
+}
+
+void Client::Cleanup()
+{
+    if (fd_ != INVALID_SOCKET)
+    {
+        fprintf(stderr, "%d closed\n", fd_);
+        closesocket(fd_);
+        fd_ = INVALID_SOCKET;
+    }
+    if (ctx_ != NULL)
+    {
+        service_->FreeOverlapCtx(ctx_);
+        ctx_ = NULL;
+    }
 }
 
 int Client::Start(const char* host, const char* port)
@@ -52,6 +74,7 @@ int Client::Connect(const char* host, const char* port)
             continue;
         }
         ctx->fd = fd;
+        fd_ = fd;
         int r = service_->AsyncConnect(ctx, pinfo, std::bind(&Client::OnConnect, this, _1));
         if (r < 0)
         {
@@ -73,17 +96,89 @@ void Client::OnConnect(OverlapContext* ctx)
         service_->FreeOverlapCtx(ctx);
         return;
     }
+
+    const char* msg = "a quick brown fox jumps over the lazy dog";
+    Write(msg, strlen(msg));
+    StartRead();
+    service_->AddTimer(1000, this);
+}
+
+void Client::StartRead()
+{
+    // start read
     recv_buf_.resize(1024);
-    ctx->SetBuffer(&recv_buf_[0], recv_buf_.size());
-    service_->AsyncRead(ctx, std::bind(&Client::OnConnect, this, _1));
+    ctx_->op = OpRead;
+    ctx_->SetBuffer(&recv_buf_[0], recv_buf_.size());
+    service_->AsyncRead(ctx_, std::bind(&Client::OnRead, this, _1));
 }
 
 void Client::OnRead(OverlapContext* ctx)
 {
-    service_->AsyncRead(ctx, std::bind(&Client::OnConnect, this, _1));
+    if (ctx->GetStatusCode() == 0)
+    {
+        int nbytes = ctx->GetTransferredBytes();
+        if (nbytes > 0)
+        {
+            fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, sent_count_);
+            recv_buf_.resize(nbytes);
+        }
+        // read again
+        StartRead();
+    }
+    else
+    {
+        Cleanup();
+    }
+}
+
+int Client::Write(const void* data, int len)
+{
+    DCHECK(data != NULL && len > 0);
+    OverlapContext* ctx = service_->AllocOverlapCtx();
+    if (ctx == NULL)
+    {
+        return -1;
+    }
+    ctx->op = OpWrite;
+    ctx->fd = fd_;
+    ctx->buf.buf = new char[len];
+    memcpy(ctx->buf.buf, data, len);
+    ctx->buf.len = len;
+    service_->AsyncWrite(ctx, std::bind(&Client::OnWritten, this, _1));
+    return 0;
 }
 
 void Client::OnWritten(OverlapContext* ctx)
 {
+    if (ctx->GetStatusCode() != 0)
+    {
+        LOG(WARNING) << "Send error: " << ctx->GetStatusCode();
+    }
+    int nbytes = ctx->GetTransferredBytes();
+    if (nbytes > 0)
+    {
+        fprintf(stdout, "%d send %d bytes, %d\n", fd_, nbytes, sent_count_);
+        sent_count_++;
+    }
 
+    delete ctx->buf.buf;
+    ctx->buf.buf = NULL;
+    ctx->buf.len = 0;
+    service_->FreeOverlapCtx(ctx);
+}
+
+void Client::OnTimeout()
+{
+    if (sent_count_ < MAX_SEND_COUNT) // write again
+    {
+        if (!recv_buf_.empty())
+        {
+            Write(&recv_buf_[0], recv_buf_.size());
+        }
+    }
+    else
+    {
+        Cleanup();
+    }
+    service_->AddTimer(1000, this);
 }
