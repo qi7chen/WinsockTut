@@ -5,9 +5,10 @@
 #include "Server.h"
 #include "Common/Logging.h"
 #include "Common/Error.h"
+#include "Common/StringUtil.h"
 #include "SocketOpts.h"
 #include "Session.h"
-
+#include "WsaExt.h"
 
 using namespace std::placeholders;
 
@@ -37,6 +38,7 @@ void Server::Cleanup()
     {
         delete ctx_->buf.buf;
         ctx_->buf.buf = NULL;
+        ctx_->flags |= FLAG_LAZY_DELETE;
         service_->FreeOverlapCtx(ctx_);
         ctx_ = NULL;
     }
@@ -57,9 +59,8 @@ void Server::Start(const char* host, const char* port)
 {
     SOCKET fd = CreateTCPAcceptor(host, port);
     CHECK(fd != INVALID_SOCKET) << LAST_ERROR_MSG;
-    OverlapContext* ctx = service_->AllocOverlapCtx();
+    OverlapContext* ctx = service_->AllocOverlapCtx(fd, FLAG_ASSOCIATE);
     CHECK(ctx != NULL);
-    ctx->fd = fd;
     acceptor_ = fd;
     ctx_ = ctx;
     StartAccept();
@@ -67,7 +68,6 @@ void Server::Start(const char* host, const char* port)
 
 void Server::StartAccept()
 {
-    ctx_->op = OpAccept;
     if (ctx_->buf.buf == NULL)
     {
         AcceptInfo* pinfo = new AcceptInfo();
@@ -78,7 +78,8 @@ void Server::StartAccept()
     {
         memset(ctx_->buf.buf, 0, ctx_->buf.len);
     }
-    service_->AsyncAccept(ctx_, std::bind(&Server::OnAccept, this, _1));
+    ctx_->cb = std::bind(&Server::OnAccept, this, ctx_);
+    service_->AsyncAccept(ctx_);
 }
 
 void Server::OnAccept(OverlapContext* ctx)
@@ -91,17 +92,29 @@ void Server::OnAccept(OverlapContext* ctx)
         closesocket(newfd);
         return;
     }
-    OverlapContext* newctx = service_->AllocOverlapCtx();
+    OverlapContext* newctx = service_->AllocOverlapCtx(newfd, FLAG_ASSOCIATE);
     if (newctx == NULL)
     {
         closesocket(newfd);
         return;
     }
-    newctx->fd = newfd;
-    AcceptInfo* info = (AcceptInfo*)ctx->buf.buf;
+
     int sid = counter_++;
     Session* session = new Session(sid, this, newctx);
     sessions_[sid] = session;
     session->StartRead();
+
+    AcceptInfo* info = (AcceptInfo*)ctx->buf.buf;
+    struct sockaddr* remote_addr = NULL;
+    struct sockaddr* local_addr = NULL;
+    int local_len = 0;
+    int remote_len = 0;
+    WsaExt::GetAcceptExSockaddrs(info, 0, ACCEPTEX_ADDR_LEN, ACCEPTEX_ADDR_LEN,
+        &local_addr, &local_len, &remote_addr, &remote_len);
+
+    char buffer[40] = {};
+    inet_ntop(remote_addr->sa_family, remote_addr->sa_data, buffer, sizeof(buffer));
+    LOG(INFO) << StringPrintf("%d accepted from %s", newfd, buffer);
+
     StartAccept();
 }

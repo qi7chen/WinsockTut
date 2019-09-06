@@ -7,6 +7,7 @@
 #include <functional>
 #include "Common/Logging.h"
 #include "Common/StringUtil.h"
+#include "Common/Error.h"
 
 
 enum
@@ -16,8 +17,9 @@ enum
 
 using namespace std::placeholders;
 
+
 Client::Client(IOServiceBase* service)
-    : ctx_(NULL), service_(service), fd_(INVALID_SOCKET), sent_count_(0)
+    : recv_ctx_(NULL), service_(service), fd_(INVALID_SOCKET), sent_count_(0)
 {
 }
 
@@ -34,10 +36,11 @@ void Client::Cleanup()
         closesocket(fd_);
         fd_ = INVALID_SOCKET;
     }
-    if (ctx_ != NULL)
+    if (recv_ctx_ != NULL)
     {
-        service_->FreeOverlapCtx(ctx_);
-        ctx_ = NULL;
+        recv_ctx_->flags |= FLAG_LAZY_DELETE;
+        service_->FreeOverlapCtx(recv_ctx_);
+        recv_ctx_ = NULL;
     }
 }
 
@@ -68,20 +71,20 @@ int Client::Connect(const char* host, const char* port)
         {
             continue;
         }
-        OverlapContext* ctx = service_->AllocOverlapCtx();
+        OverlapContext* ctx = service_->AllocOverlapCtx(fd, FLAG_ASSOCIATE);
         if (ctx == NULL)
         {
             continue;
         }
-        ctx->fd = fd;
         fd_ = fd;
-        int r = service_->AsyncConnect(ctx, pinfo, std::bind(&Client::OnConnect, this, _1));
+        ctx->cb = std::bind(&Client::OnConnect, this, ctx);
+        int r = service_->AsyncConnect(ctx, pinfo);
         if (r < 0)
         {
             service_->FreeOverlapCtx(ctx);
             continue;
         }
-        ctx_ = ctx;
+        recv_ctx_ = ctx;
         break;
     }
     freeaddrinfo(aiList);
@@ -97,73 +100,77 @@ void Client::OnConnect(OverlapContext* ctx)
         return;
     }
 
-    const char* msg = "a quick brown fox jumps over the lazy dog";
-    Write(msg, strlen(msg));
     StartRead();
     service_->AddTimer(1000, this);
 }
 
 void Client::StartRead()
 {
-    // start read
     recv_buf_.resize(1024);
-    ctx_->op = OpRead;
-    ctx_->SetBuffer(&recv_buf_[0], recv_buf_.size());
-    service_->AsyncRead(ctx_, std::bind(&Client::OnRead, this, _1));
+    recv_ctx_->SetBuffer(&recv_buf_[0], recv_buf_.size());
+    recv_ctx_->cb = std::bind(&Client::OnRead, this, recv_ctx_);
+    service_->AsyncRead(recv_ctx_);
 }
 
 void Client::OnRead(OverlapContext* ctx)
 {
-    if (ctx->GetStatusCode() == 0)
+    DWORD dwErr = ctx->GetStatusCode();
+    if (dwErr != 0)
     {
-        int nbytes = ctx->GetTransferredBytes();
-        if (nbytes > 0)
+        if (dwErr != ERROR_IO_PENDING)
         {
-            fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, sent_count_);
-            recv_buf_.resize(nbytes);
+            LOG(ERROR) << StringPrintf("recv error %d: %s", dwErr, GetErrorMessage(dwErr));
+            Cleanup();
         }
-        // read again
-        StartRead();
+        return;
     }
-    else
+    int nbytes = ctx->GetTransferredBytes();
+    if (nbytes > 0)
     {
-        Cleanup();
+        fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, sent_count_);
+        recv_buf_.resize(nbytes);
     }
+    // read again
+    StartRead();
 }
 
 int Client::Write(const void* data, int len)
 {
     DCHECK(data != NULL && len > 0);
-    OverlapContext* ctx = service_->AllocOverlapCtx();
+    OverlapContext* ctx = service_->AllocOverlapCtx(fd_, 0);
     if (ctx == NULL)
     {
         return -1;
     }
-    ctx->op = OpWrite;
-    ctx->fd = fd_;
     ctx->buf.buf = new char[len];
     memcpy(ctx->buf.buf, data, len);
     ctx->buf.len = len;
-    service_->AsyncWrite(ctx, std::bind(&Client::OnWritten, this, _1));
+    ctx->cb = std::bind(&Client::OnWritten, this, ctx);
+    service_->AsyncWrite(ctx);
     return 0;
 }
 
 void Client::OnWritten(OverlapContext* ctx)
 {
-    if (ctx->GetStatusCode() != 0)
+    DWORD dwErr = ctx->GetStatusCode();
+    if (dwErr == 0)
     {
-        LOG(WARNING) << "Send error: " << ctx->GetStatusCode();
+        int nbytes = ctx->GetTransferredBytes();
+        if (nbytes > 0)
+        {
+            fprintf(stdout, "%d send %d bytes, %d\n", fd_, nbytes, sent_count_);
+            sent_count_++;
+        }
     }
-    int nbytes = ctx->GetTransferredBytes();
-    if (nbytes > 0)
+    else
     {
-        fprintf(stdout, "%d send %d bytes, %d\n", fd_, nbytes, sent_count_);
-        sent_count_++;
+        LOG(WARNING) << StringPrintf("Send error: %d, %s", dwErr, GetErrorMessage(dwErr));
     }
 
     delete ctx->buf.buf;
     ctx->buf.buf = NULL;
     ctx->buf.len = 0;
+    ctx->flags |= FLAG_LAZY_DELETE;
     service_->FreeOverlapCtx(ctx);
 }
 

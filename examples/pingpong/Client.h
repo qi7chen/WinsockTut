@@ -29,7 +29,7 @@ private:
 
 private:
     IOServiceBase*      service_;
-    OverlapContext*     ctx_;
+    OverlapContext*     recv_ctx_;
     SOCKET              fd_;
     int                 sent_count_;
     std::vector<char>   recv_buf_;
