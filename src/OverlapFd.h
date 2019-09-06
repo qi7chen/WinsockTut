@@ -8,27 +8,25 @@
 #include <stdint.h>
 #include <functional>
 
-enum OperationType
+enum
 {
-    OpNone = 0,
-    OpConnect = 1,
-    OpAccept = 2,
-    OpRead = 3, 
-    OpWrite = 4,
-    OpClose = 5,
+    FLAG_ASSOCIATE = 1,
+    FLAG_CANCEL_IO = 2,
+    FLAG_LAZY_DELETE = 3,
 };
 
 struct OverlapContext
 {
-    WSAOVERLAPPED   overlap;    // overlapped structure
-    WSABUF          buf;        // buffer
-    OperationType   op;         // operation type
-    SOCKET          fd;         // socket descriptor
-    int64_t         udata;      // user data
-    std::function<void()> cb;   // callback 
+    WSAOVERLAPPED           overlap;    // overlapped structure, must be the first field
+    WSABUF                  buf;        // buffer
+    SOCKET                  fd;         // socket descriptor
+    int                     flags;      //
+    int64_t                 udata;      // user data
+    std::function<void()>   cb;         // callback 
 
-    int GetStatusCode() { return overlap.Internal; }
-    int GetTransferredBytes() { return overlap.InternalHigh; }
+    DWORD GetStatusCode() { return overlap.Internal; }
+
+    DWORD GetTransferredBytes() { return overlap.InternalHigh; }
 
     void SetBuffer(void* buffer, int len)
     {
@@ -36,9 +34,6 @@ struct OverlapContext
         buf.len = len;
     }
 };
-
-typedef std::function<void(OverlapContext*)>    OverlapCallback;
-
 
 struct AcceptInfo
 {

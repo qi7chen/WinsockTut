@@ -6,6 +6,7 @@
 #include "Common/Logging.h"
 #include "Common/Error.h"
 #include "OverlappedIOService.h"
+#include "CompletionPortService.h"
 
 
 IOServiceBase::IOServiceBase()
@@ -23,6 +24,9 @@ IOServiceBase* CreateIOService(IOServiceType type)
     {
     case IOOverlapped:
         return new OverlappedIOService;
+
+    case IOCompletionPort:
+        return new CompletionPortService;
 
     default:
         LOG(ERROR) << "unsupported service type";

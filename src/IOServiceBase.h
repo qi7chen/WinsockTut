@@ -23,14 +23,14 @@ public:
     IOServiceBase();
     virtual ~IOServiceBase();
 
-    virtual int AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo, OverlapCallback cb) = 0;
-    virtual int AsyncAccept(OverlapContext* ctx, OverlapCallback cb) = 0;
-    virtual int AsyncRead(OverlapContext* ctx, OverlapCallback cb) = 0;
-    virtual int AsyncWrite(OverlapContext* ctx, OverlapCallback cb) = 0;
+    virtual int AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo) = 0;
+    virtual int AsyncAccept(OverlapContext* ctx) = 0;
+    virtual int AsyncRead(OverlapContext* ctx) = 0;
+    virtual int AsyncWrite(OverlapContext* ctx) = 0;
 
     virtual int Run(int timeout) = 0;
 
-    virtual OverlapContext* AllocOverlapCtx() = 0;
+    virtual OverlapContext* AllocOverlapCtx(SOCKET fd, int flags) = 0;
     virtual void FreeOverlapCtx(OverlapContext* ctx) = 0;
 };
 

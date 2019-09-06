@@ -14,19 +14,18 @@ public:
     OverlappedIOService();
     ~OverlappedIOService();
 
-    int AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo, OverlapCallback cb);
-    int AsyncAccept(OverlapContext* ctx, OverlapCallback cb);
-    int AsyncRead(OverlapContext* ctx, OverlapCallback cb);
-    int AsyncWrite(OverlapContext* ctx, OverlapCallback cb);
+    int AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo);
+    int AsyncAccept(OverlapContext* ctx);
+    int AsyncRead(OverlapContext* ctx);
+    int AsyncWrite(OverlapContext* ctx);
 
-    OverlapContext* AllocOverlapCtx();
+    OverlapContext* AllocOverlapCtx(SOCKET fd, int flags);
     void FreeOverlapCtx(OverlapContext* ctx);
 
     int Run(int timeout);
 
 private:
     void CleanUp();
-    void DispatchEvent(OverlapContext* ctx);
     
 private:
     std::vector<WSAEVENT>           events_;

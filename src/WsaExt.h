@@ -6,6 +6,7 @@
 
 #include <WinSock2.h>
 #include <Mswsock.h>
+#include <ws2tcpip.h>
 
 class WsaExt
 {
