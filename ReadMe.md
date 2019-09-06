@@ -10,8 +10,8 @@ I/O Model                |  Source File                   | Description
 select() poller          |  src/SelectPoller.cpp          | Linux和Windows都支持的API，大多数的跨平台网络库都会采用
 WSAAsyncSelect() poller  |  src/AsyncSelectPoller.cpp     | 网络事件挂接到HWND消息
 WSAEventSelect() poller  |  src/AsyncEventPoller.cpp      | 通过事件对象接收网络事件通知，64限制
-alertable I/O            |  N/A                           | 本代码尚未实现
-overlapped I/O           |  src/OverlappedIOService.cpp   | 重叠I/O，也是通过事件对象接收网络事件通知，也有64限制，鸡肋
+Alertable I/O            |  N/A                           | 本代码尚未实现
+Overlapped I/O           |  src/OverlappedIOService.cpp   | 重叠I/O，也是通过事件对象接收网络事件通知，也有64限制，鸡肋
 I/O Completion Port      |  src/CompletionPortService.cpp | Windows下性能最好的网络I/O多路复用模型
 
 
@@ -22,9 +22,7 @@ I/O Completion Port      |  src/CompletionPortService.cpp | Windows下性能最�
 
 #### Reactor
 
-select, WSAAsyncSelect和WSAEventSelect均采用reactor模型实现。
-
-reactor的API参考了[zeromq](https://github.com/zeromq/zeromq4-1/blob/master/src/select.hpp)
+select, WSAAsyncSelect和WSAEventSelect采用了Reactor模型，API设计参考了[zeromq](https://github.com/zeromq/zeromq4-1/blob/master/src/select.hpp)
 如下所示:
 
 ```Cpp
@@ -42,7 +40,7 @@ class PollerBase
 
 #### Proactor
 
-I/O Completion Port的API参考了boost.asio
+I/O Completion Port和Overlapped I/O采用Proactor模型，API设计参考了boost.asio
 
 如下所示：
 
