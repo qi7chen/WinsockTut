@@ -24,8 +24,17 @@ struct OverlapContext
     WSABUF          buf;        // buffer
     OperationType   op;         // operation type
     SOCKET          fd;         // socket descriptor
-    int64_t			udata;      // user data
+    int64_t         udata;      // user data
     std::function<void()> cb;   // callback 
+
+    int GetStatusCode() { return overlap.Internal; }
+    int GetTransferredBytes() { return overlap.InternalHigh; }
+
+    void SetBuffer(void* buffer, int len)
+    {
+        buf.buf = (char*)buffer;
+        buf.len = len;
+    }
 };
 
 typedef std::function<void(OverlapContext*)>    OverlapCallback;

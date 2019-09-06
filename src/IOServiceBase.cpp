@@ -4,9 +4,10 @@
 
 #include "IOServiceBase.h"
 #include "Common/Logging.h"
+#include "Common/Error.h"
 #include "OverlappedIOService.h"
 
-//////////////////////////////////////////////////////////////////////////
+
 IOServiceBase::IOServiceBase()
 {
 }

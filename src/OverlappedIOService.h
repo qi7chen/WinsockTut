@@ -6,7 +6,6 @@
 
 #include "IOServiceBase.h"
 #include <vector>
-#include <list>
 #include <unordered_map>
 
 class OverlappedIOService : public IOServiceBase
@@ -30,7 +29,6 @@ private:
     void DispatchEvent(OverlapContext* ctx);
     
 private:
-    std::list<OverlapContext*>      pool_;
     std::vector<WSAEVENT>           events_;
     std::unordered_map<WSAEVENT, OverlapContext*> fds_;
 };

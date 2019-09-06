@@ -26,53 +26,35 @@ OverlappedIOService::~OverlappedIOService()
 
 void OverlappedIOService::CleanUp()
 {
-    for (auto iter = fds_.begin(); iter != fds_.end(); ++iter)
-    {
-        OverlapContext* ctx = iter->second;
-        FreeOverlapCtx(ctx);
-        delete ctx;
-    }
+
     fds_.clear();
     events_.clear();
 }
 
 OverlapContext* OverlappedIOService::AllocOverlapCtx()
 {
-    if (!pool_.empty())
-    {
-        auto iter = pool_.begin();
-        pool_.erase(iter);
-        return *iter;
-    }
     WSAEVENT hEvent = WSACreateEvent();
     if (hEvent == WSA_INVALID_EVENT)
     {
         LOG(ERROR) << "AllocOverlapContext: WSACreateEvent " << LAST_ERROR_MSG;
         return NULL;
     }
-    OverlapContext* ctx = new OverlapContext;
+    OverlapContext* ctx = new OverlapContext();
+    ctx->op = OpNone;
     ctx->overlap.hEvent = hEvent;
     fds_[hEvent] = ctx;
-    return NULL;
+    return ctx;
 }
 
 void OverlappedIOService::FreeOverlapCtx(OverlapContext* ctx)
 {
     WSAEVENT hEvent = ctx->overlap.hEvent;
     WSACloseEvent(hEvent);
-    closesocket(ctx->fd);
     ctx->fd = INVALID_SOCKET;
     ctx->overlap.hEvent = WSA_INVALID_EVENT;
     ctx->op = OpNone;
     fds_.erase(hEvent);
-    if (pool_.size() < WSA_MAXIMUM_WAIT_EVENTS)
-    {
-        pool_.push_front(ctx);
-    }
-    else
-    {
-        delete ctx;
-    }
+    delete ctx;
 }
 
 int OverlappedIOService::AsyncConnect(OverlapContext* ctx, const addrinfo* pinfo, OverlapCallback cb)
@@ -208,12 +190,13 @@ int OverlappedIOService::Run(int timeout)
             return -1;
         }
         WSAEVENT hEvent = events_[index];
-        OverlapContext* ctx = fds_[hEvent];
-        if (ctx == NULL)
+        auto iter = fds_.find(hEvent);
+        if (iter == fds_.end())
         {
-            LOG(ERROR) << "Run: overlap context not found";
+            //LOG(ERROR) << "Run: overlap context not found";
             return -1;
         }
+        OverlapContext* ctx = iter->second;
         DWORD dwBytes = 0;
         DWORD dwFlags = 0;
         if (!WSAGetOverlappedResult(ctx->fd, &ctx->overlap, &dwBytes, 1, &dwFlags))
@@ -235,15 +218,16 @@ void OverlappedIOService::DispatchEvent(OverlapContext* ctx)
         break;
 
     case OpRead:
-        break;
-
     case OpWrite:
+        ctx->cb();
         break;
 
     case OpClose:
+        ctx->cb();
         break;
 
     default:
+        LOG(ERROR) << "invalid operation type: " << ctx->op;
         return;
     }
 }
