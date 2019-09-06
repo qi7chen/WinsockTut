@@ -17,16 +17,10 @@ I/O Completion Port      |  src/CompletionPortService.cpp | Windows下性能最�
 
 ### Introduction
 
-所有的网络多路复用根据使用方式分别采用[reactor](https://en.wikipedia.org/wiki/Reactor_pattern)和[proactor](https://en.wikipedia.org/wiki/Proactor_pattern)的方式，做了简单抽象，根据简单的参数应用层示例即可选择不同的模型。
+所有的网络多路复用根据使用方式分别采用[Reactor](https://en.wikipedia.org/wiki/Reactor_pattern)和[Proactor](https://en.wikipedia.org/wiki/Proactor_pattern)的方式，做了简单抽象，根据简单的参数应用层示例即可选择不同的模型。
 
-### 如何构建
 
-* 安装[Visual Studio](https://visualstudio.microsoft.com)
-* 安装[CMake](https://cmake.org/download/)
-* 使用CMake生成Visual Studio工程文件
-* 使用Visual Studio打开工程
-
-### Reactor
+#### Reactor
 
 select, WSAAsyncSelect和WSAEventSelect均采用reactor模型实现。
 
@@ -63,13 +57,22 @@ class IOServiceBase
 }
 ```
 
+### 如何构建
+
+* 安装[Visual Studio](https://visualstudio.microsoft.com)
+* 安装[CMake](https://cmake.org/download/)
+* 使用CMake生成Visual Studio工程文件
+* 使用Visual Studio打开工程
+
 
 ### Example 
 
-使用reactor模型的echo示例
+使用Reactor模型的echo示例
+
 [echo示例](https://github.com/ichenq/WinsockTut/tree/master/examples/echo)
 
-使用proactor模型的ping/pong示例
+使用Proactor模型的ping/pong示例
+
 [pingpong示例](https://github.com/ichenq/WinsockTut/tree/master/examples/pingpong)
 
 
