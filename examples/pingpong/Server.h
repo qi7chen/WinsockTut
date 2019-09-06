@@ -5,6 +5,9 @@
 #pragma once
 
 #include "IOServiceBase.h"
+#include <unordered_map>
+
+class Session;
 
 class Server
 {
@@ -13,14 +16,19 @@ public:
     ~Server();
 
     void Start(const char* host, const char* port);
-    void CloseSession(SOCKET fd);
+    void CloseSession(int sid);
 
     IOServiceBase* GetIOService() { return service_; }
 
 private:
+    void Cleanup();
+    void StartAccept();
     void OnAccept(OverlapContext* ctx);
 
 private:
     IOServiceBase*  service_;
     OverlapContext* ctx_;
+    SOCKET          acceptor_;
+    int             counter_;
+    std::unordered_map<int, Session*> sessions_;
 };

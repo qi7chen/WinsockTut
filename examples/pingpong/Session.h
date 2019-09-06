@@ -11,17 +11,23 @@ class Server;
 class Session
 {
 public:
-    Session(Server* server, SOCKET fd);
+    Session(int id, Server* server, OverlapContext* ctx);
     ~Session();
 
     void StartRead();
+    void Close();
+    int Write(const void* data, int len);
 
 private:
-    void OnRead(int error, int bytes);
-    void OnWritten(int error, int bytes);
+    void OnRead(OverlapContext* ctx);
+    void OnWritten(OverlapContext* ctx);
 
 private:
-    IOServiceBase*  service_;
-    Server*         server_;
-    SOCKET          fd_;
+    IOServiceBase*      service_;
+    Server*             server_;
+    int                 id_;
+    SOCKET              fd_;
+    OverlapContext*     recv_ctx_;
+    std::vector<char>   recv_buf_;
+    int                 recv_count_;
 };
