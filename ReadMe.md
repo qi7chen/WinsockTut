@@ -1,6 +1,8 @@
 # WinsockTut
 
-尝试用不同的Windows API实现网络I/O多路复用模型
+尝试使用不同的WindowsI/O多路复用模型编写网络测试代码。
+
+这是我在阅读[Windows网络编程](https://book.douban.com/subject/1231968/)后的实践项目
     
 
 ### Overview
