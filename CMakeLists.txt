@@ -45,4 +45,4 @@ add_library(libwinet ${LIB_HEADER_FILES} ${LIB_SOURCE_FILES})
 target_link_libraries(libwinet ws2_32 mswsock)
 
 add_subdirectory(examples/echo)
-add_subdirectory(examples/chat)
+add_subdirectory(examples/pingpong)
