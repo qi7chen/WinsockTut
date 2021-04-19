@@ -1,4 +1,4 @@
-// Copyright (C) 2012-present prototyped.cn All rights reserved.
+// Copyright (C) 2012-present ichenq@outlook.com All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -23,8 +23,9 @@ struct TimerSched::TimerEntry
 };
 
 TimerSched::TimerSched()
-    : counter_(2012) // time flies
+    : next_id_(100) // time flies
 {
+    ref_.rehash(64);
 }
 
 TimerSched::~TimerSched()
@@ -92,10 +93,11 @@ void TimerSched::siftup(int j)
 int TimerSched::AddTimer(int millsec, ITimerEvent* event)
 {
     TimerEntry* entry = new TimerEntry;
-    entry->id = counter_++;
+    entry->id = next_id_++;
     entry->expire = GetTickCount64() + millsec;
     entry->sink = event;
     entry->index = (int)heap_.size();
+    ref_[entry->id] = entry;
     heap_.push_back(entry);
     siftup((int)heap_.size() - 1);
     return entry->id;
@@ -104,6 +106,7 @@ int TimerSched::AddTimer(int millsec, ITimerEvent* event)
 void TimerSched::UpdateTimer()
 {
     int64_t now = GetTickCount64();
+    int last_id = next_id_;
     while (!heap_.empty())
     {
         TimerEntry* entry = heap_[0];
@@ -111,11 +114,16 @@ void TimerSched::UpdateTimer()
         {
             break;
         }
+        // we don't process timers created by time events in this iteration
+        if (entry->id > last_id) {
+            continue;
+        }
         int n = (int)heap_.size() - 1;
         std::swap(heap_[0], heap_[n]);
         heap_[0]->index = 0;
         siftdown(0, n);
         heap_.pop_back();
+        ref_.erase(entry->id);
         if (entry->sink)
         {
             entry->sink->OnTimeout();
@@ -126,15 +134,12 @@ void TimerSched::UpdateTimer()
 
 void TimerSched::CancelTimer(int id)
 {
-    TimerEntry* entry = nullptr;
-    for (size_t i = 0; i < heap_.size(); i++)
+    auto iter = ref_.find(id);
+    if (iter == ref_.end())
     {
-        if (heap_[i]->id == id)
-        {
-            entry = heap_[i];
-            break;
-        }
+        return;
     }
+    TimerEntry* entry = iter->second;
     if (entry == nullptr)
     {
         return;

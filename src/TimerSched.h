@@ -1,10 +1,11 @@
-// Copyright (C) 2012-present prototyped.cn All rights reserved.
+// Copyright (C) 2012-present ichenq@outlook.com All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 #include "PollEvent.h"
 
 class TimerSched
@@ -24,6 +25,7 @@ private:
 
     struct TimerEntry;
 private:
-    int     counter_;                   // next timer id
-    std::vector<TimerEntry*>  heap_;    // min-heap timer
+    int     next_id_;                           // next timer id
+    std::vector<TimerEntry*>  heap_;            // min-heap timer
+    std::unordered_map<int, TimerEntry*> ref_;  // reference
 };

@@ -1,4 +1,4 @@
-// Copyright (C) 2012-present prototyped.cn All rights reserved.
+// Copyright (C) 2012-present ichenq@outlook.com All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -13,7 +13,7 @@
 SelectPoller::SelectPoller()
 {
     fds_.reserve(64);
-    has_retired_ = false;
+  
     memset(&readfds_, 0, sizeof(fd_set));
     memset(&writefds_, 0, sizeof(fd_set));
     memset(&exceptfds_, 0, sizeof(fd_set));
@@ -30,10 +30,10 @@ int SelectPoller::AddFd(SOCKET fd, IPollEvent* event)
     {
         return -1;
     }
-    FdEntry entry = {};
-    entry.fd = fd;
-    entry.sink = event;
-    fds_.push_back(entry);
+	FdEntry entry;
+	entry.fd = fd;
+	entry.sink = event;
+    fds_[fd] = entry;
 
     // start polling on errors.
     FD_SET(fd, &exceptfds_);
@@ -43,7 +43,8 @@ int SelectPoller::AddFd(SOCKET fd, IPollEvent* event)
 
 void SelectPoller::RemoveFd(SOCKET fd)
 {
-	MarkRetired(fd);
+	fds_[fd].fd = INVALID_SOCKET;
+	fds_[fd].sink = nullptr;
 
     // stop polling on the descriptor
     FD_CLR(fd, &readfds_);
@@ -76,7 +77,9 @@ int SelectPoller::Poll(int timeout)
 {
 	int r = 0;
 	fd_set rdset, wrset, exptset;
-	if (!fds_.empty()) // WSAEINVAL if all 3 fd_sets empty
+
+	// select() returns WSAEINVAL if all 3 fd_sets empty
+	if (!fds_.empty())
 	{		
 		memcpy(&rdset, &readfds_, sizeof(fd_set));
 		memcpy(&wrset, &writefds_, sizeof(fd_set));
@@ -93,73 +96,44 @@ int SelectPoller::Poll(int timeout)
 	else 
 	{
         // nothing to do, sleep a while
-		if (timeout > 0)
-		{
-			Sleep(timeout / 2); 
-		}
+        if (timeout > 0)
+        {
+            Sleep(timeout / 2);
+        }
 	}
     
     int count = 0;
-	for (size_t i = 0; r > 0 && i < fds_.size(); i++)
+	auto iter = fds_.begin();
+	while (iter != fds_.end())
 	{
-		SOCKET fd = fds_[i].fd;
-		if (fd == INVALID_SOCKET)
-			continue;
-
-		if (FD_ISSET(fd, &exptset))
+        SOCKET fd = iter->first;
+		FdEntry entry = iter->second;
+		if (entry.fd == INVALID_SOCKET || entry.sink == nullptr)
 		{
-			fds_[i].sink->OnReadable();
-			count++;
-		}
-		if (fd == INVALID_SOCKET)
+			iter = fds_.erase(iter);
 			continue;
-
-		if (FD_ISSET(fd, &wrset))
-		{
-			fds_[i].sink->OnWritable();
-			count++;
 		}
-		if (fd == INVALID_SOCKET)
-			continue;
+        if (FD_ISSET(fd, &exptset))
+        {
+			entry.sink->OnReadable();
+            count++;
+        }
 
-		if (FD_ISSET(fd, &rdset))
-		{
-			fds_[i].sink->OnReadable();
-			count++;
-		}
+        if (FD_ISSET(fd, &wrset))
+        {
+			entry.sink->OnWritable();
+            count++;
+        }
+
+        if (FD_ISSET(fd, &rdset))
+        {
+			entry.sink->OnReadable();
+            count++;
+        }
 	}
 
 	// execute time out callbacks
 	UpdateTimer(); 
 
-	RemoveRetired();
-
     return count;
-}
-
-void SelectPoller::MarkRetired(SOCKET fd)
-{
-	for (size_t i = 0; i < fds_.size(); i++)
-	{
-		if (fds_[i].fd == fd)
-		{
-			fds_[i].fd = INVALID_SOCKET;
-			fds_[i].sink = NULL;
-			break;
-		}
-	}
-	has_retired_ = true;
-}
-
-void SelectPoller::RemoveRetired()
-{
-	if (has_retired_)
-	{
-		auto iter = std::remove_if(fds_.begin(), fds_.end(), [](const FdEntry& entry)
-		{
-			return entry.fd == INVALID_SOCKET;
-		});
-		fds_.erase(iter, fds_.end());
-		has_retired_ = false;
-	}
 }

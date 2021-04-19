@@ -1,4 +1,4 @@
-// Copyright (C) 2012-present prototyped.cn All rights reserved.
+// Copyright (C) 2012-present ichenq@outlook.com All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -14,12 +14,10 @@ int BindAnyAddr(SOCKET fd, int family);
 // enable previously set properties or options after ConnectEx
 int UpdateConnectCtx(SOCKET fd);
 
-// read no more than `size` bytes
-// return -1 when error or EOF
-// return 0 when would block
+// make sure 'size' is read before to return (unless error is encountered)
 int ReadSome(SOCKET fd, void* buf, int size);
 
-// write `size` bytes 
+// make sure 'size' is written before to return (unless error is encountered)
 int WriteSome(SOCKET fd, const void* buf, int size);
 
 bool IsSelfConnection(SOCKET fd);

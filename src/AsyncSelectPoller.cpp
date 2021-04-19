@@ -1,4 +1,4 @@
-// Copyright (C) 2012-present prototyped.cn All rights reserved.
+// Copyright (C) 2012-present ichenq@outlook.com All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
 
@@ -153,7 +153,7 @@ void AsyncSelectPoller::HandleEvent(SOCKET fd, int ev, int ec)
 	FdEntry* entry = FindEntry(fd);
 	if (entry == NULL)
     {
-        fprintf(stderr, "socket %d entry not found, event %x\n", fd, ev);
+        fprintf(stderr, "socket %d entry not found, event %x\n", (int)fd, ev);
         return;
     }
     switch(ev)

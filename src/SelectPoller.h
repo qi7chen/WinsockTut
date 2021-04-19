@@ -1,4 +1,4 @@
-// Copyright (C) 2012-present prototyped.cn All rights reserved.
+// Copyright (C) 2012-present ichenq@outlook.com All rights reserved.
 // Distributed under the terms and conditions of the Apache License. 
 // See accompanying files LICENSE.
  
@@ -24,9 +24,6 @@ public:
     int Poll(int timeout);
 
 private:
-	void MarkRetired(SOCKET fd);
-	void RemoveRetired();
-
     struct FdEntry
     {
         SOCKET      fd;
@@ -34,8 +31,7 @@ private:
     };
 
 private:
-    std::vector<FdEntry>    fds_;
-    bool        has_retired_; 
+    std::unordered_map<SOCKET, FdEntry>    fds_;
 
     fd_set      readfds_;
     fd_set      writefds_;
