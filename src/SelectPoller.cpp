@@ -13,7 +13,7 @@
 SelectPoller::SelectPoller()
 {
     fds_.reserve(64);
-  
+    has_retired_ = false;
     memset(&readfds_, 0, sizeof(fd_set));
     memset(&writefds_, 0, sizeof(fd_set));
     memset(&exceptfds_, 0, sizeof(fd_set));
@@ -30,10 +30,10 @@ int SelectPoller::AddFd(SOCKET fd, IPollEvent* event)
     {
         return -1;
     }
-	FdEntry entry;
-	entry.fd = fd;
-	entry.sink = event;
-    fds_[fd] = entry;
+    FdEntry entry = {};
+    entry.fd = fd;
+    entry.sink = event;
+    fds_.push_back(entry);
 
     // start polling on errors.
     FD_SET(fd, &exceptfds_);
@@ -43,8 +43,7 @@ int SelectPoller::AddFd(SOCKET fd, IPollEvent* event)
 
 void SelectPoller::RemoveFd(SOCKET fd)
 {
-	fds_[fd].fd = INVALID_SOCKET;
-	fds_[fd].sink = nullptr;
+    MarkRetired(fd);
 
     // stop polling on the descriptor
     FD_CLR(fd, &readfds_);
@@ -103,37 +102,67 @@ int SelectPoller::Poll(int timeout)
 	}
     
     int count = 0;
-	auto iter = fds_.begin();
-	while (iter != fds_.end())
-	{
-        SOCKET fd = iter->first;
-		FdEntry entry = iter->second;
-		if (entry.fd == INVALID_SOCKET || entry.sink == nullptr)
-		{
-			iter = fds_.erase(iter);
-			continue;
-		}
+    for (size_t i = 0; r > 0 && i < fds_.size(); i++)
+    {
+        SOCKET fd = fds_[i].fd;
+        if (fd == INVALID_SOCKET)
+            continue;
+
         if (FD_ISSET(fd, &exptset))
         {
-			entry.sink->OnReadable();
+            fds_[i].sink->OnReadable();
             count++;
         }
+        if (fd == INVALID_SOCKET)
+            continue;
 
         if (FD_ISSET(fd, &wrset))
         {
-			entry.sink->OnWritable();
+            fds_[i].sink->OnWritable();
             count++;
         }
+        if (fd == INVALID_SOCKET)
+            continue;
 
         if (FD_ISSET(fd, &rdset))
         {
-			entry.sink->OnReadable();
+            fds_[i].sink->OnReadable();
             count++;
         }
-	}
+    }
 
 	// execute time out callbacks
 	UpdateTimer(); 
 
+    RemoveRetired();
+
     return count;
+}
+
+
+void SelectPoller::MarkRetired(SOCKET fd)
+{
+    for (size_t i = 0; i < fds_.size(); i++)
+    {
+        if (fds_[i].fd == fd)
+        {
+            fds_[i].fd = INVALID_SOCKET;
+            fds_[i].sink = NULL;
+            break;
+        }
+    }
+    has_retired_ = true;
+}
+
+void SelectPoller::RemoveRetired()
+{
+    if (has_retired_)
+    {
+        auto iter = std::remove_if(fds_.begin(), fds_.end(), [](const FdEntry& entry)
+        {
+            return entry.fd == INVALID_SOCKET;
+        });
+        fds_.erase(iter, fds_.end());
+        has_retired_ = false;
+    }
 }

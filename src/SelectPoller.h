@@ -24,6 +24,9 @@ public:
     int Poll(int timeout);
 
 private:
+    void MarkRetired(SOCKET fd);
+    void RemoveRetired();
+
     struct FdEntry
     {
         SOCKET      fd;
@@ -31,7 +34,8 @@ private:
     };
 
 private:
-    std::unordered_map<SOCKET, FdEntry>    fds_;
+    std::vector<FdEntry>    fds_;
+    bool        has_retired_;
 
     fd_set      readfds_;
     fd_set      writefds_;
