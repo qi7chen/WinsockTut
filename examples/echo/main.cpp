@@ -26,7 +26,7 @@ int main(int argc, const char* argv[])
 
     if (argc != 5)
     {
-        fprintf(stderr, "Usage: %s <server/client> <mode> <host> <port>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <server/client> {host} {port} {mode}\n", argv[0]);
         return 1;
     }
 

@@ -32,7 +32,7 @@ void Client::Cleanup()
 {
     if (fd_ != INVALID_SOCKET)
     {
-        fprintf(stderr, "%d closed\n", fd_);
+        fprintf(stderr, "%d closed\n", (int)fd_);
         closesocket(fd_);
         fd_ = INVALID_SOCKET;
     }
@@ -107,7 +107,7 @@ void Client::OnConnect(OverlapContext* ctx)
 void Client::StartRead()
 {
     recv_buf_.resize(1024);
-    recv_ctx_->SetBuffer(&recv_buf_[0], recv_buf_.size());
+    recv_ctx_->SetBuffer(&recv_buf_[0], (int)recv_buf_.size());
     recv_ctx_->cb = std::bind(&Client::OnRead, this, recv_ctx_);
     service_->AsyncRead(recv_ctx_);
 }
@@ -127,7 +127,7 @@ void Client::OnRead(OverlapContext* ctx)
     int nbytes = ctx->GetTransferredBytes();
     if (nbytes > 0)
     {
-        fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, sent_count_);
+        fprintf(stdout, "%d recv %d bytes, %d\n", (int)fd_, nbytes, sent_count_);
         recv_buf_.resize(nbytes);
     }
     // read again
@@ -158,7 +158,7 @@ void Client::OnWritten(OverlapContext* ctx)
         int nbytes = ctx->GetTransferredBytes();
         if (nbytes > 0)
         {
-            fprintf(stdout, "%d send %d bytes, %d\n", fd_, nbytes, sent_count_);
+            fprintf(stdout, "%d send %d bytes, %d\n", (int)fd_, nbytes, sent_count_);
             sent_count_++;
         }
     }
@@ -180,7 +180,7 @@ void Client::OnTimeout()
     {
         if (!recv_buf_.empty())
         {
-            Write(&recv_buf_[0], recv_buf_.size());
+            Write(&recv_buf_[0], (int)recv_buf_.size());
         }
     }
     else

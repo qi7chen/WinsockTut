@@ -30,7 +30,7 @@ void Server::Cleanup()
 {
     if (acceptor_ != INVALID_SOCKET)
     {
-        fprintf(stderr, "%d closed\n", acceptor_);
+        fprintf(stderr, "%d closed\n", (int)acceptor_);
         closesocket(acceptor_);
         acceptor_ = INVALID_SOCKET;
     }

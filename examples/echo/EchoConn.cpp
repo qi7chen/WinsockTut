@@ -34,7 +34,7 @@ void EchoConn::Close()
 
 void EchoConn::StartRead()
 {
-	int nbytes = ReadSome(fd_, &buf_[0], buf_.size());
+	int nbytes = ReadSome(fd_, &buf_[0], (int)buf_.size());
 	if (nbytes < 0)
 	{
 		Close(); // EOF or error;
@@ -43,7 +43,7 @@ void EchoConn::StartRead()
     else if (nbytes > 0)
     {
         recv_count_++;
-        fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, recv_count_);
+        fprintf(stdout, "%d recv %d bytes, %d\n", (int)fd_, nbytes, recv_count_);
         if (recv_count_ < MAX_RECV_COUNT)
         {
             // echo back
@@ -53,7 +53,7 @@ void EchoConn::StartRead()
                 Close();
                 return;
             }
-            fprintf(stdout, "%d send %d bytes, %d\n", fd_, nbytes, recv_count_);
+            fprintf(stdout, "%d send %d bytes, %d\n", (int)fd_, nbytes, recv_count_);
         }
         else
         {

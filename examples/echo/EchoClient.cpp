@@ -32,7 +32,7 @@ EchoClient::~EchoClient()
 
 void EchoClient::Cleanup()
 {
-    fprintf(stderr, "%d closed\n", fd_);
+    fprintf(stderr, "%d closed\n", (int)fd_);
     poller_->RemoveFd(fd_);
     closesocket(fd_);
     fd_ = INVALID_SOCKET;
@@ -60,7 +60,7 @@ void EchoClient::OnReadable()
     }
     else if(nbytes > 0)
     {
-        fprintf(stdout, "%d recv %d bytes, %d\n", fd_, nbytes, sent_count_);
+        fprintf(stdout, "%d recv %d bytes, %d\n", (int)fd_, nbytes, sent_count_);
 		buf_.resize(nbytes);
 		memcpy(&buf_[0], buf, nbytes);
     }
@@ -109,7 +109,7 @@ void EchoClient::SendData()
     }
     else
     {
-        fprintf(stdout, "%d send %d bytes, %d\n", fd_, nbytes, sent_count_);
+        fprintf(stdout, "%d send %d bytes, %d\n", (int)fd_, nbytes, sent_count_);
 		buf_.clear();
     }
 }

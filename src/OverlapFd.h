@@ -24,9 +24,9 @@ struct OverlapContext
     int64_t                 udata;      // user data
     std::function<void()>   cb;         // callback 
 
-    DWORD GetStatusCode() { return overlap.Internal; }
+    DWORD GetStatusCode() { return (DWORD)overlap.Internal; }
 
-    DWORD GetTransferredBytes() { return overlap.InternalHigh; }
+    DWORD GetTransferredBytes() { return (DWORD)overlap.InternalHigh; }
 
     void SetBuffer(void* buffer, int len)
     {
