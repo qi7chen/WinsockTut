@@ -1,0 +1,12 @@
+﻿---
+Language: Cpp
+BasedOnStyle: Microsoft
+
+ColumnLimit: 120
+TabWidth: 4
+
+SortIncludes: false
+PointerAlignment: Left
+DerivePointerAlignment: false
+AllowShortLambdasOnASingleLine: Empty
+
